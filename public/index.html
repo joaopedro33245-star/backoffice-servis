@@ -1303,27 +1303,146 @@ function renderFornTable() {
     </div></div></div>`;
 }
 
+let currentPagMonth = '';
+const MONTH_NAMES = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
 function renderPagamentos() {
   const F = DATA.fornecedores;
-  const total = F.reduce((s,d) => s + Number(d.valor), 0);
-  const lancados = F.filter(d => d.fluxo === 'SIM').length;
-  const pendentes = F.filter(d => d.fluxo === 'SIM' && d.pagamento !== 'SIM').length;
-  const sem = F.filter(d => d.fluxo !== 'SIM').length;
+  const H = DATA.fornHistorico;
 
-  const byFilial = {};
-  F.forEach(d => { const f = d.filial || 'Sem filial'; if (!byFilial[f]) byFilial[f] = {v:0,c:0}; byFilial[f].v += Number(d.valor); byFilial[f].c += 1; });
-  const sorted = Object.entries(byFilial).sort((a,b) => b[1].v - a[1].v);
+  // Build available months from fornecedores (current) and historico
+  const now = new Date();
+  const currentComp = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const histMonths = [...new Set(H.map(h => h.competencia))];
+  const allMonths = [...new Set([...histMonths, currentComp])].sort();
+  if (!currentPagMonth || !allMonths.includes(currentPagMonth)) currentPagMonth = currentComp;
+
+  // Month tabs
+  const monthTabs = allMonths.map(m => {
+    const [y, mo] = m.split('-');
+    const label = MONTH_NAMES[parseInt(mo)] + ' ' + y;
+    const active = m === currentPagMonth ? 'active' : '';
+    return `<button class="tab-pill ${active}" onclick="currentPagMonth='${m}';renderPagamentos()" style="font-size:11px;padding:5px 12px">${label}</button>`;
+  }).join('');
+
+  // Get data for selected month
+  let rows = [];
+  const isCurrent = currentPagMonth === currentComp;
+  if (isCurrent) {
+    // Use live fornecedores data for current month
+    rows = F.map(d => ({
+      servico: d.servico || '',
+      filial: d.filial || '',
+      recorrencia: 'Mensal',
+      responsavel: 'LEMOS',
+      lancado_fluxo: d.fluxo || '',
+      enviado_cp: d.pagamento === 'SIM' ? 'SIM' : (d.pagamento === 'PENDENTE' ? 'PENDENTE' : 'NÃO'),
+      uso: d.uso || '',
+      tipo: d.tipo || '',
+      valor: Number(d.valor) || 0,
+      forn: d.fornecedor_id || '',
+      data_nf: d.data_nf || '',
+      dt_vencimento: d.dt_vencimento || '',
+      id: d.id,
+      is_live: true
+    }));
+  } else {
+    // Use historico data for past months
+    const monthH = H.filter(h => h.competencia === currentPagMonth);
+    rows = monthH.map(h => {
+      const forn = F.find(f => f.id === h.fornecedor_id);
+      return {
+        servico: h.servico || (forn ? forn.servico : ''),
+        filial: forn ? forn.filial : '',
+        recorrencia: 'Mensal',
+        responsavel: 'LEMOS',
+        lancado_fluxo: h.fluxo || '',
+        enviado_cp: h.enviado_contas_pagar ? 'SIM' : 'NÃO',
+        uso: h.tipo_servico || (forn ? forn.uso : ''),
+        tipo: forn ? forn.tipo : '',
+        valor: Number(h.valor) || 0,
+        forn: h.fornecedor_id || '',
+        data_nf: h.data_nf || '',
+        dt_vencimento: h.dt_vencimento || '',
+        id: h.id,
+        is_live: false
+      };
+    });
+  }
+
+  // KPIs for selected month
+  const total = rows.reduce((s,r) => s + r.valor, 0);
+  const lancados = rows.filter(r => r.lancado_fluxo === 'SIM').length;
+  const enviadosCP = rows.filter(r => r.enviado_cp === 'SIM').length;
+  const pendentes = rows.filter(r => r.enviado_cp === 'PENDENTE').length;
+
+  // Filial color map
+  const filialColor = (f) => {
+    const fl = (f||'').toLowerCase();
+    if (fl.includes('geral')) return '#1abf8f';
+    if (fl.includes('cear')) return '#2a78d6';
+    if (fl.includes('amazon')) return '#eda100';
+    if (fl.includes('maranh')) return '#e87ba4';
+    if (fl.includes('piau')) return '#9b59b6';
+    if (fl.includes('teresin')) return '#9b59b6';
+    return '#6c7a89';
+  };
+  const tipoColor = (t) => {
+    const tl = (t||'').toLowerCase();
+    if (tl.includes('servidor')) return '#2a78d6';
+    if (tl.includes('sistema')) return '#1abf8f';
+    if (tl.includes('suporte')) return '#eb6834';
+    return '#6c7a89';
+  };
+  const statusCell = (val) => {
+    if (val === 'SIM') return '<span style="display:inline-block;padding:2px 10px;border-radius:3px;background:#27ae60;color:#fff;font-size:11px;font-weight:600">SIM</span>';
+    if (val === 'NÃO' || val === 'NAO') return '<span style="display:inline-block;padding:2px 10px;border-radius:3px;background:#e74c3c;color:#fff;font-size:11px;font-weight:600">NÃO</span>';
+    if (val === 'PENDENTE') return '<span style="display:inline-block;padding:2px 10px;border-radius:3px;background:#f39c12;color:#fff;font-size:11px;font-weight:600">PENDENTE</span>';
+    return '<span style="color:var(--text-muted)">—</span>';
+  };
+
+  const tableRows = rows.map(r => {
+    const dnf = r.data_nf ? new Date(r.data_nf+'T12:00:00').toLocaleDateString('pt-BR') : '';
+    const venc = r.dt_vencimento ? new Date(r.dt_vencimento+'T12:00:00').toLocaleDateString('pt-BR') : '';
+    return `<tr>
+      <td style="font-weight:600;white-space:nowrap">${r.servico}</td>
+      <td><span style="display:inline-block;padding:2px 10px;border-radius:3px;background:${filialColor(r.filial)};color:#fff;font-size:11px;font-weight:500">${r.filial}</span></td>
+      <td>${r.recorrencia}</td>
+      <td>${r.responsavel}</td>
+      <td>${statusCell(r.lancado_fluxo)}</td>
+      <td>${statusCell(r.enviado_cp)}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis" title="${r.uso}">${r.uso}</td>
+      <td><span style="display:inline-block;padding:2px 10px;border-radius:3px;background:${tipoColor(r.tipo)};color:#fff;font-size:11px;font-weight:500">${r.tipo || '—'}</span></td>
+      <td style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">R$ ${Number(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums">${r.forn || '—'}</td>
+      <td>${dnf}</td>
+      <td>${venc}</td>
+    </tr>`;
+  }).join('');
+
+  const [selY, selMo] = currentPagMonth.split('-');
+  const selLabel = MONTH_NAMES[parseInt(selMo)] + ' ' + selY;
 
   document.getElementById('forn-pagamentos').innerHTML = `
-    <div class="kpi-row">
-      <div class="kpi-tile"><div class="kpi-label">Total Mensal</div><div class="kpi-value blue">R$ ${fmtK(total)}</div></div>
-      <div class="kpi-tile"><div class="kpi-label">Lancados no Fluxo</div><div class="kpi-value accent">${lancados}</div></div>
-      <div class="kpi-tile"><div class="kpi-label">Pendentes</div><div class="kpi-value warning">${pendentes}</div></div>
-      <div class="kpi-tile"><div class="kpi-label">Sem Lancamento</div><div class="kpi-value danger">${sem}</div></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;overflow-x:auto;padding-bottom:4px">${monthTabs}</div>
+      <div style="flex:1"></div>
+      <button class="btn-primary" onclick="openHistoricoModal()" style="font-size:11px">+ Novo Registro</button>
     </div>
-    <div class="card"><div class="card-header"><div class="card-title">Resumo de Pagamentos por Filial</div></div><div class="card-body"><div class="table-wrap">
-      <table><thead><tr><th>Filial</th><th style="text-align:right">Valor Total</th><th style="text-align:right">Servicos</th><th>% do Total</th></tr></thead>
-      <tbody>${sorted.map(([f,d]) => { const pct = ((d.v/total)*100).toFixed(1); return `<tr><td>${f}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.v)}</td><td style="text-align:right">${d.c}</td><td><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:var(--bg-input);border-radius:3px"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:3px"></div></div><span style="font-size:11px">${pct}%</span></div></td></tr>`; }).join('')}</tbody></table>
+    <div class="kpi-row" style="margin-bottom:16px">
+      <div class="kpi-tile"><div class="kpi-label">Total Mensal</div><div class="kpi-value blue">R$ ${Number(total).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Lancados no Fluxo</div><div class="kpi-value accent">${lancados} de ${rows.length}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Enviado Contas a Pagar</div><div class="kpi-value" style="color:#27ae60">${enviadosCP}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Pendentes</div><div class="kpi-value warning">${pendentes}</div></div>
+    </div>
+    <div class="card"><div class="card-header"><div class="card-title">${selLabel} — ${rows.length} servicos</div></div>
+    <div class="card-body"><div class="table-wrap" style="max-height:60vh;overflow-y:auto;overflow-x:auto">
+      <table style="min-width:1100px"><thead><tr>
+        <th>Servico</th><th>Filial</th><th>Recorrencia</th><th>Responsaveis</th>
+        <th>Lancado no Fluxo</th><th>Enviado Contas a Pagar</th>
+        <th>Uso</th><th>Tipo</th><th style="text-align:right">Valor Mensal</th>
+        <th style="text-align:right">Forn.</th><th>Data NF</th><th>Vencimento</th>
+      </tr></thead><tbody>${tableRows || '<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--text-muted)">Nenhum registro para este mes. Clique em "+ Novo Registro" para adicionar.</td></tr>'}</tbody></table>
     </div></div></div>`;
 }
 
