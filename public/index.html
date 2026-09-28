@@ -431,12 +431,14 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
           <button class="tab-pill active" onclick="showFornTab(this,'lista')">Lista de Servicos</button>
           <button class="tab-pill" onclick="showFornTab(this,'pagamentos')">Pagamentos</button>
           <button class="tab-pill" onclick="showFornTab(this,'boletos')">Boletos & Notas</button>
+          <button class="tab-pill" onclick="showFornTab(this,'comparativo')">Comparativo</button>
         </div>
         <button class="btn btn-accent" onclick="openFornModal()">+ Novo Fornecedor</button>
       </div>
       <div id="forn-lista"></div>
       <div id="forn-pagamentos" style="display:none"></div>
       <div id="forn-boletos" style="display:none"></div>
+      <div id="forn-comparativo" style="display:none"></div>
     </div>
 
     <!-- ===== TORRES ===== -->
@@ -453,17 +455,28 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
 
     <!-- ===== CLIENTES IA ===== -->
     <div class="section" id="sec-clientes">
-      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">
+        <div class="tab-pills" style="margin-bottom:0">
+          <button class="tab-pill active" onclick="showIATab(this,'todos')">Todos</button>
+          <button class="tab-pill" onclick="showIATab(this,'Segware IA')">Segware IA</button>
+          <button class="tab-pill" onclick="showIATab(this,'OCTOS')">OCTOS</button>
+          <button class="tab-pill" onclick="showIATab(this,'MONUV')">MONUV</button>
+        </div>
         <button class="btn btn-accent" onclick="openIAModal()">+ Novo Registro IA</button>
       </div>
       <div class="kpi-grid-dash" id="ia-kpis"></div>
       <div class="chart-grid" style="margin-bottom:22px" id="ia-charts"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px" id="ia-tables"></div>
+      <div class="card" id="ia-detail-table"></div>
     </div>
 
     <!-- ===== ARMARIOS ===== -->
     <div class="section" id="sec-armarios">
-      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">
+        <div class="tab-pills" style="margin-bottom:0">
+          <button class="tab-pill active" onclick="showArmTab(this,'geral')">Geral</button>
+          <button class="tab-pill" onclick="showArmTab(this,'bicateca')">Bicateca</button>
+          <button class="tab-pill" onclick="showArmTab(this,'meulocker')">Meu Locker</button>
+        </div>
         <button class="btn btn-accent" onclick="openArmModal()">+ Novo Armario</button>
       </div>
       <div class="kpi-grid-dash" style="grid-template-columns:repeat(5,1fr)" id="arm-kpis"></div>
@@ -699,35 +712,48 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
       <button class="modal-close" onclick="closeIAModal()">&times;</button>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="ia-edit-id">
       <div class="form-group">
-        <label class="form-label">Tipo</label>
-        <select class="form-input" id="ia-modal-tipo" onchange="toggleIAFields()">
-          <option value="filial">Por Filial</option>
-          <option value="provedor">Por Provedor</option>
+        <label class="form-label">Provedor</label>
+        <select class="form-input" id="iam-provedor">
+          <option>Segware IA</option><option>OCTOS</option><option>MONUV</option>
         </select>
       </div>
-      <div id="ia-filial-fields">
+      <div class="form-group">
+        <label class="form-label">Nome do Cliente</label>
+        <input class="form-input" id="iam-nome" placeholder="Ex: Cond. Solar dos Girassois">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="form-group">
           <label class="form-label">Filial</label>
-          <input class="form-input" id="iam-filial" placeholder="Ex: Servis Ceara">
+          <select class="form-input" id="iam-filial">
+            <option>FORTALEZA</option><option>MARANHÃO</option><option>MANAUS</option><option>TERESINA</option>
+          </select>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
-          <div class="form-group"><label class="form-label">Clientes</label><input class="form-input" id="iam-clientes" type="number" value="0"></div>
-          <div class="form-group"><label class="form-label">Ativos</label><input class="form-input" id="iam-ativos" type="number" value="0"></div>
-          <div class="form-group"><label class="form-label">Inativos</label><input class="form-input" id="iam-inativos" type="number" value="0"></div>
-        </div>
-        <div class="form-group"><label class="form-label">Cameras</label><input class="form-input" id="iam-cameras" type="number" value="0"></div>
-      </div>
-      <div id="ia-provedor-fields" style="display:none">
         <div class="form-group">
-          <label class="form-label">Provedor</label>
-          <input class="form-input" id="iam-provedor" placeholder="Ex: Intelbras">
+          <label class="form-label">Modalidade</label>
+          <select class="form-input" id="iam-modalidade">
+            <option>Mensal</option><option>Anual</option><option>Avulso</option>
+          </select>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
-          <div class="form-group"><label class="form-label">Clientes</label><input class="form-input" id="iam-p-clientes" type="number" value="0"></div>
-          <div class="form-group"><label class="form-label">Ativos</label><input class="form-input" id="iam-p-ativos" type="number" value="0"></div>
-          <div class="form-group"><label class="form-label">Cameras</label><input class="form-input" id="iam-p-cameras" type="number" value="0"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Bonificacao</label>
+          <select class="form-input" id="iam-bonificacao"><option>Não</option><option>Sim</option></select>
         </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="iam-status"><option>Ativo</option><option>Inativo</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Qtd IA</label>
+          <input class="form-input" id="iam-qtd" type="number" value="0">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group"><label class="form-label">Custo Mensal (R$)</label><input class="form-input" id="iam-custo" type="number" step="0.01" placeholder="0,00"></div>
+        <div class="form-group"><label class="form-label">Receita Mensal (R$)</label><input class="form-input" id="iam-receita" type="number" step="0.01" placeholder="0,00"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -773,6 +799,18 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group"><label class="form-label">Ordem de Compra</label><input class="form-input" id="arm-ordem-compra" placeholder="Ex: OC-00123"></div>
+        <div class="form-group"><label class="form-label">Numero da NF</label><input class="form-input" id="arm-numero-nf" placeholder="Ex: NF-00456"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">PDF da Nota de Compra (URL)</label>
+        <input class="form-input" id="arm-pdf-nf" placeholder="https://... ou link do arquivo">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group"><label class="form-label">Custo Gestao (R$)</label><input class="form-input" id="arm-custo-gestao" type="number" step="0.01" placeholder="0,00"></div>
+        <div class="form-group"><label class="form-label">Custo Locacao (R$)</label><input class="form-input" id="arm-custo-locacao" type="number" step="0.01" placeholder="0,00"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="form-group"><label class="form-label">Custo Fornecedor (R$)</label><input class="form-input" id="arm-custo" type="number" step="0.01" placeholder="0,00"></div>
         <div class="form-group"><label class="form-label">Valor Cliente (R$)</label><input class="form-input" id="arm-valor-cli" type="number" step="0.01" placeholder="0,00"></div>
       </div>
@@ -784,12 +822,53 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
   </div>
 </div>
 
+<div class="modal-overlay" id="hist-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Novo Registro de Historico</h3>
+      <button class="modal-close" onclick="closeHistoricoModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Fornecedor</label>
+        <select class="form-input" id="hist-fornecedor-id"><option value="">Selecione</option></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group"><label class="form-label">Servico / Descricao</label><input class="form-input" id="hist-servico" placeholder="Ex: Monitoramento"></div>
+        <div class="form-group"><label class="form-label">Tipo de Servico</label><input class="form-input" id="hist-tipo-servico" placeholder="Ex: Sistema, Suporte"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group"><label class="form-label">Competencia (YYYY-MM)</label><input class="form-input" id="hist-competencia" type="month"></div>
+        <div class="form-group"><label class="form-label">Valor (R$)</label><input class="form-input" id="hist-valor" type="number" step="0.01" placeholder="0,00"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group"><label class="form-label">Data da NF</label><input class="form-input" id="hist-data-nf" type="date"></div>
+        <div class="form-group"><label class="form-label">Vencimento</label><input class="form-input" id="hist-vencimento" type="date"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Fluxo</label><input class="form-input" id="hist-fluxo" placeholder="Ex: Aprovado, Em analise"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="hist-enviado-cp"><label class="form-label" style="margin:0" for="hist-enviado-cp">Enviado ao Contas a Pagar</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="hist-lancado"><label class="form-label" style="margin:0" for="hist-lancado">Lancado para Pagamento</label>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Observacoes</label><textarea class="form-input" id="hist-obs" rows="2" placeholder="Observacoes..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeHistoricoModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveHistorico()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ===== SUPABASE CONFIG =====
 const DEFAULT_SB_URL = 'https://fxmdsumcqukxuzooiiju.supabase.co';
 const DEFAULT_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4bWRzdW1jcXVreHV6b29paWp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MTcyNjAsImV4cCI6MjA4ODk5MzI2MH0.qEKKHqvJAt_5Bsk9V5uBI1eN27eWu1wiFhHoFbpI2lo';
 let sb = null;
-let DATA = { fornecedores: [], torres: [], iaFilial: [], iaProvedor: [], armResumo: [], armDetail: [], boletos: [] };
+let DATA = { fornecedores: [], torres: [], iaFilial: [], iaProvedor: [], armResumo: [], armDetail: [], boletos: [], iaDetail: [], fornHistorico: [] };
 
 function getConfig() {
   try {
@@ -860,10 +939,11 @@ async function loadAllData() {
     { key: 'armarios_resumo', q: sb.from('armarios_resumo').select('*') },
     { key: 'armarios_detail', q: sb.from('armarios_detail').select('*') },
     { key: 'boletos', q: sb.from('boletos').select('*') },
+    { key: 'clientes_ia_detail', q: sb.from('clientes_ia_detail').select('*') },
+    { key: 'fornecedores_historico', q: sb.from('fornecedores_historico').select('*') },
   ];
   const results = await Promise.all(tables.map(t => t.q));
   let errors = [];
-  const map = { fornecedores:0, torres:1, clientes_ia_filial:2, clientes_ia_provedor:3, armarios_resumo:4, armarios_detail:5, boletos:6 };
   tables.forEach((t, i) => {
     const r = results[i];
     if (r.error) {
@@ -878,6 +958,8 @@ async function loadAllData() {
   DATA.armResumo = results[4].data || [];
   DATA.armDetail = results[5].data || [];
   DATA.boletos = results[6].data || [];
+  DATA.iaDetail = results[7].data || [];
+  DATA.fornHistorico = results[8].data || [];
 
   if (errors.length > 0) {
     showToast('Erro RLS: ' + errors[0], true);
@@ -891,6 +973,8 @@ async function loadAllData() {
     armResumo: DATA.armResumo.length,
     armDetail: DATA.armDetail.length,
     boletos: DATA.boletos.length,
+    iaDetail: DATA.iaDetail.length,
+    fornHistorico: DATA.fornHistorico.length,
   });
 }
 
@@ -1119,7 +1203,9 @@ function showFornTab(btn, tab) {
   document.getElementById('forn-lista').style.display = tab === 'lista' ? '' : 'none';
   document.getElementById('forn-pagamentos').style.display = tab === 'pagamentos' ? '' : 'none';
   document.getElementById('forn-boletos').style.display = tab === 'boletos' ? '' : 'none';
+  document.getElementById('forn-comparativo').style.display = tab === 'comparativo' ? '' : 'none';
   if (tab === 'boletos') renderBoletos();
+  if (tab === 'comparativo') renderComparativo();
 }
 
 function renderFornecedores() {
@@ -1357,38 +1443,81 @@ function renderTorresTable() {
 }
 
 // ===== CLIENTES IA =====
+let currentIATab = 'todos';
+function showIATab(btn, tab) {
+  document.querySelectorAll('#sec-clientes .tab-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  currentIATab = tab;
+  renderIA();
+}
+
 function renderIA() {
-  const IF = DATA.iaFilial, IP = DATA.iaProvedor;
-  const totalCli = IF.reduce((s,d)=>s+d.clientes,0);
-  const ativosCli = IF.reduce((s,d)=>s+d.ativos,0);
-  const inativosCli = IF.reduce((s,d)=>s+d.inativos,0);
-  const totalCam = IF.reduce((s,d)=>s+d.cameras,0);
+  const ALL = DATA.iaDetail;
+  const filtered = currentIATab === 'todos' ? ALL : ALL.filter(d => d.provedor === currentIATab);
+  const totalCli = filtered.length;
+  const ativosCli = filtered.filter(d => d.status === 'Ativo').length;
+  const inativosCli = filtered.filter(d => d.status !== 'Ativo').length;
+  const totalIA = filtered.reduce((s,d) => s + (d.qtd_ia || 0), 0);
+  const custoTotal = filtered.reduce((s,d) => s + Number(d.custo_mensal || 0), 0);
+  const receitaTotal = filtered.reduce((s,d) => s + Number(d.receita_mensal || 0), 0);
+  const margemTotal = receitaTotal - custoTotal;
 
   document.getElementById('ia-kpis').innerHTML = `
-    <div class="kpi-card"><div class="kpi-card-stripe" style="background:#eb6834"></div><div class="kpi-card-icon" style="background:rgba(235,104,52,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#eb6834" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="kpi-label">Total Clientes</div><div class="kpi-value" style="color:#eb6834">${totalCli}</div><div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${ativosCli} ativos</span> ${inativosCli} inativos</div></div>
-    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div><div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="12" cy="12" r="4"/></svg></div><div class="kpi-label">Cameras com IA</div><div class="kpi-value blue">${totalCam.toLocaleString('pt-BR')}</div><div class="kpi-sub">em ${IF.length} filiais</div></div>
-    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/></svg></div><div class="kpi-label">Provedores</div><div class="kpi-value accent">${IP.length}</div><div class="kpi-sub">plataformas de IA</div></div>`;
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:#eb6834"></div><div class="kpi-card-icon" style="background:rgba(235,104,52,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#eb6834" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="kpi-label">Clientes</div><div class="kpi-value" style="color:#eb6834">${totalCli}</div><div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${ativosCli} ativos</span> ${inativosCli} inativos</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div><div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="12" cy="12" r="4"/></svg></div><div class="kpi-label">Qtd IA Total</div><div class="kpi-value blue">${totalIA}</div><div class="kpi-sub">${currentIATab==='todos'?'todos os provedores':currentIATab}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--warning)"></div><div class="kpi-card-icon" style="background:var(--warning-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Custo Mensal</div><div class="kpi-value warning">R$ ${fmtK(custoTotal)}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="kpi-label">Receita Mensal</div><div class="kpi-value accent">R$ ${fmtK(receitaTotal)}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:${margemTotal>=0?'var(--accent)':'var(--danger)'}"></div><div class="kpi-card-icon" style="background:${margemTotal>=0?'var(--accent-dim)':'var(--danger-dim)'}"><svg viewBox="0 0 24 24" fill="none" stroke="${margemTotal>=0?'var(--accent)':'var(--danger)'}" stroke-width="2"><path d="M12 2l10 18H2z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="16" r="0.5"/></svg></div><div class="kpi-label">Margem Mensal</div><div class="kpi-value ${margemTotal>=0?'accent':'danger'}">R$ ${fmtK(Math.abs(margemTotal))}</div></div>`;
 
-  // Charts
+  // Charts: IA by provedor and by filial
+  const byProv = {}, byFilial = {};
+  const src = currentIATab === 'todos' ? ALL : filtered;
+  src.forEach(d => {
+    byProv[d.provedor] = (byProv[d.provedor]||0) + (d.qtd_ia||0);
+    byFilial[d.filial||'Outros'] = (byFilial[d.filial||'Outros']||0) + (d.qtd_ia||0);
+  });
   document.getElementById('ia-charts').innerHTML = `
-    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Cameras por Filial</div></div><div class="chart-card-badge">${IF.length} filiais</div></div><div class="chart-card-body" id="ic-fil"></div></div>
-    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Cameras por Provedor</div></div><div class="chart-card-badge">${IP.length} provedores</div></div><div class="chart-card-body" id="ic-prov"></div></div>`;
-  hBar('ic-fil', IF.map(d=>({l:d.filial.replace('Servis ','').replace('Secopi ',''),v:d.cameras,t:d.cameras+' cam.'})), ['#2a78d6','#1abf8f','#eb6834','#eda100']);
-  hBar('ic-prov', IP.map(d=>({l:d.provedor,v:d.cameras,t:d.cameras+' cam.'})), ['#eb6834','#2a78d6','#1abf8f','#eda100']);
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">IA por Provedor</div></div></div><div class="chart-card-body" id="ic-prov"></div></div>
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">IA por Filial</div></div></div><div class="chart-card-body" id="ic-fil"></div></div>`;
+  hBar('ic-prov', Object.entries(byProv).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v,t:v+' IAs'})), ['#eb6834','#2a78d6','#1abf8f','#eda100']);
+  hBar('ic-fil', Object.entries(byFilial).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v,t:v+' IAs'})), ['#2a78d6','#1abf8f','#eb6834','#eda100']);
 
-  // Tables
-  document.getElementById('ia-tables').innerHTML = `
-    <div class="card"><div class="card-header"><div class="card-title">Por Filial</div></div><div class="card-body"><div class="table-wrap">
-      <table><thead><tr><th>Filial</th><th style="text-align:right">Clientes</th><th style="text-align:right">Ativos</th><th style="text-align:right">Inativos</th><th style="text-align:right">Cameras IA</th></tr></thead>
-      <tbody>${IF.map(d=>`<tr><td>${d.filial}</td><td style="text-align:right">${d.clientes}</td><td style="text-align:right">${d.ativos}</td><td style="text-align:right">${d.inativos}</td><td style="text-align:right;font-weight:600">${d.cameras}</td></tr>`).join('')}</tbody></table>
-    </div></div></div>
-    <div class="card"><div class="card-header"><div class="card-title">Por Provedor</div></div><div class="card-body"><div class="table-wrap">
-      <table><thead><tr><th>Provedor</th><th style="text-align:right">Clientes</th><th style="text-align:right">Ativos</th><th style="text-align:right">Cameras IA</th></tr></thead>
-      <tbody>${IP.map(d=>`<tr><td>${d.provedor}</td><td style="text-align:right">${d.clientes}</td><td style="text-align:right">${d.ativos}</td><td style="text-align:right;font-weight:600">${d.cameras}</td></tr>`).join('')}</tbody></table>
-    </div></div></div>`;
+  // Detail table
+  document.getElementById('ia-detail-table').innerHTML = `
+    <div class="card-header"><div class="card-title">Detalhamento — ${currentIATab==='todos'?'Todos os Provedores':currentIATab}</div></div>
+    <div class="card-body"><div class="table-wrap" style="max-height:55vh;overflow-y:auto">
+      <table><thead><tr><th>ID</th><th>Nome do Cliente</th><th>Filial</th>${currentIATab==='todos'?'<th>Provedor</th>':''}<th>Modalidade</th><th>Bonif.</th><th>Status</th><th style="text-align:right">Qtd IA</th><th style="text-align:right">Custo Mensal</th><th style="text-align:right">Receita Mensal</th><th style="text-align:right">Margem Mensal</th><th>Acoes</th></tr></thead>
+      <tbody>${filtered.map(d => {
+        const margem = Number(d.margem_mensal || (Number(d.receita_mensal||0) - Number(d.custo_mensal||0)));
+        const stBadge = d.status==='Ativo'?'badge-success':'badge-neutral';
+        const bonBadge = d.bonificacao==='Sim'?'badge-warning':'badge-neutral';
+        return `<tr>
+          <td style="color:var(--text-muted);font-size:11px">${d.id}</td>
+          <td>${d.nome_cliente}</td>
+          <td>${d.filial}</td>
+          ${currentIATab==='todos'?`<td><span class="badge badge-blue">${d.provedor}</span></td>`:''}
+          <td>${d.modalidade||'Mensal'}</td>
+          <td><span class="badge ${bonBadge}">${d.bonificacao||'Não'}</span></td>
+          <td><span class="badge ${stBadge}">${d.status}</span></td>
+          <td style="text-align:right">${d.qtd_ia||0}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_mensal)}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.receita_mensal)}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums" class="${margem>=0?'val-pos':'val-neg'}">${fmtVal(margem)}</td>
+          <td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="editIADetail(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteIADetail(${d.id})" style="color:var(--danger)">Excluir</button></td>
+        </tr>`;
+      }).join('')}${filtered.length===0?'<tr><td colspan="12" style="text-align:center;color:var(--text-muted);padding:20px">Nenhum registro encontrado</td></tr>':''}</tbody></table>
+    </div></div>`;
 }
 
 // ===== ARMARIOS =====
+let currentArmTab = 'geral';
+function showArmTab(btn, tab) {
+  document.querySelectorAll('#sec-armarios .tab-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  currentArmTab = tab;
+  renderArmDetail();
+}
+
 function renderArmarios() {
   const ARM = DATA.armResumo, AD = DATA.armDetail;
   const totalArm = ARM.reduce((s,d)=>s+d.cadastrados,0);
@@ -1458,10 +1587,15 @@ function renderArmDetail() {
   const status = sEl ? sEl.value : '';
 
   let filtered = AD.filter(d => {
+    // Tab filter by fornecedor
+    if (currentArmTab === 'bicateca' && (d.fornecedor||'').toUpperCase() !== 'BICATECA') return false;
+    if (currentArmTab === 'meulocker' && (d.fornecedor||'').toUpperCase() !== 'MEU LOCKER') return false;
     if (filial && d.filial !== filial) return false;
     if (status && d.status !== status) return false;
     return true;
   });
+
+  const tabLabel = currentArmTab === 'geral' ? 'Todos' : currentArmTab === 'bicateca' ? 'Bicateca' : 'Meu Locker';
 
   document.getElementById('arm-filters').innerHTML = `
     <select class="filter-select" data-filter="filial" onchange="renderArmDetail()">
@@ -1475,13 +1609,15 @@ function renderArmDetail() {
       <option value="">Todos os Status</option>
       <option value="Ativo" ${status==='Ativo'?'selected':''}>Ativo</option>
       <option value="Inativo" ${status==='Inativo'?'selected':''}>Inativo</option>
-    </select>`;
+    </select>
+    <div style="flex:1"></div>
+    <div style="font-size:12px;color:var(--text-muted)">${filtered.length} armarios — ${tabLabel}</div>`;
 
   document.getElementById('arm-detail-card').innerHTML = `
-    <div class="card-header"><div class="card-title">Detalhamento de Armarios</div></div>
+    <div class="card-header"><div class="card-title">Detalhamento de Armarios — ${tabLabel}</div></div>
     <div class="card-body"><div class="table-wrap" style="max-height:50vh;overflow-y:auto">
-      <table><thead><tr><th>Condominio</th><th>Filial</th><th>Fornecedor</th><th style="text-align:center">Portas</th><th>Status</th><th>Grat.</th><th style="text-align:right">Custo Forn.</th><th style="text-align:right">Valor Cli.</th><th style="text-align:right">Margem</th></tr></thead>
-      <tbody>${filtered.map(d=>`<tr><td>${d.condominio}</td><td>${d.filial}</td><td>${d.fornecedor}</td><td style="text-align:center">${d.portas}</td><td><span class="badge ${d.status==='Ativo'?'badge-success':'badge-neutral'}">${d.status}</span></td><td><span class="badge ${d.gratificacao==='Sim'?'badge-success':'badge-neutral'}">${d.gratificacao}</span></td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_forn)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.valor_cli?fmtVal(d.valor_cli):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" class="${Number(d.margem)>=0?'val-pos':'val-neg'}">${fmtVal(d.margem)}</td></tr>`).join('')}</tbody></table>
+      <table><thead><tr><th>Condominio</th><th>Filial</th><th>Fornecedor</th><th style="text-align:center">Portas</th><th>Status</th><th>Grat.</th><th style="text-align:right">C. Gestao</th><th style="text-align:right">C. Locacao</th><th style="text-align:right">Custo Forn.</th><th style="text-align:right">Valor Cli.</th><th style="text-align:right">Margem</th></tr></thead>
+      <tbody>${filtered.map(d=>`<tr><td>${d.condominio}</td><td>${d.filial}</td><td>${d.fornecedor}</td><td style="text-align:center">${d.portas}</td><td><span class="badge ${d.status==='Ativo'?'badge-success':'badge-neutral'}">${d.status}</span></td><td><span class="badge ${d.gratificacao==='Sim'?'badge-success':'badge-neutral'}">${d.gratificacao}</span></td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_gestao||0)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_locacao||0)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_forn)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.valor_cli?fmtVal(d.valor_cli):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" class="${Number(d.margem)>=0?'val-pos':'val-neg'}">${fmtVal(d.margem)}</td></tr>`).join('')}</tbody></table>
     </div></div>`;
 }
 
@@ -1626,55 +1762,73 @@ async function deleteTorre(id) {
 }
 
 // ===== CLIENTES IA CRUD =====
-function toggleIAFields() {
-  const tipo = document.getElementById('ia-modal-tipo').value;
-  document.getElementById('ia-filial-fields').style.display = tipo === 'filial' ? '' : 'none';
-  document.getElementById('ia-provedor-fields').style.display = tipo === 'provedor' ? '' : 'none';
-}
 function openIAModal() {
   document.getElementById('ia-modal').classList.add('open');
-  document.getElementById('ia-modal-tipo').value = 'filial';
-  toggleIAFields();
-  document.getElementById('iam-filial').value = '';
-  document.getElementById('iam-clientes').value = '0';
-  document.getElementById('iam-ativos').value = '0';
-  document.getElementById('iam-inativos').value = '0';
-  document.getElementById('iam-cameras').value = '0';
-  document.getElementById('iam-provedor').value = '';
-  document.getElementById('iam-p-clientes').value = '0';
-  document.getElementById('iam-p-ativos').value = '0';
-  document.getElementById('iam-p-cameras').value = '0';
+  document.getElementById('ia-modal-title').textContent = 'Novo Registro IA';
+  document.getElementById('ia-edit-id').value = '';
+  document.getElementById('iam-provedor').value = currentIATab !== 'todos' ? currentIATab : 'Segware IA';
+  document.getElementById('iam-nome').value = '';
+  document.getElementById('iam-filial').value = 'FORTALEZA';
+  document.getElementById('iam-modalidade').value = 'Mensal';
+  document.getElementById('iam-bonificacao').value = 'Não';
+  document.getElementById('iam-status').value = 'Ativo';
+  document.getElementById('iam-qtd').value = '0';
+  document.getElementById('iam-custo').value = '';
+  document.getElementById('iam-receita').value = '';
+}
+function editIADetail(id) {
+  const d = DATA.iaDetail.find(r => r.id === id);
+  if (!d) return;
+  document.getElementById('ia-modal').classList.add('open');
+  document.getElementById('ia-modal-title').textContent = 'Editar Registro IA';
+  document.getElementById('ia-edit-id').value = d.id;
+  document.getElementById('iam-provedor').value = d.provedor || 'Segware IA';
+  document.getElementById('iam-nome').value = d.nome_cliente || '';
+  document.getElementById('iam-filial').value = d.filial || 'FORTALEZA';
+  document.getElementById('iam-modalidade').value = d.modalidade || 'Mensal';
+  document.getElementById('iam-bonificacao').value = d.bonificacao || 'Não';
+  document.getElementById('iam-status').value = d.status || 'Ativo';
+  document.getElementById('iam-qtd').value = d.qtd_ia || '0';
+  document.getElementById('iam-custo').value = d.custo_mensal || '';
+  document.getElementById('iam-receita').value = d.receita_mensal || '';
 }
 function closeIAModal() { document.getElementById('ia-modal').classList.remove('open'); }
 
 async function saveIA() {
   if (!sb) { showToast('Sem conexao', true); return; }
-  const tipo = document.getElementById('ia-modal-tipo').value;
+  const nome = document.getElementById('iam-nome').value.trim();
+  if (!nome) { showToast('Preencha o nome do cliente', true); return; }
+  const obj = {
+    provedor: document.getElementById('iam-provedor').value,
+    nome_cliente: nome,
+    filial: document.getElementById('iam-filial').value,
+    modalidade: document.getElementById('iam-modalidade').value,
+    bonificacao: document.getElementById('iam-bonificacao').value,
+    status: document.getElementById('iam-status').value,
+    qtd_ia: parseInt(document.getElementById('iam-qtd').value) || 0,
+    custo_mensal: parseFloat(document.getElementById('iam-custo').value) || 0,
+    receita_mensal: parseFloat(document.getElementById('iam-receita').value) || 0,
+  };
+  const editId = document.getElementById('ia-edit-id').value;
   let error;
-  if (tipo === 'filial') {
-    const filial = document.getElementById('iam-filial').value.trim();
-    if (!filial) { showToast('Preencha a filial', true); return; }
-    ({ error } = await sb.from('clientes_ia_filial').insert({
-      filial,
-      clientes: parseInt(document.getElementById('iam-clientes').value) || 0,
-      ativos: parseInt(document.getElementById('iam-ativos').value) || 0,
-      inativos: parseInt(document.getElementById('iam-inativos').value) || 0,
-      cameras: parseInt(document.getElementById('iam-cameras').value) || 0,
-    }));
+  if (editId) {
+    ({ error } = await sb.from('clientes_ia_detail').update(obj).eq('id', parseInt(editId)));
   } else {
-    const provedor = document.getElementById('iam-provedor').value.trim();
-    if (!provedor) { showToast('Preencha o provedor', true); return; }
-    ({ error } = await sb.from('clientes_ia_provedor').insert({
-      provedor,
-      clientes: parseInt(document.getElementById('iam-p-clientes').value) || 0,
-      ativos: parseInt(document.getElementById('iam-p-ativos').value) || 0,
-      cameras: parseInt(document.getElementById('iam-p-cameras').value) || 0,
-    }));
+    ({ error } = await sb.from('clientes_ia_detail').insert(obj));
   }
   if (error) { showToast('Erro: ' + error.message, true); return; }
-  showToast('Registro adicionado!');
+  showToast(editId ? 'Registro atualizado!' : 'Registro adicionado!');
   closeIAModal();
   await refreshData();
+}
+
+async function deleteIADetail(id) {
+  if (!sb || !confirm('Excluir este registro?')) return;
+  const { error } = await sb.from('clientes_ia_detail').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  DATA.iaDetail = DATA.iaDetail.filter(d => d.id !== id);
+  renderIA();
+  showToast('Excluido!');
 }
 
 // ===== ARMARIO CRUD =====
@@ -1686,6 +1840,11 @@ function openArmModal() {
   document.getElementById('arm-portas').value = '0';
   document.getElementById('arm-status').value = 'Ativo';
   document.getElementById('arm-grat').value = 'Não';
+  document.getElementById('arm-ordem-compra').value = '';
+  document.getElementById('arm-numero-nf').value = '';
+  document.getElementById('arm-pdf-nf').value = '';
+  document.getElementById('arm-custo-gestao').value = '';
+  document.getElementById('arm-custo-locacao').value = '';
   document.getElementById('arm-custo').value = '';
   document.getElementById('arm-valor-cli').value = '';
 }
@@ -1695,7 +1854,9 @@ async function saveArmario() {
   if (!sb) { showToast('Sem conexao', true); return; }
   const condominio = document.getElementById('arm-condominio').value.trim();
   if (!condominio) { showToast('Preencha o condominio', true); return; }
-  const custo = parseFloat(document.getElementById('arm-custo').value) || 0;
+  const custoGestao = parseFloat(document.getElementById('arm-custo-gestao').value) || 0;
+  const custoLocacao = parseFloat(document.getElementById('arm-custo-locacao').value) || 0;
+  const custoForn = parseFloat(document.getElementById('arm-custo').value) || 0;
   const valorCli = parseFloat(document.getElementById('arm-valor-cli').value) || 0;
   const obj = {
     condominio,
@@ -1704,14 +1865,181 @@ async function saveArmario() {
     portas: parseInt(document.getElementById('arm-portas').value) || 0,
     status: document.getElementById('arm-status').value,
     gratificacao: document.getElementById('arm-grat').value,
-    custo_forn: custo,
+    ordem_compra: document.getElementById('arm-ordem-compra').value.trim(),
+    numero_nf: document.getElementById('arm-numero-nf').value.trim(),
+    pdf_nf_url: document.getElementById('arm-pdf-nf').value.trim(),
+    custo_gestao: custoGestao,
+    custo_locacao: custoLocacao,
+    custo_forn: custoForn,
     valor_cli: valorCli,
-    margem: valorCli - custo,
+    margem: valorCli - custoForn,
   };
   const { error } = await sb.from('armarios_detail').insert(obj);
   if (error) { showToast('Erro: ' + error.message, true); return; }
   showToast('Armario adicionado!');
   closeArmModal();
+  await refreshData();
+}
+
+// ===== FORNECEDORES COMPARATIVO =====
+let selectedFornComparativo = null;
+
+function renderComparativo() {
+  const H = DATA.fornHistorico;
+  const F = DATA.fornecedores;
+  if (!H.length) {
+    document.getElementById('forn-comparativo').innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--text-muted)">Nenhum historico de pagamentos registrado ainda.<br>Adicione registros no historico para ver o comparativo.</div></div>';
+    return;
+  }
+
+  // Group by fornecedor
+  const byForn = {};
+  H.forEach(h => {
+    const forn = F.find(f => f.id === h.fornecedor_id);
+    const name = forn ? forn.servico : ('Forn #' + h.fornecedor_id);
+    if (!byForn[name]) byForn[name] = { id: h.fornecedor_id, records: [] };
+    byForn[name].records.push(h);
+  });
+
+  // Get all unique competencias sorted
+  const allComp = [...new Set(H.map(h => h.competencia))].sort();
+  const lastTwo = allComp.slice(-2);
+
+  // Build comparison table
+  let rows = '';
+  Object.entries(byForn).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, info]) => {
+    const recs = info.records;
+    const valByComp = {};
+    recs.forEach(r => { valByComp[r.competencia] = (valByComp[r.competencia] || 0) + Number(r.valor); });
+    const currentVal = lastTwo.length >= 1 ? (valByComp[lastTwo[lastTwo.length-1]] || 0) : 0;
+    const prevVal = lastTwo.length >= 2 ? (valByComp[lastTwo[0]] || 0) : 0;
+    const diff = currentVal - prevVal;
+    const pct = prevVal > 0 ? ((diff / prevVal) * 100).toFixed(1) : '—';
+    const arrow = diff > 0 ? '<span style="color:var(--danger)">▲ +' + fmtVal(diff) + ' (' + pct + '%)</span>' :
+                  diff < 0 ? '<span style="color:var(--accent)">▼ ' + fmtVal(diff) + ' (' + pct + '%)</span>' :
+                  '<span style="color:var(--text-muted)">= Sem alteracao</span>';
+    rows += `<tr style="cursor:pointer" onclick="showFornTrend('${name.replace(/'/g,"\\'")}', ${info.id})">
+      <td>${name}</td>
+      <td style="text-align:right">${fmtVal(prevVal)}</td>
+      <td style="text-align:right">${fmtVal(currentVal)}</td>
+      <td>${arrow}</td>
+    </tr>`;
+  });
+
+  document.getElementById('forn-comparativo').innerHTML = `
+    <div class="card" style="margin-bottom:16px"><div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="margin:0;font-size:14px;font-weight:600;color:var(--text)">Comparativo Mensal de Fornecedores</h3>
+        <button class="btn-primary" onclick="openHistoricoModal()">+ Novo Historico</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Comparando: ${lastTwo.join(' vs ') || 'sem dados'} · Clique em um fornecedor para ver o grafico de tendencia</div>
+      <div class="table-wrap"><table><thead><tr>
+        <th>Fornecedor</th><th style="text-align:right">${lastTwo[0] || 'Anterior'}</th><th style="text-align:right">${lastTwo[lastTwo.length-1] || 'Atual'}</th><th>Variacao</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>
+    </div></div>
+    <div id="forn-trend-chart" class="card" style="display:none"><div class="card-body">
+      <h3 id="forn-trend-title" style="margin:0 0 12px 0;font-size:14px;font-weight:600;color:var(--text)"></h3>
+      <div id="forn-trend-svg"></div>
+    </div></div>`;
+}
+
+function showFornTrend(name, fornId) {
+  const H = DATA.fornHistorico.filter(h => h.fornecedor_id === fornId);
+  if (!H.length) return;
+
+  const byComp = {};
+  H.forEach(h => { byComp[h.competencia] = (byComp[h.competencia] || 0) + Number(h.valor); });
+  const sorted = Object.entries(byComp).sort((a,b) => a[0].localeCompare(b[0]));
+
+  document.getElementById('forn-trend-chart').style.display = '';
+  document.getElementById('forn-trend-title').textContent = 'Tendencia: ' + name;
+
+  // SVG line chart
+  const W = 600, H2 = 220, pad = { t:20, r:20, b:40, l:70 };
+  const cw = W - pad.l - pad.r, ch = H2 - pad.t - pad.b;
+  const vals = sorted.map(s => s[1]);
+  const maxV = Math.max(...vals, 1);
+  const minV = Math.min(...vals, 0);
+  const range = maxV - minV || 1;
+
+  let pts = sorted.map((s, i) => {
+    const x = pad.l + (sorted.length > 1 ? (i / (sorted.length - 1)) * cw : cw / 2);
+    const y = pad.t + ch - ((s[1] - minV) / range) * ch;
+    return { x, y, comp: s[0], val: s[1] };
+  });
+
+  const pathD = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+
+  let labels = pts.map(p => `<text x="${p.x}" y="${H2 - 8}" text-anchor="middle" fill="var(--text-muted)" font-size="10">${p.comp}</text>`).join('');
+  let dots = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--accent)" stroke="var(--bg-card)" stroke-width="2"/>
+    <text x="${p.x}" y="${p.y - 10}" text-anchor="middle" fill="var(--text)" font-size="10" font-weight="600">${fmtVal(p.val)}</text>`).join('');
+
+  // Y-axis ticks
+  let yTicks = '';
+  for (let i = 0; i <= 4; i++) {
+    const v = minV + (range * i / 4);
+    const y = pad.t + ch - (i / 4) * ch;
+    yTicks += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3"/>`;
+    yTicks += `<text x="${pad.l - 8}" y="${y + 4}" text-anchor="end" fill="var(--text-muted)" font-size="10">${fmtVal(v)}</text>`;
+  }
+
+  document.getElementById('forn-trend-svg').innerHTML = `
+    <svg viewBox="0 0 ${W} ${H2}" style="width:100%;max-width:${W}px;font-family:Inter,sans-serif">
+      ${yTicks}
+      <path d="${pathD}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+      ${labels}
+    </svg>`;
+}
+
+// ===== HISTORICO MODAL =====
+function openHistoricoModal() {
+  document.getElementById('hist-modal').classList.add('open');
+  document.getElementById('hist-fornecedor-id').value = '';
+  document.getElementById('hist-servico').value = '';
+  const now = new Date();
+  document.getElementById('hist-competencia').value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('hist-valor').value = '';
+  document.getElementById('hist-fluxo').value = '';
+  document.getElementById('hist-enviado-cp').checked = false;
+  document.getElementById('hist-lancado').checked = false;
+  document.getElementById('hist-tipo-servico').value = '';
+  document.getElementById('hist-data-nf').value = '';
+  document.getElementById('hist-vencimento').value = '';
+  document.getElementById('hist-obs').value = '';
+
+  // Populate fornecedor select
+  const sel = document.getElementById('hist-fornecedor-id');
+  sel.innerHTML = '<option value="">Selecione o Fornecedor</option>';
+  DATA.fornecedores.forEach(f => {
+    sel.innerHTML += `<option value="${f.id}">${f.servico} (${f.filial})</option>`;
+  });
+}
+function closeHistoricoModal() { document.getElementById('hist-modal').classList.remove('open'); }
+
+async function saveHistorico() {
+  if (!sb) { showToast('Sem conexao', true); return; }
+  const fornId = document.getElementById('hist-fornecedor-id').value;
+  if (!fornId) { showToast('Selecione um fornecedor', true); return; }
+  const servico = document.getElementById('hist-servico').value.trim();
+  if (!servico) { showToast('Preencha o servico', true); return; }
+  const obj = {
+    fornecedor_id: parseInt(fornId),
+    servico,
+    competencia: document.getElementById('hist-competencia').value,
+    valor: parseFloat(document.getElementById('hist-valor').value) || 0,
+    fluxo: document.getElementById('hist-fluxo').value,
+    enviado_contas_pagar: document.getElementById('hist-enviado-cp').checked,
+    lancado_pagamento: document.getElementById('hist-lancado').checked,
+    tipo_servico: document.getElementById('hist-tipo-servico').value,
+    data_nf: document.getElementById('hist-data-nf').value || null,
+    dt_vencimento: document.getElementById('hist-vencimento').value || null,
+    observacoes: document.getElementById('hist-obs').value,
+  };
+  const { error } = await sb.from('fornecedores_historico').insert(obj);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast('Historico adicionado!');
+  closeHistoricoModal();
   await refreshData();
 }
 
