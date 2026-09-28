@@ -426,10 +426,13 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
     <div class="section" id="sec-fornecedores">
       <div class="kpi-grid-dash" style="grid-template-columns:repeat(4,1fr)" id="forn-kpis"></div>
       <div class="chart-grid" style="margin-bottom:22px" id="forn-charts"></div>
-      <div class="tab-pills">
-        <button class="tab-pill active" onclick="showFornTab(this,'lista')">Lista de Servicos</button>
-        <button class="tab-pill" onclick="showFornTab(this,'pagamentos')">Pagamentos</button>
-        <button class="tab-pill" onclick="showFornTab(this,'boletos')">Boletos & Notas</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">
+        <div class="tab-pills" style="margin-bottom:0">
+          <button class="tab-pill active" onclick="showFornTab(this,'lista')">Lista de Servicos</button>
+          <button class="tab-pill" onclick="showFornTab(this,'pagamentos')">Pagamentos</button>
+          <button class="tab-pill" onclick="showFornTab(this,'boletos')">Boletos & Notas</button>
+        </div>
+        <button class="btn btn-accent" onclick="openFornModal()">+ Novo Fornecedor</button>
       </div>
       <div id="forn-lista"></div>
       <div id="forn-pagamentos" style="display:none"></div>
@@ -438,6 +441,10 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
 
     <!-- ===== TORRES ===== -->
     <div class="section" id="sec-torres">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <div></div>
+        <button class="btn btn-accent" onclick="openTorreModal()">+ Nova Torre</button>
+      </div>
       <div class="kpi-grid-dash" style="grid-template-columns:repeat(5,1fr)" id="torres-kpis"></div>
       <div class="chart-grid" style="margin-bottom:22px" id="torres-charts"></div>
       <div class="filters" id="torres-filters"></div>
@@ -446,6 +453,9 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
 
     <!-- ===== CLIENTES IA ===== -->
     <div class="section" id="sec-clientes">
+      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:18px">
+        <button class="btn btn-accent" onclick="openIAModal()">+ Novo Registro IA</button>
+      </div>
       <div class="kpi-grid-dash" id="ia-kpis"></div>
       <div class="chart-grid" style="margin-bottom:22px" id="ia-charts"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px" id="ia-tables"></div>
@@ -453,6 +463,9 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
 
     <!-- ===== ARMARIOS ===== -->
     <div class="section" id="sec-armarios">
+      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:18px">
+        <button class="btn btn-accent" onclick="openArmModal()">+ Novo Armario</button>
+      </div>
       <div class="kpi-grid-dash" style="grid-template-columns:repeat(5,1fr)" id="arm-kpis"></div>
       <div class="chart-grid" style="margin-bottom:22px" id="arm-charts"></div>
       <div class="card" id="arm-resumo-card"></div>
@@ -546,6 +559,227 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeBoletoModal()">Cancelar</button>
       <button class="btn btn-accent" onclick="saveBoleto()">Salvar Registro</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fornecedor Modal -->
+<div class="modal-overlay" id="forn-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="forn-modal-title">Novo Fornecedor</h3>
+      <button class="modal-close" onclick="closeFornModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="forn-edit-id">
+      <div class="form-group">
+        <label class="form-label">Servico</label>
+        <input class="form-input" id="fm-servico" placeholder="Nome do servico">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Filial</label>
+          <select class="form-input" id="fm-filial">
+            <option>Geral</option><option>Ceara</option><option>Piauí</option><option>Maranhão</option><option>Amazonas</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-input" id="fm-tipo">
+            <option>Sistema</option><option>Servidor</option><option>Suporte</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Uso / Descricao</label>
+        <input class="form-input" id="fm-uso" placeholder="Para que serve">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Responsavel</label>
+          <input class="form-input" id="fm-responsavel" value="LEMOS">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Recorrencia</label>
+          <select class="form-input" id="fm-recorrencia">
+            <option>Mensal</option><option>Anual</option><option>Avulso</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Valor (R$)</label>
+          <input class="form-input" id="fm-valor" type="number" step="0.01" placeholder="0,00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fornecedor ID</label>
+          <input class="form-input" id="fm-fornecedor-id" placeholder="Ex: LEMOS">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Competencia</label>
+          <input class="form-input" id="fm-competencia" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vencimento</label>
+          <input class="form-input" id="fm-vencimento" type="date">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeFornModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveFornecedor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Torre Modal -->
+<div class="modal-overlay" id="torre-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="torre-modal-title">Nova Torre</h3>
+      <button class="modal-close" onclick="closeTorreModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="torre-edit-id">
+      <div class="form-group">
+        <label class="form-label">Cliente</label>
+        <input class="form-input" id="tm-cliente" placeholder="Nome do cliente">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Cidade</label>
+          <input class="form-input" id="tm-cidade" value="FORTALEZA" placeholder="Cidade">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="tm-status">
+            <option>EM AUTORIZAÇÃO</option><option>AUTORIZADA</option><option>INSTALADA</option><option>NÃO AUTORIZADA</option><option>SEGUNDO PLANO</option><option>AVALIAR/AGUARDAR</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Modelo</label>
+          <input class="form-input" id="tm-modelo" value="CORTESIA 6 MESES">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cameras</label>
+          <input class="form-input" id="tm-cameras" type="number" value="0">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Pago ao Fornecedor (R$)</label>
+          <input class="form-input" id="tm-pago" type="number" step="0.01" placeholder="0,00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cobrado do Cliente (R$)</label>
+          <input class="form-input" id="tm-cobrado" type="number" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Responsavel</label>
+        <input class="form-input" id="tm-responsavel" placeholder="Responsavel">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeTorreModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveTorre()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clientes IA Modal -->
+<div class="modal-overlay" id="ia-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="ia-modal-title">Novo Registro IA</h3>
+      <button class="modal-close" onclick="closeIAModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-input" id="ia-modal-tipo" onchange="toggleIAFields()">
+          <option value="filial">Por Filial</option>
+          <option value="provedor">Por Provedor</option>
+        </select>
+      </div>
+      <div id="ia-filial-fields">
+        <div class="form-group">
+          <label class="form-label">Filial</label>
+          <input class="form-input" id="iam-filial" placeholder="Ex: Servis Ceara">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div class="form-group"><label class="form-label">Clientes</label><input class="form-input" id="iam-clientes" type="number" value="0"></div>
+          <div class="form-group"><label class="form-label">Ativos</label><input class="form-input" id="iam-ativos" type="number" value="0"></div>
+          <div class="form-group"><label class="form-label">Inativos</label><input class="form-input" id="iam-inativos" type="number" value="0"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Cameras</label><input class="form-input" id="iam-cameras" type="number" value="0"></div>
+      </div>
+      <div id="ia-provedor-fields" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Provedor</label>
+          <input class="form-input" id="iam-provedor" placeholder="Ex: Intelbras">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div class="form-group"><label class="form-label">Clientes</label><input class="form-input" id="iam-p-clientes" type="number" value="0"></div>
+          <div class="form-group"><label class="form-label">Ativos</label><input class="form-input" id="iam-p-ativos" type="number" value="0"></div>
+          <div class="form-group"><label class="form-label">Cameras</label><input class="form-input" id="iam-p-cameras" type="number" value="0"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeIAModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveIA()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Armario Modal -->
+<div class="modal-overlay" id="arm-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Novo Armario</h3>
+      <button class="modal-close" onclick="closeArmModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Condominio</label>
+        <input class="form-input" id="arm-condominio" placeholder="Nome do condominio">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Filial</label>
+          <select class="form-input" id="arm-filial">
+            <option>FORTALEZA</option><option>MARANHÃO</option><option>MANAUS</option><option>TERESINA</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fornecedor</label>
+          <input class="form-input" id="arm-fornecedor" placeholder="Ex: HANDBOX">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+        <div class="form-group"><label class="form-label">Portas</label><input class="form-input" id="arm-portas" type="number" value="0"></div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="arm-status"><option>Ativo</option><option>Inativo</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gratificacao</label>
+          <select class="form-input" id="arm-grat"><option>Não</option><option>Sim</option></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group"><label class="form-label">Custo Fornecedor (R$)</label><input class="form-input" id="arm-custo" type="number" step="0.01" placeholder="0,00"></div>
+        <div class="form-group"><label class="form-label">Valor Cliente (R$)</label><input class="form-input" id="arm-valor-cli" type="number" step="0.01" placeholder="0,00"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeArmModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveArmario()">Salvar</button>
     </div>
   </div>
 </div>
@@ -928,7 +1162,7 @@ function renderFornTable() {
     </div>
     <div class="card"><div class="card-body"><div class="table-wrap" style="max-height:60vh;overflow-y:auto">
       <table><thead><tr>
-        <th>Servico</th><th>Filial</th><th>Tipo</th><th>Uso</th><th style="text-align:right">Valor Mensal</th><th>Forn.</th><th>Competencia</th><th>Vencimento</th><th>Fluxo</th><th>Pago</th>
+        <th>Servico</th><th>Filial</th><th>Tipo</th><th>Uso</th><th style="text-align:right">Valor Mensal</th><th>Forn.</th><th>Competencia</th><th>Vencimento</th><th>Fluxo</th><th>Pago</th><th>Acoes</th>
       </tr></thead><tbody>${filtered.map(d => {
         const comp = d.dt_competencia ? d.dt_competencia.split('-').reverse().join('/') : '—';
         const venc = d.dt_vencimento ? d.dt_vencimento.split('-').reverse().join('/') : '—';
@@ -950,6 +1184,7 @@ function renderFornTable() {
             <option value="PENDENTE" ${d.pagamento==='PENDENTE'?'selected':''}>Pendente</option>
             <option value="" ${!d.pagamento||d.pagamento===''?'selected':''}>—</option>
           </select></td>
+          <td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openFornModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteFornecedor(${d.id})" style="color:var(--danger)">Excluir</button></td>
         </tr>`}).join('')}</tbody></table>
     </div></div></div>`;
 }
@@ -1086,10 +1321,10 @@ function renderTorresTable() {
     <input class="filter-input" data-filter="search" placeholder="Buscar cliente..." oninput="renderTorresTable()" style="width:200px" value="${search}">`;
 
   document.getElementById('torres-table-wrap').innerHTML = `
-    <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th style="text-align:right">Cameras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Cobrado</th><th>Responsavel</th></tr></thead>
+    <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th style="text-align:right">Cameras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Cobrado</th><th>Responsavel</th><th>Acoes</th></tr></thead>
     <tbody>${filtered.map(d => {
       const stBadge = d.status==='INSTALADA'?'badge-success':d.status==='AUTORIZADA'?'badge-blue':d.status==='EM AUTORIZAÇÃO'?'badge-warning':d.status==='NÃO AUTORIZADA'?'badge-danger':'badge-neutral';
-      return `<tr><td>${d.cliente}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${d.responsavel}</td></tr>`;
+      return `<tr><td>${d.cliente}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
@@ -1220,6 +1455,236 @@ function renderArmDetail() {
       <table><thead><tr><th>Condominio</th><th>Filial</th><th>Fornecedor</th><th style="text-align:center">Portas</th><th>Status</th><th>Grat.</th><th style="text-align:right">Custo Forn.</th><th style="text-align:right">Valor Cli.</th><th style="text-align:right">Margem</th></tr></thead>
       <tbody>${filtered.map(d=>`<tr><td>${d.condominio}</td><td>${d.filial}</td><td>${d.fornecedor}</td><td style="text-align:center">${d.portas}</td><td><span class="badge ${d.status==='Ativo'?'badge-success':'badge-neutral'}">${d.status}</span></td><td><span class="badge ${d.gratificacao==='Sim'?'badge-success':'badge-neutral'}">${d.gratificacao}</span></td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_forn)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.valor_cli?fmtVal(d.valor_cli):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" class="${Number(d.margem)>=0?'val-pos':'val-neg'}">${fmtVal(d.margem)}</td></tr>`).join('')}</tbody></table>
     </div></div>`;
+}
+
+// ===== FORNECEDOR CRUD =====
+function openFornModal(editId) {
+  document.getElementById('forn-modal').classList.add('open');
+  if (editId) {
+    const d = DATA.fornecedores.find(f => f.id === editId);
+    if (!d) return;
+    document.getElementById('forn-modal-title').textContent = 'Editar Fornecedor';
+    document.getElementById('forn-edit-id').value = d.id;
+    document.getElementById('fm-servico').value = d.servico || '';
+    document.getElementById('fm-filial').value = d.filial || 'Geral';
+    document.getElementById('fm-tipo').value = d.tipo || 'Sistema';
+    document.getElementById('fm-uso').value = d.uso || '';
+    document.getElementById('fm-responsavel').value = d.responsavel || 'LEMOS';
+    document.getElementById('fm-recorrencia').value = d.recorrencia || 'Mensal';
+    document.getElementById('fm-valor').value = d.valor || '';
+    document.getElementById('fm-fornecedor-id').value = d.fornecedor_id || '';
+    document.getElementById('fm-competencia').value = d.dt_competencia || '';
+    document.getElementById('fm-vencimento').value = d.dt_vencimento || '';
+  } else {
+    document.getElementById('forn-modal-title').textContent = 'Novo Fornecedor';
+    document.getElementById('forn-edit-id').value = '';
+    document.getElementById('fm-servico').value = '';
+    document.getElementById('fm-filial').value = 'Geral';
+    document.getElementById('fm-tipo').value = 'Sistema';
+    document.getElementById('fm-uso').value = '';
+    document.getElementById('fm-responsavel').value = 'LEMOS';
+    document.getElementById('fm-recorrencia').value = 'Mensal';
+    document.getElementById('fm-valor').value = '';
+    document.getElementById('fm-fornecedor-id').value = '';
+    document.getElementById('fm-competencia').value = '';
+    document.getElementById('fm-vencimento').value = '';
+  }
+}
+function closeFornModal() { document.getElementById('forn-modal').classList.remove('open'); }
+
+async function saveFornecedor() {
+  if (!sb) { showToast('Sem conexao', true); return; }
+  const servico = document.getElementById('fm-servico').value.trim();
+  if (!servico) { showToast('Preencha o nome do servico', true); return; }
+  const obj = {
+    servico,
+    filial: document.getElementById('fm-filial').value,
+    tipo: document.getElementById('fm-tipo').value,
+    uso: document.getElementById('fm-uso').value,
+    responsavel: document.getElementById('fm-responsavel').value,
+    recorrencia: document.getElementById('fm-recorrencia').value,
+    valor: parseFloat(document.getElementById('fm-valor').value) || 0,
+    fornecedor_id: document.getElementById('fm-fornecedor-id').value,
+    dt_competencia: document.getElementById('fm-competencia').value || null,
+    dt_vencimento: document.getElementById('fm-vencimento').value || null,
+  };
+  const editId = document.getElementById('forn-edit-id').value;
+  let error;
+  if (editId) {
+    ({ error } = await sb.from('fornecedores').update(obj).eq('id', parseInt(editId)));
+  } else {
+    ({ error } = await sb.from('fornecedores').insert(obj));
+  }
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast(editId ? 'Fornecedor atualizado!' : 'Fornecedor adicionado!');
+  closeFornModal();
+  await refreshData();
+}
+
+async function deleteFornecedor(id) {
+  if (!sb || !confirm('Excluir este fornecedor?')) return;
+  const { error } = await sb.from('fornecedores').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  DATA.fornecedores = DATA.fornecedores.filter(d => d.id !== id);
+  renderFornecedores();
+  showToast('Excluido!');
+}
+
+// ===== TORRE CRUD =====
+function openTorreModal(editId) {
+  document.getElementById('torre-modal').classList.add('open');
+  if (editId) {
+    const d = DATA.torres.find(t => t.id === editId);
+    if (!d) return;
+    document.getElementById('torre-modal-title').textContent = 'Editar Torre';
+    document.getElementById('torre-edit-id').value = d.id;
+    document.getElementById('tm-cliente').value = d.cliente || '';
+    document.getElementById('tm-cidade').value = d.cidade || 'FORTALEZA';
+    document.getElementById('tm-status').value = d.status || 'EM AUTORIZAÇÃO';
+    document.getElementById('tm-modelo').value = d.modelo || 'CORTESIA 6 MESES';
+    document.getElementById('tm-cameras').value = d.cameras || '0';
+    document.getElementById('tm-pago').value = d.pago_forn || '';
+    document.getElementById('tm-cobrado').value = d.cobrado || '';
+    document.getElementById('tm-responsavel').value = d.responsavel || '';
+  } else {
+    document.getElementById('torre-modal-title').textContent = 'Nova Torre';
+    document.getElementById('torre-edit-id').value = '';
+    document.getElementById('tm-cliente').value = '';
+    document.getElementById('tm-cidade').value = 'FORTALEZA';
+    document.getElementById('tm-status').value = 'EM AUTORIZAÇÃO';
+    document.getElementById('tm-modelo').value = 'CORTESIA 6 MESES';
+    document.getElementById('tm-cameras').value = '0';
+    document.getElementById('tm-pago').value = '';
+    document.getElementById('tm-cobrado').value = '';
+    document.getElementById('tm-responsavel').value = '';
+  }
+}
+function closeTorreModal() { document.getElementById('torre-modal').classList.remove('open'); }
+
+async function saveTorre() {
+  if (!sb) { showToast('Sem conexao', true); return; }
+  const cliente = document.getElementById('tm-cliente').value.trim();
+  if (!cliente) { showToast('Preencha o nome do cliente', true); return; }
+  const obj = {
+    cliente,
+    cidade: document.getElementById('tm-cidade').value.toUpperCase(),
+    status: document.getElementById('tm-status').value,
+    modelo: document.getElementById('tm-modelo').value,
+    cameras: parseInt(document.getElementById('tm-cameras').value) || 0,
+    pago_forn: parseFloat(document.getElementById('tm-pago').value) || 0,
+    cobrado: parseFloat(document.getElementById('tm-cobrado').value) || 0,
+    responsavel: document.getElementById('tm-responsavel').value,
+  };
+  const editId = document.getElementById('torre-edit-id').value;
+  let error;
+  if (editId) {
+    ({ error } = await sb.from('torres').update(obj).eq('id', parseInt(editId)));
+  } else {
+    ({ error } = await sb.from('torres').insert(obj));
+  }
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast(editId ? 'Torre atualizada!' : 'Torre adicionada!');
+  closeTorreModal();
+  await refreshData();
+}
+
+async function deleteTorre(id) {
+  if (!sb || !confirm('Excluir esta torre?')) return;
+  const { error } = await sb.from('torres').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  DATA.torres = DATA.torres.filter(d => d.id !== id);
+  renderTorres();
+  showToast('Excluido!');
+}
+
+// ===== CLIENTES IA CRUD =====
+function toggleIAFields() {
+  const tipo = document.getElementById('ia-modal-tipo').value;
+  document.getElementById('ia-filial-fields').style.display = tipo === 'filial' ? '' : 'none';
+  document.getElementById('ia-provedor-fields').style.display = tipo === 'provedor' ? '' : 'none';
+}
+function openIAModal() {
+  document.getElementById('ia-modal').classList.add('open');
+  document.getElementById('ia-modal-tipo').value = 'filial';
+  toggleIAFields();
+  document.getElementById('iam-filial').value = '';
+  document.getElementById('iam-clientes').value = '0';
+  document.getElementById('iam-ativos').value = '0';
+  document.getElementById('iam-inativos').value = '0';
+  document.getElementById('iam-cameras').value = '0';
+  document.getElementById('iam-provedor').value = '';
+  document.getElementById('iam-p-clientes').value = '0';
+  document.getElementById('iam-p-ativos').value = '0';
+  document.getElementById('iam-p-cameras').value = '0';
+}
+function closeIAModal() { document.getElementById('ia-modal').classList.remove('open'); }
+
+async function saveIA() {
+  if (!sb) { showToast('Sem conexao', true); return; }
+  const tipo = document.getElementById('ia-modal-tipo').value;
+  let error;
+  if (tipo === 'filial') {
+    const filial = document.getElementById('iam-filial').value.trim();
+    if (!filial) { showToast('Preencha a filial', true); return; }
+    ({ error } = await sb.from('clientes_ia_filial').insert({
+      filial,
+      clientes: parseInt(document.getElementById('iam-clientes').value) || 0,
+      ativos: parseInt(document.getElementById('iam-ativos').value) || 0,
+      inativos: parseInt(document.getElementById('iam-inativos').value) || 0,
+      cameras: parseInt(document.getElementById('iam-cameras').value) || 0,
+    }));
+  } else {
+    const provedor = document.getElementById('iam-provedor').value.trim();
+    if (!provedor) { showToast('Preencha o provedor', true); return; }
+    ({ error } = await sb.from('clientes_ia_provedor').insert({
+      provedor,
+      clientes: parseInt(document.getElementById('iam-p-clientes').value) || 0,
+      ativos: parseInt(document.getElementById('iam-p-ativos').value) || 0,
+      cameras: parseInt(document.getElementById('iam-p-cameras').value) || 0,
+    }));
+  }
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast('Registro adicionado!');
+  closeIAModal();
+  await refreshData();
+}
+
+// ===== ARMARIO CRUD =====
+function openArmModal() {
+  document.getElementById('arm-modal').classList.add('open');
+  document.getElementById('arm-condominio').value = '';
+  document.getElementById('arm-filial').value = 'FORTALEZA';
+  document.getElementById('arm-fornecedor').value = '';
+  document.getElementById('arm-portas').value = '0';
+  document.getElementById('arm-status').value = 'Ativo';
+  document.getElementById('arm-grat').value = 'Não';
+  document.getElementById('arm-custo').value = '';
+  document.getElementById('arm-valor-cli').value = '';
+}
+function closeArmModal() { document.getElementById('arm-modal').classList.remove('open'); }
+
+async function saveArmario() {
+  if (!sb) { showToast('Sem conexao', true); return; }
+  const condominio = document.getElementById('arm-condominio').value.trim();
+  if (!condominio) { showToast('Preencha o condominio', true); return; }
+  const custo = parseFloat(document.getElementById('arm-custo').value) || 0;
+  const valorCli = parseFloat(document.getElementById('arm-valor-cli').value) || 0;
+  const obj = {
+    condominio,
+    filial: document.getElementById('arm-filial').value,
+    fornecedor: document.getElementById('arm-fornecedor').value,
+    portas: parseInt(document.getElementById('arm-portas').value) || 0,
+    status: document.getElementById('arm-status').value,
+    gratificacao: document.getElementById('arm-grat').value,
+    custo_forn: custo,
+    valor_cli: valorCli,
+    margem: valorCli - custo,
+  };
+  const { error } = await sb.from('armarios_detail').insert(obj);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast('Armario adicionado!');
+  closeArmModal();
+  await refreshData();
 }
 
 // ===== INIT =====
