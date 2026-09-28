@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backoffice Servis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root {
+  --bg-body: #0c1520;
+  --bg-sidebar: #111d2b;
+  --bg-card: #152233;
+  --bg-card-hover: #1a2a3f;
+  --bg-input: #0e1a28;
+  --border: #1e3148;
+  --accent: #1abf8f;
+  --accent-dim: rgba(26,191,143,0.15);
+  --accent-hover: #15a57c;
+  --text-primary: #e8ecf1;
+  --text-secondary: #8a9bb5;
+  --text-muted: #5a6f88;
+  --danger: #e34948;
+  --danger-dim: rgba(227,73,72,0.15);
+  --warning: #eda100;
+  --warning-dim: rgba(237,161,0,0.15);
+  --blue: #2a78d6;
+  --blue-dim: rgba(42,120,214,0.15);
+  --series-1: #2a78d6;
+  --series-2: #1abf8f;
+  --series-3: #eb6834;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-body);
+  color: var(--text-primary);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px; min-width: 240px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  height: 100vh; position: relative; z-index: 10;
+}
+.sidebar-brand {
+  padding: 20px 18px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-icon {
+  width: 36px; height: 36px; background: var(--accent); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; color: #fff;
+}
+.brand-text { font-weight: 700; font-size: 16px; color: var(--accent); }
+.brand-text span { color: var(--text-primary); font-weight: 400; }
+.sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  cursor: pointer; color: var(--text-secondary);
+  font-size: 13px; font-weight: 500;
+  transition: all 0.15s; margin-bottom: 2px;
+}
+.nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
+.nav-item.active { background: var(--accent-dim); color: var(--accent); }
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar-footer {
+  padding: 14px 18px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-muted);
+}
+
+/* Main */
+.main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 28px; border-bottom: 1px solid var(--border);
+  background: var(--bg-sidebar); position: sticky; top: 0; z-index: 5;
+}
+.topbar-title h1 { font-size: 18px; font-weight: 700; }
+.topbar-title p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.sync-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-muted);
+  background: var(--bg-card); padding: 6px 12px; border-radius: 6px;
+  cursor: pointer;
+}
+.sync-badge:hover { border: 1px solid var(--accent); }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.sync-dot.offline { background: var(--danger); }
+.user-badge { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; }
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent-dim); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px;
+}
+
+.content { padding: 24px 28px; flex: 1; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* KPI */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.kpi-tile { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+.kpi-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-value { font-size: 28px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.kpi-sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+.kpi-value.accent { color: var(--accent); }
+.kpi-value.danger { color: var(--danger); }
+.kpi-value.warning { color: var(--warning); }
+.kpi-value.blue { color: var(--blue); }
+
+/* Cards */
+.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 18px; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 14px; font-weight: 600; }
+.card-body { padding: 0; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  text-align: left; padding: 10px 16px; font-weight: 600; font-size: 11px;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+  position: sticky; top: 0; background: var(--bg-card);
+}
+td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--text-secondary); white-space: nowrap; }
+tr:hover td { background: var(--bg-card-hover); }
+td:first-child { color: var(--text-primary); font-weight: 500; }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+.badge-success { background: var(--accent-dim); color: var(--accent); }
+.badge-danger { background: var(--danger-dim); color: var(--danger); }
+.badge-warning { background: var(--warning-dim); color: var(--warning); }
+.badge-blue { background: var(--blue-dim); color: var(--blue); }
+.badge-neutral { background: rgba(138,155,181,0.12); color: var(--text-secondary); }
+
+/* Charts */
+.chart-container { padding: 20px; }
+.chart-bar-group { cursor: default; }
+.chart-bar-group:hover rect { filter: brightness(1.15); }
+
+/* Filters */
+.filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+.filter-select, .filter-input {
+  background: var(--bg-input); border: 1px solid var(--border);
+  color: var(--text-primary); padding: 7px 12px; border-radius: 6px;
+  font-size: 12px; font-family: inherit; outline: none;
+}
+.filter-select:focus, .filter-input:focus { border-color: var(--accent); }
+.filter-select option { background: var(--bg-card); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  font-family: inherit; cursor: pointer; border: none; transition: all 0.15s;
+}
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: var(--accent-hover); }
+.btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; width: 520px; max-width: 92vw; max-height: 85vh; overflow-y: auto;
+}
+.modal-header {
+  padding: 18px 22px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-header h3 { font-size: 15px; font-weight: 600; }
+.modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; padding: 4px; }
+.modal-body { padding: 20px 22px; }
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+.form-input {
+  width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+  color: var(--text-primary); padding: 9px 12px; border-radius: 6px;
+  font-size: 13px; font-family: inherit; outline: none;
+}
+.form-input:focus { border-color: var(--accent); }
+.modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Inline editable */
+.editable-select {
+  background: transparent; border: 1px solid transparent; color: inherit;
+  padding: 2px 4px; border-radius: 4px; font-size: 11px; font-family: inherit;
+  cursor: pointer; outline: none; appearance: none; -webkit-appearance: none;
+}
+.editable-select:hover { border-color: var(--border); background: var(--bg-input); }
+.editable-select:focus { border-color: var(--accent); background: var(--bg-input); }
+.editable-select option { background: var(--bg-card); color: var(--text-primary); }
+
+.val-pos { color: var(--accent); }
+.val-neg { color: var(--danger); }
+
+/* Dashboard */
+.dash-hero {
+  background: linear-gradient(135deg, #12273a 0%, #162d42 50%, #0f2235 100%);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 32px 36px; margin-bottom: 22px; position: relative; overflow: hidden;
+}
+.dash-hero::before {
+  content: ''; position: absolute; top: -60px; right: -40px;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(26,191,143,0.08) 0%, transparent 70%); border-radius: 50%;
+}
+.dash-hero-content { position: relative; z-index: 1; }
+.dash-greeting { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.dash-greeting span { color: var(--accent); }
+.dash-subtitle { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.dash-date { position: absolute; top: 32px; right: 36px; text-align: right; z-index: 1; }
+.dash-date-day { font-size: 36px; font-weight: 700; color: var(--accent); line-height: 1; }
+.dash-date-month { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+.kpi-grid-dash { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 22px; }
+.kpi-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px 22px; position: relative; overflow: hidden;
+  transition: border-color 0.2s, transform 0.15s; cursor: default;
+}
+.kpi-card:hover { border-color: rgba(138,155,181,0.25); transform: translateY(-1px); }
+.kpi-card-stripe { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.kpi-card-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+}
+.kpi-card-icon svg { width: 20px; height: 20px; }
+.kpi-card .kpi-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.kpi-card .kpi-value { font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.kpi-card .kpi-sub { font-size: 11px; color: var(--text-secondary); margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+.kpi-tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.kpi-tag-up { background: var(--accent-dim); color: var(--accent); }
+.kpi-tag-down { background: var(--danger-dim); color: var(--danger); }
+.kpi-tag-neutral { background: rgba(138,155,181,0.1); color: var(--text-secondary); }
+
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+.chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.chart-card-header { padding: 18px 22px 0; display: flex; align-items: flex-start; justify-content: space-between; }
+.chart-card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.chart-card-badge { font-size: 10px; color: var(--text-muted); background: var(--bg-input); padding: 3px 8px; border-radius: 4px; }
+.chart-card-body { padding: 16px 22px 20px; }
+
+.donut-wrap { display: flex; align-items: center; gap: 24px; }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; }
+.donut-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.donut-dot, .donut-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+.timeline-item {
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.timeline-item:last-child { border-bottom: none; }
+
+.progress-bar { height: 6px; background: var(--bg-input); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; background: var(--accent); }
+
+.tab-pills { display: flex; gap: 4px; background: var(--bg-input); padding: 3px; border-radius: 8px; width: fit-content; margin-bottom: 18px; }
+.tab-pill {
+  padding: 7px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;
+  cursor: pointer; color: var(--text-secondary); transition: all 0.15s;
+  border: none; background: none; font-family: inherit;
+}
+.tab-pill.active { background: var(--accent); color: #fff; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--bg-card); border: 1px solid var(--accent);
+  color: var(--accent); padding: 12px 20px; border-radius: 8px;
+  font-size: 12px; font-weight: 500; z-index: 200;
+  transform: translateY(80px); opacity: 0; transition: all 0.3s;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* Loading */
+.loading-overlay {
+  position: fixed; inset: 0; background: var(--bg-body);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 16px; z-index: 1000;
+}
+.spinner {
+  width: 40px; height: 40px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { width: 56px; min-width: 56px; }
+  .brand-text, .nav-item span, .sidebar-footer { display: none; }
+  .sidebar-brand { padding: 16px 10px; justify-content: center; }
+  .nav-item { padding: 10px; justify-content: center; }
+  .content { padding: 16px; }
+  .topbar { padding: 12px 16px; }
+  .kpi-row, .kpi-grid-dash { grid-template-columns: repeat(2, 1fr) !important; }
+  .chart-grid { grid-template-columns: 1fr !important; }
+  .dash-hero { padding: 20px; }
+  .dash-date { position: static; text-align: left; margin-top: 12px; }
+  .donut-wrap { flex-direction: column; }
+  .kpi-card { padding: 14px 12px 14px 16px; }
+  .kpi-card .kpi-value { font-size: 22px; }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div style="color:var(--text-muted);font-size:13px">Conectando ao Supabase...</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">B</div>
+    <div class="brand-text">Backoffice <span>Servis</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" data-section="fornecedores" onclick="showSection('fornecedores')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="10"/></svg>
+      <span>Fornecedores</span>
+    </div>
+    <div class="nav-item" data-section="torres" onclick="showSection('torres')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V10l8-7 8 7v11"/><path d="M9 21v-6h6v6"/></svg>
+      <span>Torres</span>
+    </div>
+    <div class="nav-item" data-section="clientes" onclick="showSection('clientes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <span>Clientes IA</span>
+    </div>
+    <div class="nav-item" data-section="armarios" onclick="showSection('armarios')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+      <span>Armarios</span>
+    </div>
+    <div class="nav-item" data-section="config" onclick="showSection('config')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span>Configuracoes</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    Servis Eletronica — BackTech<br>
+    v2.0 · Set/2026 · Supabase
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">
+      <h1 id="page-title">Dashboard</h1>
+      <p id="page-subtitle">Visao geral</p>
+    </div>
+    <div class="topbar-right">
+      <div class="sync-badge" onclick="refreshData()" title="Clique para atualizar dados">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-label">Conectando...</span>
+      </div>
+      <div class="user-badge">
+        <div class="user-avatar">BT</div>
+        <div>
+          <div style="font-weight:600;font-size:12px">BackTech</div>
+          <div style="font-size:10px;color:var(--text-muted)">supervisor</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- ===== DASHBOARD ===== -->
+    <div class="section active" id="sec-dashboard">
+      <div class="dash-hero">
+        <div class="dash-hero-content">
+          <div class="dash-greeting" id="dash-greeting">Bom dia, <span>BackTech</span></div>
+          <div class="dash-subtitle">Painel centralizado do backoffice — fornecedores, torres, clientes IA e armarios.<br>Dados em tempo real via <strong>Supabase</strong>.</div>
+        </div>
+        <div class="dash-date">
+          <div class="dash-date-day" id="dash-day"></div>
+          <div class="dash-date-month" id="dash-month"></div>
+        </div>
+      </div>
+      <div class="kpi-grid-dash" id="dash-kpis"></div>
+      <div class="chart-grid" id="dash-charts-1"></div>
+      <div class="chart-grid" id="dash-charts-2"></div>
+      <div class="chart-grid" id="dash-bottom"></div>
+    </div>
+
+    <!-- ===== FORNECEDORES ===== -->
+    <div class="section" id="sec-fornecedores">
+      <div class="kpi-grid-dash" style="grid-template-columns:repeat(4,1fr)" id="forn-kpis"></div>
+      <div class="chart-grid" style="margin-bottom:22px" id="forn-charts"></div>
+      <div class="tab-pills">
+        <button class="tab-pill active" onclick="showFornTab(this,'lista')">Lista de Servicos</button>
+        <button class="tab-pill" onclick="showFornTab(this,'pagamentos')">Pagamentos</button>
+        <button class="tab-pill" onclick="showFornTab(this,'boletos')">Boletos & Notas</button>
+      </div>
+      <div id="forn-lista"></div>
+      <div id="forn-pagamentos" style="display:none"></div>
+      <div id="forn-boletos" style="display:none"></div>
+    </div>
+
+    <!-- ===== TORRES ===== -->
+    <div class="section" id="sec-torres">
+      <div class="kpi-grid-dash" style="grid-template-columns:repeat(5,1fr)" id="torres-kpis"></div>
+      <div class="chart-grid" style="margin-bottom:22px" id="torres-charts"></div>
+      <div class="filters" id="torres-filters"></div>
+      <div class="card"><div class="card-body"><div class="table-wrap" style="max-height:58vh;overflow-y:auto" id="torres-table-wrap"></div></div></div>
+    </div>
+
+    <!-- ===== CLIENTES IA ===== -->
+    <div class="section" id="sec-clientes">
+      <div class="kpi-grid-dash" id="ia-kpis"></div>
+      <div class="chart-grid" style="margin-bottom:22px" id="ia-charts"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px" id="ia-tables"></div>
+    </div>
+
+    <!-- ===== ARMARIOS ===== -->
+    <div class="section" id="sec-armarios">
+      <div class="kpi-grid-dash" style="grid-template-columns:repeat(5,1fr)" id="arm-kpis"></div>
+      <div class="chart-grid" style="margin-bottom:22px" id="arm-charts"></div>
+      <div class="card" id="arm-resumo-card"></div>
+      <div class="filters" id="arm-filters"></div>
+      <div class="card" id="arm-detail-card"></div>
+    </div>
+
+    <!-- ===== CONFIG ===== -->
+    <div class="section" id="sec-config">
+      <div class="card" style="max-width:600px">
+        <div class="card-header"><div class="card-title">Configuracao Supabase</div></div>
+        <div style="padding:20px">
+          <div class="form-group">
+            <label class="form-label">Supabase URL</label>
+            <input class="form-input" id="cfg-url" placeholder="https://xxxxx.supabase.co">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Anon Key</label>
+            <input class="form-input" id="cfg-key" placeholder="eyJhbGciOiJIUzI1NiIs..." type="password">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:18px">
+            <button class="btn btn-accent" onclick="saveConfig()">Salvar e Conectar</button>
+            <button class="btn btn-outline" onclick="testConnection()">Testar Conexao</button>
+          </div>
+          <div id="cfg-status" style="margin-top:14px;font-size:12px;color:var(--text-muted)"></div>
+        </div>
+      </div>
+      <div class="card" style="max-width:600px;margin-top:18px">
+        <div class="card-header"><div class="card-title">Informacoes</div></div>
+        <div style="padding:20px;font-size:12px;color:var(--text-secondary);line-height:1.8">
+          <strong>Backoffice Servis v2.0</strong> — Dashboard com persistencia Supabase.<br>
+          Todos os dados sao salvos em tempo real no banco de dados.<br>
+          Alteracoes de status (Pagamento, Fluxo) sao gravadas diretamente na tabela.<br>
+          Para configurar, insira o URL e a Anon Key do seu projeto Supabase.<br><br>
+          <span style="color:var(--text-muted)">Desenvolvido por BackTech — Servis Eletronica</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Boleto Modal -->
+<div class="modal-overlay" id="boleto-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Novo Registro</h3>
+      <button class="modal-close" onclick="closeBoletoModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Fornecedor</label>
+        <select class="form-input" id="bol-fornecedor"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo de Documento</label>
+        <select class="form-input" id="bol-tipo">
+          <option>Boleto</option><option>Nota Fiscal</option><option>Recibo</option><option>Fatura</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">N Documento</label>
+          <input class="form-input" id="bol-numero" placeholder="Ex: NF-00123">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor (R$)</label>
+          <input class="form-input" id="bol-valor" type="number" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Competencia</label>
+          <input class="form-input" id="bol-competencia" type="month">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vencimento</label>
+          <input class="form-input" id="bol-vencimento" type="date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-input" id="bol-status">
+          <option>Pendente</option><option>Lancado</option><option>Pago</option><option>Vencido</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observacoes</label>
+        <input class="form-input" id="bol-obs" placeholder="Observacoes adicionais">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeBoletoModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveBoleto()">Salvar Registro</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== SUPABASE CONFIG =====
+let sb = null;
+let DATA = { fornecedores: [], torres: [], iaFilial: [], iaProvedor: [], armResumo: [], armDetail: [], boletos: [] };
+
+function getConfig() {
+  try {
+    return JSON.parse(localStorage.getItem('backoffice_sb_config') || 'null');
+  } catch(e) { return null; }
+}
+
+function saveConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { showToast('Preencha URL e Key', true); return; }
+  localStorage.setItem('backoffice_sb_config', JSON.stringify({ url, key }));
+  initSupabase();
+}
+
+async function testConnection() {
+  const s = document.getElementById('cfg-status');
+  s.textContent = 'Testando...';
+  s.style.color = 'var(--text-muted)';
+  try {
+    const url = document.getElementById('cfg-url').value.trim();
+    const key = document.getElementById('cfg-key').value.trim();
+    const client = window.supabase.createClient(url, key);
+    const { data, error } = await client.from('fornecedores').select('id', { count: 'exact', head: true });
+    if (error) throw error;
+    s.innerHTML = '<span style="color:var(--accent)">Conexao OK! Tabela fornecedores encontrada.</span>';
+  } catch(e) {
+    s.innerHTML = '<span style="color:var(--danger)">Erro: ' + e.message + '</span>';
+  }
+}
+
+async function initSupabase() {
+  const cfg = getConfig();
+  if (!cfg) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('sync-dot').classList.add('offline');
+    document.getElementById('sync-label').textContent = 'Sem conexao';
+    showSection('config');
+    return;
+  }
+  document.getElementById('cfg-url').value = cfg.url;
+  document.getElementById('cfg-key').value = cfg.key;
+  try {
+    sb = window.supabase.createClient(cfg.url, cfg.key);
+    await loadAllData();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('sync-dot').classList.remove('offline');
+    const now = new Date();
+    document.getElementById('sync-label').textContent = 'Atualizado ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    renderAll();
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('sync-dot').classList.add('offline');
+    document.getElementById('sync-label').textContent = 'Erro de conexao';
+    showToast('Erro ao conectar: ' + e.message, true);
+    showSection('config');
+  }
+}
+
+async function loadAllData() {
+  const [f, t, iaf, iap, ar, ad, b] = await Promise.all([
+    sb.from('fornecedores').select('*').order('dt_vencimento'),
+    sb.from('torres').select('*').order('status'),
+    sb.from('clientes_ia_filial').select('*'),
+    sb.from('clientes_ia_provedor').select('*'),
+    sb.from('armarios_resumo').select('*'),
+    sb.from('armarios_detail').select('*').order('filial'),
+    sb.from('boletos').select('*').order('created_at', { ascending: false }),
+  ]);
+  DATA.fornecedores = f.data || [];
+  DATA.torres = t.data || [];
+  DATA.iaFilial = iaf.data || [];
+  DATA.iaProvedor = iap.data || [];
+  DATA.armResumo = ar.data || [];
+  DATA.armDetail = ad.data || [];
+  DATA.boletos = b.data || [];
+}
+
+async function refreshData() {
+  if (!sb) { showSection('config'); return; }
+  document.getElementById('sync-label').textContent = 'Atualizando...';
+  try {
+    await loadAllData();
+    const now = new Date();
+    document.getElementById('sync-label').textContent = 'Atualizado ' + now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('sync-dot').classList.remove('offline');
+    renderAll();
+    showToast('Dados atualizados!');
+  } catch(e) {
+    document.getElementById('sync-label').textContent = 'Erro';
+    showToast('Erro: ' + e.message, true);
+  }
+}
+
+// ===== HELPERS =====
+function fmtVal(v) { return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+function fmtK(v) { return v >= 1000 ? (v/1000).toFixed(1) + 'k' : Number(v).toFixed(2); }
+function showToast(msg, err) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = err ? 'var(--danger)' : 'var(--accent)';
+  t.style.color = err ? 'var(--danger)' : 'var(--accent)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== NAVIGATION =====
+const titles = {
+  dashboard: ['Dashboard','Visao geral'],
+  fornecedores: ['Fornecedores','Softwares, links e servicos de TI'],
+  torres: ['Torres','Acompanhamento de torres Servis'],
+  clientes: ['Clientes IA','Bonificacao e inteligencia artificial'],
+  armarios: ['Armarios','Controle de armarios por filial'],
+  config: ['Configuracoes','Supabase e preferencias'],
+};
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  const nav = document.querySelector('[data-section="'+id+'"]');
+  if (nav) nav.classList.add('active');
+  document.getElementById('page-title').textContent = titles[id][0];
+  document.getElementById('page-subtitle').textContent = titles[id][1];
+}
+
+// ===== SVG CHARTS =====
+function hBar(container, data, colors) {
+  if (!data.length) return;
+  const maxVal = Math.max(...data.map(d => d.v));
+  const barH = 28, gap = 8, labelW = 120, chartW = 380;
+  const h = data.length * (barH + gap) + 10;
+  let svg = `<svg width="100%" viewBox="0 0 ${labelW + chartW + 80} ${h}" style="display:block;max-width:100%">`;
+  data.forEach((d, i) => {
+    const y = i * (barH + gap) + 4;
+    const w = maxVal > 0 ? (d.v / maxVal) * chartW : 0;
+    const c = colors[i % colors.length];
+    svg += `<g class="chart-bar-group">`;
+    svg += `<text x="${labelW - 8}" y="${y + barH/2 + 4}" text-anchor="end" fill="var(--text-secondary)" font-size="11" font-family="Inter,sans-serif">${d.l}</text>`;
+    svg += `<rect x="${labelW}" y="${y}" width="${Math.max(w, 2)}" height="${barH}" rx="4" fill="${c}"/>`;
+    svg += `<text x="${labelW + w + 8}" y="${y + barH/2 + 4}" fill="var(--text-primary)" font-size="11" font-weight="600" font-family="Inter,sans-serif">${d.t}</text>`;
+    svg += `</g>`;
+  });
+  svg += `</svg>`;
+  const el = document.getElementById(container);
+  if (el) el.innerHTML = svg;
+}
+
+// ===== INLINE UPDATE =====
+async function updateField(table, id, field, value) {
+  if (!sb) return;
+  const { error } = await sb.from(table).update({ [field]: value }).eq('id', id);
+  if (error) { showToast('Erro ao salvar: ' + error.message, true); return; }
+  showToast('Salvo!');
+  // Update local data
+  const arr = table === 'fornecedores' ? DATA.fornecedores : table === 'torres' ? DATA.torres : table === 'armarios_detail' ? DATA.armDetail : null;
+  if (arr) { const item = arr.find(d => d.id === id); if (item) item[field] = value; }
+}
+
+// ===== RENDER ALL =====
+function renderAll() {
+  renderDashboard();
+  renderFornecedores();
+  renderTorres();
+  renderIA();
+  renderArmarios();
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+  document.getElementById('dash-greeting').innerHTML = greet + ', <span>BackTech</span>';
+  const now = new Date();
+  document.getElementById('dash-day').textContent = now.getDate();
+  const months = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  document.getElementById('dash-month').textContent = months[now.getMonth()] + ' ' + now.getFullYear();
+
+  const F = DATA.fornecedores;
+  const T = DATA.torres;
+  const IA = DATA.iaFilial;
+  const ARM = DATA.armResumo;
+
+  const custoTotal = F.reduce((s,d) => s + Number(d.valor), 0);
+  const totalCli = IA.reduce((s,d) => s + d.clientes, 0);
+  const ativosCli = IA.reduce((s,d) => s + d.ativos, 0);
+  const camCli = IA.reduce((s,d) => s + d.cameras, 0);
+  const instaladas = T.filter(d => d.status === 'INSTALADA').length;
+  const autorizadas = T.filter(d => d.status === 'AUTORIZADA').length;
+  const totalArm = ARM.reduce((s,d) => s + d.cadastrados, 0);
+  const ativosArm = ARM.reduce((s,d) => s + d.ativos, 0);
+  const margemArm = ARM.reduce((s,d) => s + Number(d.margem), 0);
+  const custoArm = ARM.reduce((s,d) => s + Number(d.custo_forn), 0);
+  const receitaArm = ARM.reduce((s,d) => s + Number(d.valor_cli), 0);
+
+  document.getElementById('dash-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div>
+      <div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg></div>
+      <div class="kpi-label">Fornecedores Lemos</div><div class="kpi-value blue">${F.length}</div>
+      <div class="kpi-sub"><span class="kpi-tag kpi-tag-neutral">Supabase</span> servicos vinculados</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div>
+      <div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+      <div class="kpi-label">Custo Mensal Lemos</div><div class="kpi-value accent">R$ ${fmtK(custoTotal)}</div>
+      <div class="kpi-sub">sistemas + servidores + suporte</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:#eb6834"></div>
+      <div class="kpi-card-icon" style="background:rgba(235,104,52,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#eb6834" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+      <div class="kpi-label">Clientes IA</div><div class="kpi-value" style="color:#eb6834">${totalCli}</div>
+      <div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${ativosCli} ativos</span> ${camCli.toLocaleString('pt-BR')} cameras</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--warning)"></div>
+      <div class="kpi-card-icon" style="background:var(--warning-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M4 21V10l8-7 8 7v11"/><path d="M9 21v-6h6v6"/></svg></div>
+      <div class="kpi-label">Torres</div><div class="kpi-value warning">${T.length}</div>
+      <div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${instaladas} instaladas</span> ${autorizadas} autorizadas</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:#e87ba4"></div>
+      <div class="kpi-card-icon" style="background:rgba(232,123,164,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#e87ba4" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="2" y1="12" x2="22" y2="12"/></svg></div>
+      <div class="kpi-label">Armarios</div><div class="kpi-value" style="color:#e87ba4">${totalArm}</div>
+      <div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${ativosArm} ativos</span> ${ARM.length} filiais</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--danger)"></div>
+      <div class="kpi-card-icon" style="background:var(--danger-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M12 2l10 18H2z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="16" r="0.5"/></svg></div>
+      <div class="kpi-label">Margem Armarios</div><div class="kpi-value danger">${margemArm >= 0 ? '' : '-'}R$ ${fmtK(Math.abs(margemArm))}</div>
+      <div class="kpi-sub"><span class="kpi-tag kpi-tag-down">deficit</span> custo R$ ${fmtK(custoArm)} vs receita R$ ${fmtK(receitaArm)}</div></div>`;
+
+  // Charts row 1
+  const byTipo = {};
+  F.forEach(d => { const t = d.tipo || 'Outros'; byTipo[t] = (byTipo[t] || 0) + Number(d.valor); });
+  document.getElementById('dash-charts-1').innerHTML = `
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Fornecedores por Tipo</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Distribuicao de custo mensal</div></div><div class="chart-card-badge">${F.length} servicos</div></div><div class="chart-card-body" id="dchart-tipo"></div></div>
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Clientes IA por Filial</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Cameras com inteligencia artificial</div></div><div class="chart-card-badge">${IA.length} filiais</div></div><div class="chart-card-body" id="dchart-ia"></div></div>`;
+  hBar('dchart-tipo', Object.entries(byTipo).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v,t:'R$ '+fmtK(v)})), ['#2a78d6','#1abf8f','#eb6834','#eda100','#e87ba4']);
+  hBar('dchart-ia', IA.map(d=>({l:d.filial.replace('Servis ','').replace('Secopi ',''), v:d.cameras, t:d.cameras+' cam.'})), ['#2a78d6','#1abf8f','#eb6834','#eda100']);
+
+  // Charts row 2
+  const tSt = {};
+  T.forEach(d => { tSt[d.status] = (tSt[d.status] || 0) + 1; });
+  document.getElementById('dash-charts-2').innerHTML = `
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Torres por Status</div></div><div class="chart-card-badge">${T.length} torres</div></div><div class="chart-card-body" id="dchart-torres"></div></div>
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Armarios — Margem por Filial</div></div><div class="chart-card-badge">${ARM.length} filiais</div></div><div class="chart-card-body" id="dchart-arm"></div></div>`;
+  hBar('dchart-torres', Object.entries(tSt).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v,t:v+' torres'})), ['#1abf8f','#eda100','#2a78d6','#e34948','#8a9bb5','#e87ba4']);
+
+  // Arm margem custom chart
+  const armData = ARM.map(d => ({l: d.filial, v: Math.abs(Number(d.margem)), t: (Number(d.margem) >= 0 ? '+' : '-') + fmtVal(Math.abs(Number(d.margem)))}));
+  const armColors = ARM.map(d => Number(d.margem) >= 0 ? '#1abf8f' : '#e34948');
+  if (armData.length) {
+    const maxV = Math.max(...armData.map(d => d.v));
+    const bH = 28, g = 8, lW = 100, cW = 300;
+    const hh = armData.length * (bH + g) + 10;
+    let s = `<svg width="100%" viewBox="0 0 ${lW+cW+120} ${hh}" style="display:block;max-width:100%">`;
+    armData.forEach((d,i) => { const y = i*(bH+g)+4; const w = maxV>0?(d.v/maxV)*cW:0;
+      s += `<g class="chart-bar-group"><text x="${lW-8}" y="${y+bH/2+4}" text-anchor="end" fill="var(--text-secondary)" font-size="11" font-family="Inter,sans-serif">${d.l}</text>`;
+      s += `<rect x="${lW}" y="${y}" width="${Math.max(w,2)}" height="${bH}" rx="4" fill="${armColors[i]}"/>`;
+      s += `<text x="${lW+w+8}" y="${y+bH/2+4}" fill="${armColors[i]}" font-size="11" font-weight="600" font-family="Inter,sans-serif">${d.t}</text></g>`;
+    });
+    s += `</svg>`;
+    document.getElementById('dchart-arm').innerHTML = s;
+  }
+
+  // Bottom: vencimentos + payment donut
+  const pagos = F.filter(d => d.pagamento === 'SIM').length;
+  const pend = F.filter(d => d.pagamento === 'PENDENTE').length;
+  const semInfo = F.length - pagos - pend;
+  const pctPago = F.length > 0 ? pagos / F.length * 100 : 0;
+  const pctPend = F.length > 0 ? pend / F.length * 100 : 0;
+  const pctSem = 100 - pctPago - pctPend;
+  const r = 54, cx = 70, cy = 70, sw = 14;
+  const circ = 2 * Math.PI * r;
+  const s1 = pctPago/100*circ, s2 = pctPend/100*circ, s3 = pctSem/100*circ;
+
+  const upcoming = F.filter(d => d.dt_vencimento).map(d => ({s:d.servico, venc:d.dt_vencimento, pg:d.pagamento, v:Number(d.valor)})).sort((a,b) => a.venc.localeCompare(b.venc));
+  document.getElementById('dash-bottom').innerHTML = `
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Proximos Vencimentos</div></div></div><div class="chart-card-body"><div id="dash-venc">${
+      upcoming.map(d => {
+        const vencido = new Date(d.venc) < new Date() && d.pg !== 'SIM';
+        const dt = d.venc.split('-').reverse().join('/');
+        const stCls = d.pg==='SIM'?'badge-success':vencido?'badge-danger':'badge-warning';
+        const stTxt = d.pg==='SIM'?'Pago':vencido?'Vencido':'Pendente';
+        return `<div class="timeline-item"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong style="font-size:13px">${d.s}</strong><span class="badge ${stCls}">${stTxt}</span></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--text-muted)"><span>${dt}</span><span style="font-weight:600;color:var(--text-secondary)">${fmtVal(d.v)}</span></div></div>`;
+      }).join('')
+    }</div></div></div>
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Status dos Pagamentos</div></div></div><div class="chart-card-body">
+      <div class="donut-wrap">
+        <svg viewBox="0 0 140 140" width="140" height="140">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--accent)" stroke-width="${sw}" stroke-dasharray="${s1} ${circ-s1}" stroke-dashoffset="0" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--warning)" stroke-width="${sw}" stroke-dasharray="${s2} ${circ-s2}" stroke-dashoffset="${circ-s1}" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${sw}" stroke-dasharray="${s3} ${circ-s3}" stroke-dashoffset="${circ-s1-s2}" transform="rotate(-90 ${cx} ${cy})"/>
+          <text x="${cx}" y="${cy-6}" text-anchor="middle" fill="var(--text-primary)" font-size="22" font-weight="700" font-family="Inter,sans-serif">${F.length}</text>
+          <text x="${cx}" y="${cy+12}" text-anchor="middle" fill="var(--text-muted)" font-size="10" font-family="Inter,sans-serif">fornecedores</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="donut-legend-item"><span class="donut-dot" style="background:var(--accent)"></span> Pagos <strong>${pagos}</strong></div>
+          <div class="donut-legend-item"><span class="donut-dot" style="background:var(--warning)"></span> Pendentes <strong>${pend}</strong></div>
+          <div class="donut-legend-item"><span class="donut-dot" style="background:var(--border)"></span> Sem info <strong>${semInfo}</strong></div>
+        </div>
+      </div>
+      <div style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:6px"><span>Fluxo concluido</span><span style="font-weight:600">${Math.round(pctPago)}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pctPago}%"></div></div></div>
+    </div></div>`;
+}
+
+// ===== FORNECEDORES =====
+function showFornTab(btn, tab) {
+  document.querySelectorAll('#sec-fornecedores .tab-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('forn-lista').style.display = tab === 'lista' ? '' : 'none';
+  document.getElementById('forn-pagamentos').style.display = tab === 'pagamentos' ? '' : 'none';
+  document.getElementById('forn-boletos').style.display = tab === 'boletos' ? '' : 'none';
+  if (tab === 'boletos') renderBoletos();
+}
+
+function renderFornecedores() {
+  const F = DATA.fornecedores;
+  const custoTotal = F.reduce((s,d) => s + Number(d.valor), 0);
+  const pagos = F.filter(d => d.pagamento === 'SIM').length;
+  const pend = F.filter(d => d.pagamento === 'PENDENTE' || (d.dt_vencimento && new Date(d.dt_vencimento) < new Date() && d.pagamento !== 'SIM')).length;
+
+  // KPIs
+  document.getElementById('forn-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div><div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div class="kpi-label">Servicos</div><div class="kpi-value blue">${F.length}</div><div class="kpi-sub">fornecedores Lemos</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Custo Total</div><div class="kpi-value accent">R$ ${fmtK(custoTotal)}</div><div class="kpi-sub">mensal recorrente</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="kpi-label">Pagos</div><div class="kpi-value accent">${pagos}</div><div class="kpi-sub">de ${F.length}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--danger)"></div><div class="kpi-card-icon" style="background:var(--danger-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="kpi-label">Pendentes / Vencidos</div><div class="kpi-value danger">${pend}</div><div class="kpi-sub">${pend > 0 ? 'requerem atencao' : 'tudo em dia'}</div></div>`;
+
+  // Charts
+  const byTipo = {}, byFilial = {};
+  F.forEach(d => { byTipo[d.tipo||'Outros'] = (byTipo[d.tipo||'Outros']||0) + Number(d.valor); byFilial[d.filial||'Outros'] = (byFilial[d.filial||'Outros']||0) + Number(d.valor); });
+  document.getElementById('forn-charts').innerHTML = `
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Custo por Tipo de Servico</div></div></div><div class="chart-card-body" id="fc-tipo"></div></div>
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Custo por Filial</div></div></div><div class="chart-card-body" id="fc-filial"></div></div>`;
+  hBar('fc-tipo', Object.entries(byTipo).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v,t:'R$ '+fmtK(v)})), ['#2a78d6','#1abf8f','#eb6834','#eda100']);
+  hBar('fc-filial', Object.entries(byFilial).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v,t:'R$ '+fmtK(v)})), ['#1abf8f','#2a78d6','#eb6834','#eda100','#e87ba4']);
+
+  // Table
+  renderFornTable();
+
+  // Pagamentos
+  renderPagamentos();
+}
+
+function renderFornTable() {
+  const F = DATA.fornecedores;
+  const filialFilter = document.querySelector('#forn-lista [data-filter="filial"]');
+  const tipoFilter = document.querySelector('#forn-lista [data-filter="tipo"]');
+  const searchFilter = document.querySelector('#forn-lista [data-filter="search"]');
+  const filial = filialFilter ? filialFilter.value : '';
+  const tipo = tipoFilter ? tipoFilter.value : '';
+  const search = searchFilter ? searchFilter.value.toLowerCase() : '';
+
+  let filtered = F.filter(d => {
+    if (filial && d.filial !== filial) return false;
+    if (tipo && d.tipo !== tipo) return false;
+    if (search && !d.servico.toLowerCase().includes(search) && !(d.uso||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+  const total = filtered.reduce((s,d) => s + Number(d.valor), 0);
+
+  document.getElementById('forn-lista').innerHTML = `
+    <div class="filters">
+      <select class="filter-select" data-filter="filial" onchange="renderFornTable()">
+        <option value="">Todas as Filiais</option>
+        <option value="Geral" ${filial==='Geral'?'selected':''}>Geral</option>
+        <option value="Ceara" ${filial==='Ceará'?'selected':''}>Ceara</option>
+        <option value="Piauí" ${filial==='Piauí'?'selected':''}>Piaui</option>
+        <option value="Maranhão" ${filial==='Maranhão'?'selected':''}>Maranhao</option>
+        <option value="Amazonas" ${filial==='Amazonas'?'selected':''}>Amazonas</option>
+      </select>
+      <select class="filter-select" data-filter="tipo" onchange="renderFornTable()">
+        <option value="">Todos os Tipos</option>
+        <option value="Sistema" ${tipo==='Sistema'?'selected':''}>Sistema</option>
+        <option value="Servidor" ${tipo==='Servidor'?'selected':''}>Servidor</option>
+        <option value="Suporte" ${tipo==='Suporte'?'selected':''}>Suporte</option>
+      </select>
+      <input class="filter-input" data-filter="search" placeholder="Buscar servico..." oninput="renderFornTable()" style="width:200px" value="${search}">
+      <div style="flex:1"></div>
+      <div style="font-size:12px;color:var(--text-muted)">${filtered.length} servicos · Total: ${fmtVal(total)}</div>
+    </div>
+    <div class="card"><div class="card-body"><div class="table-wrap" style="max-height:60vh;overflow-y:auto">
+      <table><thead><tr>
+        <th>Servico</th><th>Filial</th><th>Tipo</th><th>Uso</th><th style="text-align:right">Valor Mensal</th><th>Forn.</th><th>Competencia</th><th>Vencimento</th><th>Fluxo</th><th>Pago</th>
+      </tr></thead><tbody>${filtered.map(d => {
+        const comp = d.dt_competencia ? d.dt_competencia.split('-').reverse().join('/') : '—';
+        const venc = d.dt_vencimento ? d.dt_vencimento.split('-').reverse().join('/') : '—';
+        const vencido = d.dt_vencimento && new Date(d.dt_vencimento) < new Date() && d.pagamento !== 'SIM';
+        return `<tr>
+          <td>${d.servico}</td><td>${d.filial}</td>
+          <td><span class="badge badge-neutral">${d.tipo||'—'}</span></td>
+          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${d.uso||''}">${d.uso||'—'}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.valor)}</td>
+          <td>${d.fornecedor_id||'—'}</td><td>${comp}</td>
+          <td>${vencido?'<span style="color:var(--danger)">'+venc+'</span>':venc}</td>
+          <td><select class="editable-select" onchange="updateField('fornecedores',${d.id},'fluxo',this.value)" style="color:${d.fluxo==='SIM'?'var(--accent)':d.fluxo==='NÃO'?'var(--danger)':'var(--text-muted)'}">
+            <option value="SIM" ${d.fluxo==='SIM'?'selected':''}>Sim</option>
+            <option value="NÃO" ${d.fluxo==='NÃO'?'selected':''}>Nao</option>
+            <option value="" ${!d.fluxo||d.fluxo===''?'selected':''}>—</option>
+          </select></td>
+          <td><select class="editable-select" onchange="updateField('fornecedores',${d.id},'pagamento',this.value)" style="color:${d.pagamento==='SIM'?'var(--accent)':d.pagamento==='PENDENTE'?'var(--warning)':'var(--text-muted)'}">
+            <option value="SIM" ${d.pagamento==='SIM'?'selected':''}>Pago</option>
+            <option value="PENDENTE" ${d.pagamento==='PENDENTE'?'selected':''}>Pendente</option>
+            <option value="" ${!d.pagamento||d.pagamento===''?'selected':''}>—</option>
+          </select></td>
+        </tr>`}).join('')}</tbody></table>
+    </div></div></div>`;
+}
+
+function renderPagamentos() {
+  const F = DATA.fornecedores;
+  const total = F.reduce((s,d) => s + Number(d.valor), 0);
+  const lancados = F.filter(d => d.fluxo === 'SIM').length;
+  const pendentes = F.filter(d => d.fluxo === 'SIM' && d.pagamento !== 'SIM').length;
+  const sem = F.filter(d => d.fluxo !== 'SIM').length;
+
+  const byFilial = {};
+  F.forEach(d => { const f = d.filial || 'Sem filial'; if (!byFilial[f]) byFilial[f] = {v:0,c:0}; byFilial[f].v += Number(d.valor); byFilial[f].c += 1; });
+  const sorted = Object.entries(byFilial).sort((a,b) => b[1].v - a[1].v);
+
+  document.getElementById('forn-pagamentos').innerHTML = `
+    <div class="kpi-row">
+      <div class="kpi-tile"><div class="kpi-label">Total Mensal</div><div class="kpi-value blue">R$ ${fmtK(total)}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Lancados no Fluxo</div><div class="kpi-value accent">${lancados}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Pendentes</div><div class="kpi-value warning">${pendentes}</div></div>
+      <div class="kpi-tile"><div class="kpi-label">Sem Lancamento</div><div class="kpi-value danger">${sem}</div></div>
+    </div>
+    <div class="card"><div class="card-header"><div class="card-title">Resumo de Pagamentos por Filial</div></div><div class="card-body"><div class="table-wrap">
+      <table><thead><tr><th>Filial</th><th style="text-align:right">Valor Total</th><th style="text-align:right">Servicos</th><th>% do Total</th></tr></thead>
+      <tbody>${sorted.map(([f,d]) => { const pct = ((d.v/total)*100).toFixed(1); return `<tr><td>${f}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.v)}</td><td style="text-align:right">${d.c}</td><td><div style="display:flex;align-items:center;gap:8px"><div style="width:80px;height:6px;background:var(--bg-input);border-radius:3px"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:3px"></div></div><span style="font-size:11px">${pct}%</span></div></td></tr>`; }).join('')}</tbody></table>
+    </div></div></div>`;
+}
+
+// ===== BOLETOS =====
+function openBoletoModal() {
+  document.getElementById('boleto-modal').classList.add('open');
+  const sel = document.getElementById('bol-fornecedor');
+  const uniqueS = [...new Set(DATA.fornecedores.map(d => d.servico))].sort();
+  sel.innerHTML = uniqueS.map(s => `<option>${s}</option>`).join('');
+}
+function closeBoletoModal() { document.getElementById('boleto-modal').classList.remove('open'); }
+
+async function saveBoleto() {
+  if (!sb) { showToast('Sem conexao', true); return; }
+  const b = {
+    fornecedor: document.getElementById('bol-fornecedor').value,
+    tipo_doc: document.getElementById('bol-tipo').value,
+    numero: document.getElementById('bol-numero').value,
+    valor: parseFloat(document.getElementById('bol-valor').value) || 0,
+    competencia: document.getElementById('bol-competencia').value,
+    vencimento: document.getElementById('bol-vencimento').value || null,
+    status: document.getElementById('bol-status').value,
+    observacoes: document.getElementById('bol-obs').value,
+  };
+  const { error } = await sb.from('boletos').insert(b);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast('Boleto salvo!');
+  closeBoletoModal();
+  // Refresh boletos
+  const { data } = await sb.from('boletos').select('*').order('created_at', { ascending: false });
+  DATA.boletos = data || [];
+  renderBoletos();
+}
+
+async function deleteBoleto(id) {
+  if (!sb) return;
+  const { error } = await sb.from('boletos').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  DATA.boletos = DATA.boletos.filter(b => b.id !== id);
+  renderBoletos();
+  showToast('Excluido!');
+}
+
+function renderBoletos() {
+  const B = DATA.boletos;
+  document.getElementById('forn-boletos').innerHTML = `
+    <div class="card"><div class="card-header"><div class="card-title">Registro de Boletos e Notas Fiscais</div><button class="btn btn-accent" onclick="openBoletoModal()">+ Novo Registro</button></div>
+    <div class="card-body"><div class="table-wrap" style="max-height:50vh;overflow-y:auto">
+      <table><thead><tr><th>Fornecedor</th><th>Tipo Doc.</th><th>N Documento</th><th>Competencia</th><th>Vencimento</th><th style="text-align:right">Valor</th><th>Status</th><th>Acoes</th></tr></thead>
+      <tbody>${B.length ? B.map(b => {
+        const stBadge = b.status==='Pago'?'badge-success':b.status==='Vencido'?'badge-danger':b.status==='Lancado'?'badge-blue':'badge-warning';
+        return `<tr><td>${b.fornecedor}</td><td><span class="badge badge-neutral">${b.tipo_doc}</span></td><td>${b.numero||'—'}</td><td>${b.competencia||'—'}</td><td>${b.vencimento||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${b.valor?fmtVal(b.valor):'—'}</td><td><span class="badge ${stBadge}">${b.status}</span></td><td><button class="btn btn-outline btn-sm" onclick="deleteBoleto(${b.id})">Excluir</button></td></tr>`;
+      }).join('') : ''}</tbody></table></div>
+      ${B.length === 0 ? '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">Nenhum registro. Clique em "+ Novo Registro" para adicionar.</div>' : ''}
+    </div></div>`;
+}
+
+// ===== TORRES =====
+function renderTorres() {
+  const T = DATA.torres;
+  const instaladas = T.filter(d => d.status==='INSTALADA').length;
+  const autorizadas = T.filter(d => d.status==='AUTORIZADA').length;
+  const emAut = T.filter(d => d.status==='EM AUTORIZAÇÃO').length;
+  const totalPago = T.reduce((s,d) => s + Number(d.pago_forn), 0);
+  const totalCam = T.reduce((s,d) => s + d.cameras, 0);
+
+  document.getElementById('torres-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div><div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M4 21V10l8-7 8 7v11"/><path d="M9 21v-6h6v6"/></svg></div><div class="kpi-label">Total Torres</div><div class="kpi-value blue">${T.length}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="kpi-label">Instaladas</div><div class="kpi-value accent">${instaladas}</div><div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${totalCam} cameras</span></div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:#2a78d6"></div><div class="kpi-card-icon" style="background:rgba(42,120,214,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#2a78d6" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="kpi-label">Autorizadas</div><div class="kpi-value blue">${autorizadas}</div><div class="kpi-sub">aguardando instalacao</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--warning)"></div><div class="kpi-card-icon" style="background:var(--warning-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M12 2l10 18H2z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="16" r="0.5"/></svg></div><div class="kpi-label">Em Autorizacao</div><div class="kpi-value warning">${emAut}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--danger)"></div><div class="kpi-card-icon" style="background:var(--danger-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Pago ao Fornecedor</div><div class="kpi-value danger">${fmtVal(totalPago)}</div></div>`;
+
+  // Charts
+  const tSt = {}, tCid = {};
+  T.forEach(d => { tSt[d.status] = (tSt[d.status]||0)+1; tCid[d.cidade] = (tCid[d.cidade]||0)+1; });
+  document.getElementById('torres-charts').innerHTML = `
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Torres por Status</div></div><div class="chart-card-badge">pipeline</div></div><div class="chart-card-body" id="tc-st"></div></div>
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Torres por Cidade</div></div><div class="chart-card-badge">top cidades</div></div><div class="chart-card-body" id="tc-cid"></div></div>`;
+  hBar('tc-st', Object.entries(tSt).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v,t:v+''})), ['#1abf8f','#2a78d6','#eda100','#e34948','#8a9bb5','#e87ba4','#4a3aa7']);
+  hBar('tc-cid', Object.entries(tCid).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([l,v])=>({l,v,t:v+''})), ['#2a78d6','#1abf8f','#eb6834','#eda100','#e87ba4']);
+
+  renderTorresTable();
+}
+
+function renderTorresTable() {
+  const T = DATA.torres;
+  const stEl = document.querySelector('#torres-filters [data-filter="status"]');
+  const srEl = document.querySelector('#torres-filters [data-filter="search"]');
+  const st = stEl ? stEl.value : '';
+  const search = srEl ? srEl.value.toLowerCase() : '';
+
+  let filtered = T.filter(d => {
+    if (st && d.status !== st) return false;
+    if (search && !d.cliente.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  document.getElementById('torres-filters').innerHTML = `
+    <select class="filter-select" data-filter="status" onchange="renderTorresTable()">
+      <option value="">Todos os Status</option>
+      <option value="INSTALADA" ${st==='INSTALADA'?'selected':''}>Instalada</option>
+      <option value="AUTORIZADA" ${st==='AUTORIZADA'?'selected':''}>Autorizada</option>
+      <option value="EM AUTORIZAÇÃO" ${st==='EM AUTORIZAÇÃO'?'selected':''}>Em Autorizacao</option>
+      <option value="NÃO AUTORIZADA" ${st==='NÃO AUTORIZADA'?'selected':''}>Nao Autorizada</option>
+      <option value="SEGUNDO PLANO" ${st==='SEGUNDO PLANO'?'selected':''}>Segundo Plano</option>
+      <option value="AVALIAR/AGUARDAR" ${st==='AVALIAR/AGUARDAR'?'selected':''}>Avaliar/Aguardar</option>
+    </select>
+    <input class="filter-input" data-filter="search" placeholder="Buscar cliente..." oninput="renderTorresTable()" style="width:200px" value="${search}">`;
+
+  document.getElementById('torres-table-wrap').innerHTML = `
+    <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th style="text-align:right">Cameras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Cobrado</th><th>Responsavel</th></tr></thead>
+    <tbody>${filtered.map(d => {
+      const stBadge = d.status==='INSTALADA'?'badge-success':d.status==='AUTORIZADA'?'badge-blue':d.status==='EM AUTORIZAÇÃO'?'badge-warning':d.status==='NÃO AUTORIZADA'?'badge-danger':'badge-neutral';
+      return `<tr><td>${d.cliente}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${d.responsavel}</td></tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+// ===== CLIENTES IA =====
+function renderIA() {
+  const IF = DATA.iaFilial, IP = DATA.iaProvedor;
+  const totalCli = IF.reduce((s,d)=>s+d.clientes,0);
+  const ativosCli = IF.reduce((s,d)=>s+d.ativos,0);
+  const inativosCli = IF.reduce((s,d)=>s+d.inativos,0);
+  const totalCam = IF.reduce((s,d)=>s+d.cameras,0);
+
+  document.getElementById('ia-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:#eb6834"></div><div class="kpi-card-icon" style="background:rgba(235,104,52,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#eb6834" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="kpi-label">Total Clientes</div><div class="kpi-value" style="color:#eb6834">${totalCli}</div><div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${ativosCli} ativos</span> ${inativosCli} inativos</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div><div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="12" cy="12" r="4"/></svg></div><div class="kpi-label">Cameras com IA</div><div class="kpi-value blue">${totalCam.toLocaleString('pt-BR')}</div><div class="kpi-sub">em ${IF.length} filiais</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/></svg></div><div class="kpi-label">Provedores</div><div class="kpi-value accent">${IP.length}</div><div class="kpi-sub">plataformas de IA</div></div>`;
+
+  // Charts
+  document.getElementById('ia-charts').innerHTML = `
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Cameras por Filial</div></div><div class="chart-card-badge">${IF.length} filiais</div></div><div class="chart-card-body" id="ic-fil"></div></div>
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Cameras por Provedor</div></div><div class="chart-card-badge">${IP.length} provedores</div></div><div class="chart-card-body" id="ic-prov"></div></div>`;
+  hBar('ic-fil', IF.map(d=>({l:d.filial.replace('Servis ','').replace('Secopi ',''),v:d.cameras,t:d.cameras+' cam.'})), ['#2a78d6','#1abf8f','#eb6834','#eda100']);
+  hBar('ic-prov', IP.map(d=>({l:d.provedor,v:d.cameras,t:d.cameras+' cam.'})), ['#eb6834','#2a78d6','#1abf8f','#eda100']);
+
+  // Tables
+  document.getElementById('ia-tables').innerHTML = `
+    <div class="card"><div class="card-header"><div class="card-title">Por Filial</div></div><div class="card-body"><div class="table-wrap">
+      <table><thead><tr><th>Filial</th><th style="text-align:right">Clientes</th><th style="text-align:right">Ativos</th><th style="text-align:right">Inativos</th><th style="text-align:right">Cameras IA</th></tr></thead>
+      <tbody>${IF.map(d=>`<tr><td>${d.filial}</td><td style="text-align:right">${d.clientes}</td><td style="text-align:right">${d.ativos}</td><td style="text-align:right">${d.inativos}</td><td style="text-align:right;font-weight:600">${d.cameras}</td></tr>`).join('')}</tbody></table>
+    </div></div></div>
+    <div class="card"><div class="card-header"><div class="card-title">Por Provedor</div></div><div class="card-body"><div class="table-wrap">
+      <table><thead><tr><th>Provedor</th><th style="text-align:right">Clientes</th><th style="text-align:right">Ativos</th><th style="text-align:right">Cameras IA</th></tr></thead>
+      <tbody>${IP.map(d=>`<tr><td>${d.provedor}</td><td style="text-align:right">${d.clientes}</td><td style="text-align:right">${d.ativos}</td><td style="text-align:right;font-weight:600">${d.cameras}</td></tr>`).join('')}</tbody></table>
+    </div></div></div>`;
+}
+
+// ===== ARMARIOS =====
+function renderArmarios() {
+  const ARM = DATA.armResumo, AD = DATA.armDetail;
+  const totalArm = ARM.reduce((s,d)=>s+d.cadastrados,0);
+  const ativosArm = ARM.reduce((s,d)=>s+d.ativos,0);
+  const custoArm = ARM.reduce((s,d)=>s+Number(d.custo_forn),0);
+  const receitaArm = ARM.reduce((s,d)=>s+Number(d.valor_cli),0);
+  const margemArm = ARM.reduce((s,d)=>s+Number(d.margem),0);
+
+  document.getElementById('arm-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:#e87ba4"></div><div class="kpi-card-icon" style="background:rgba(232,123,164,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#e87ba4" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="2" y1="12" x2="22" y2="12"/></svg></div><div class="kpi-label">Total Armarios</div><div class="kpi-value" style="color:#e87ba4">${totalArm}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="kpi-label">Ativos</div><div class="kpi-value accent">${ativosArm}</div><div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${totalArm>0?((ativosArm/totalArm)*100).toFixed(1):'0'}%</span></div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--warning)"></div><div class="kpi-card-icon" style="background:var(--warning-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Custo Fornecedor</div><div class="kpi-value warning">R$ ${fmtK(custoArm)}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div><div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Valor Cliente</div><div class="kpi-value blue">R$ ${fmtK(receitaArm)}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--danger)"></div><div class="kpi-card-icon" style="background:var(--danger-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M12 2l10 18H2z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="16" r="0.5"/></svg></div><div class="kpi-label">Margem Total</div><div class="kpi-value danger">${margemArm>=0?'':'-'}R$ ${fmtK(Math.abs(margemArm))}</div><div class="kpi-sub"><span class="kpi-tag kpi-tag-down">deficit</span></div></div>`;
+
+  // Charts
+  document.getElementById('arm-charts').innerHTML = `
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Margem por Filial</div></div></div><div class="chart-card-body" id="ac-mar"></div></div>
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Status dos Armarios</div></div></div><div class="chart-card-body" id="ac-st"></div></div>`;
+
+  // Margem chart
+  const armMData = ARM.map(d=>({l:d.filial,v:Math.abs(Number(d.margem)),t:(Number(d.margem)>=0?'+':'-')+fmtVal(Math.abs(Number(d.margem)))}));
+  const armMCols = ARM.map(d=>Number(d.margem)>=0?'#1abf8f':'#e34948');
+  if (armMData.length) {
+    const mx = Math.max(...armMData.map(d=>d.v));
+    const bH=28,g=8,lW=100,cW=260,hh=armMData.length*(bH+g)+10;
+    let s = `<svg width="100%" viewBox="0 0 ${lW+cW+120} ${hh}" style="display:block;max-width:100%">`;
+    armMData.forEach((d,i)=>{const y=i*(bH+g)+4;const w=mx>0?(d.v/mx)*cW:0;s+=`<g class="chart-bar-group"><text x="${lW-8}" y="${y+bH/2+4}" text-anchor="end" fill="var(--text-secondary)" font-size="11" font-family="Inter,sans-serif">${d.l}</text><rect x="${lW}" y="${y}" width="${Math.max(w,2)}" height="${bH}" rx="4" fill="${armMCols[i]}"/><text x="${lW+w+8}" y="${y+bH/2+4}" fill="${armMCols[i]}" font-size="11" font-weight="600" font-family="Inter,sans-serif">${d.t}</text></g>`;});
+    s += `</svg>`;
+    document.getElementById('ac-mar').innerHTML = s;
+  }
+
+  // Status donut
+  const inativosArm = ARM.reduce((s,d)=>s+d.inativos,0);
+  const pctAt = totalArm>0?ativosArm/totalArm*100:0;
+  const r2=50,cx2=60,cy2=60,sw2=12;
+  const circ2=2*Math.PI*r2;
+  const s1_2=pctAt/100*circ2;
+  document.getElementById('ac-st').innerHTML = `
+    <div class="donut-wrap">
+      <svg viewBox="0 0 120 120" width="120" height="120">
+        <circle cx="${cx2}" cy="${cy2}" r="${r2}" fill="none" stroke="var(--accent)" stroke-width="${sw2}" stroke-dasharray="${s1_2} ${circ2-s1_2}" stroke-dashoffset="0" transform="rotate(-90 ${cx2} ${cy2})" stroke-linecap="round"/>
+        <circle cx="${cx2}" cy="${cy2}" r="${r2}" fill="none" stroke="var(--border)" stroke-width="${sw2}" stroke-dasharray="${circ2-s1_2} ${s1_2}" stroke-dashoffset="${-s1_2}" transform="rotate(-90 ${cx2} ${cy2})"/>
+        <text x="${cx2}" y="${cy2-4}" text-anchor="middle" fill="var(--text-primary)" font-size="20" font-weight="700" font-family="Inter,sans-serif">${totalArm}</text>
+        <text x="${cx2}" y="${cy2+12}" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-family="Inter,sans-serif">armarios</text>
+      </svg>
+      <div class="donut-legend">
+        <div class="donut-legend-item"><span class="donut-dot" style="background:var(--accent)"></span> Ativos <strong>${ativosArm}</strong></div>
+        <div class="donut-legend-item"><span class="donut-dot" style="background:var(--border)"></span> Inativos <strong>${inativosArm}</strong></div>
+      </div>
+    </div>`;
+
+  // Resumo table
+  document.getElementById('arm-resumo-card').innerHTML = `
+    <div class="card-header"><div class="card-title">Resumo por Filial</div></div>
+    <div class="card-body"><div class="table-wrap"><table><thead><tr><th>Filial</th><th style="text-align:right">Cad.</th><th style="text-align:right">Ativos</th><th style="text-align:right">Inativos</th><th style="text-align:right">Custo Forn.</th><th style="text-align:right">Valor Cli.</th><th style="text-align:right">Margem</th></tr></thead>
+    <tbody>${ARM.map(d=>`<tr><td>${d.filial}</td><td style="text-align:right">${d.cadastrados}</td><td style="text-align:right">${d.ativos}</td><td style="text-align:right">${d.inativos}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_forn)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.valor_cli)}</td><td style="text-align:right;font-variant-numeric:tabular-nums" class="${Number(d.margem)>=0?'val-pos':'val-neg'}">${fmtVal(d.margem)}</td></tr>`).join('')}</tbody></table></div></div>`;
+
+  renderArmDetail();
+}
+
+function renderArmDetail() {
+  const AD = DATA.armDetail;
+  const fEl = document.querySelector('#arm-filters [data-filter="filial"]');
+  const sEl = document.querySelector('#arm-filters [data-filter="status"]');
+  const filial = fEl ? fEl.value : '';
+  const status = sEl ? sEl.value : '';
+
+  let filtered = AD.filter(d => {
+    if (filial && d.filial !== filial) return false;
+    if (status && d.status !== status) return false;
+    return true;
+  });
+
+  document.getElementById('arm-filters').innerHTML = `
+    <select class="filter-select" data-filter="filial" onchange="renderArmDetail()">
+      <option value="">Todas as Filiais</option>
+      <option value="FORTALEZA" ${filial==='FORTALEZA'?'selected':''}>Fortaleza</option>
+      <option value="MARANHÃO" ${filial==='MARANHÃO'?'selected':''}>Maranhao</option>
+      <option value="MANAUS" ${filial==='MANAUS'?'selected':''}>Manaus</option>
+      <option value="TERESINA" ${filial==='TERESINA'?'selected':''}>Teresina</option>
+    </select>
+    <select class="filter-select" data-filter="status" onchange="renderArmDetail()">
+      <option value="">Todos os Status</option>
+      <option value="Ativo" ${status==='Ativo'?'selected':''}>Ativo</option>
+      <option value="Inativo" ${status==='Inativo'?'selected':''}>Inativo</option>
+    </select>`;
+
+  document.getElementById('arm-detail-card').innerHTML = `
+    <div class="card-header"><div class="card-title">Detalhamento de Armarios</div></div>
+    <div class="card-body"><div class="table-wrap" style="max-height:50vh;overflow-y:auto">
+      <table><thead><tr><th>Condominio</th><th>Filial</th><th>Fornecedor</th><th style="text-align:center">Portas</th><th>Status</th><th>Grat.</th><th style="text-align:right">Custo Forn.</th><th style="text-align:right">Valor Cli.</th><th style="text-align:right">Margem</th></tr></thead>
+      <tbody>${filtered.map(d=>`<tr><td>${d.condominio}</td><td>${d.filial}</td><td>${d.fornecedor}</td><td style="text-align:center">${d.portas}</td><td><span class="badge ${d.status==='Ativo'?'badge-success':'badge-neutral'}">${d.status}</span></td><td><span class="badge ${d.gratificacao==='Sim'?'badge-success':'badge-neutral'}">${d.gratificacao}</span></td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_forn)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.valor_cli?fmtVal(d.valor_cli):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" class="${Number(d.margem)>=0?'val-pos':'val-neg'}">${fmtVal(d.margem)}</td></tr>`).join('')}</tbody></table>
+    </div></div>`;
+}
+
+// ===== INIT =====
+initSupabase();
+</script>
+</body>
+</html>
