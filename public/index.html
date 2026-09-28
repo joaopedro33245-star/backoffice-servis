@@ -786,13 +786,17 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
 
 <script>
 // ===== SUPABASE CONFIG =====
+const DEFAULT_SB_URL = 'https://fxmdsumcqukxuzooiiju.supabase.co';
+const DEFAULT_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4bWRzdW1jcXVreHV6b29paWp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MTcyNjAsImV4cCI6MjA4ODk5MzI2MH0.qEKKHqvJAt_5Bsk9V5uBI1eN27eWu1wiFhHoFbpI2lo';
 let sb = null;
 let DATA = { fornecedores: [], torres: [], iaFilial: [], iaProvedor: [], armResumo: [], armDetail: [], boletos: [] };
 
 function getConfig() {
   try {
-    return JSON.parse(localStorage.getItem('backoffice_sb_config') || 'null');
-  } catch(e) { return null; }
+    const saved = JSON.parse(localStorage.getItem('backoffice_sb_config') || 'null');
+    if (saved && saved.url && saved.key) return saved;
+  } catch(e) {}
+  return { url: DEFAULT_SB_URL, key: DEFAULT_SB_KEY };
 }
 
 function saveConfig() {
@@ -848,22 +852,46 @@ async function initSupabase() {
 }
 
 async function loadAllData() {
-  const [f, t, iaf, iap, ar, ad, b] = await Promise.all([
-    sb.from('fornecedores').select('*').order('dt_vencimento'),
-    sb.from('torres').select('*').order('status'),
-    sb.from('clientes_ia_filial').select('*'),
-    sb.from('clientes_ia_provedor').select('*'),
-    sb.from('armarios_resumo').select('*'),
-    sb.from('armarios_detail').select('*').order('filial'),
-    sb.from('boletos').select('*').order('created_at', { ascending: false }),
-  ]);
-  DATA.fornecedores = f.data || [];
-  DATA.torres = t.data || [];
-  DATA.iaFilial = iaf.data || [];
-  DATA.iaProvedor = iap.data || [];
-  DATA.armResumo = ar.data || [];
-  DATA.armDetail = ad.data || [];
-  DATA.boletos = b.data || [];
+  const tables = [
+    { key: 'fornecedores', q: sb.from('fornecedores').select('*') },
+    { key: 'torres', q: sb.from('torres').select('*') },
+    { key: 'clientes_ia_filial', q: sb.from('clientes_ia_filial').select('*') },
+    { key: 'clientes_ia_provedor', q: sb.from('clientes_ia_provedor').select('*') },
+    { key: 'armarios_resumo', q: sb.from('armarios_resumo').select('*') },
+    { key: 'armarios_detail', q: sb.from('armarios_detail').select('*') },
+    { key: 'boletos', q: sb.from('boletos').select('*') },
+  ];
+  const results = await Promise.all(tables.map(t => t.q));
+  let errors = [];
+  const map = { fornecedores:0, torres:1, clientes_ia_filial:2, clientes_ia_provedor:3, armarios_resumo:4, armarios_detail:5, boletos:6 };
+  tables.forEach((t, i) => {
+    const r = results[i];
+    if (r.error) {
+      errors.push(t.key + ': ' + r.error.message);
+      console.error('Supabase error [' + t.key + ']:', r.error);
+    }
+  });
+  DATA.fornecedores = results[0].data || [];
+  DATA.torres = results[1].data || [];
+  DATA.iaFilial = results[2].data || [];
+  DATA.iaProvedor = results[3].data || [];
+  DATA.armResumo = results[4].data || [];
+  DATA.armDetail = results[5].data || [];
+  DATA.boletos = results[6].data || [];
+
+  if (errors.length > 0) {
+    showToast('Erro RLS: ' + errors[0], true);
+    console.warn('Total erros:', errors.length, errors);
+  }
+  console.log('Dados carregados:', {
+    fornecedores: DATA.fornecedores.length,
+    torres: DATA.torres.length,
+    iaFilial: DATA.iaFilial.length,
+    iaProvedor: DATA.iaProvedor.length,
+    armResumo: DATA.armResumo.length,
+    armDetail: DATA.armDetail.length,
+    boletos: DATA.boletos.length,
+  });
 }
 
 async function refreshData() {
