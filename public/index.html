@@ -921,8 +921,9 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
       </div>
       <input type="hidden" id="hist-edit-id" value="">
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-outline" onclick="closeHistoricoModal()">Cancelar</button>
+      <button class="btn" onclick="enviarEmailFinanceiro()" style="background:#2a78d6;color:#fff;display:inline-flex;align-items:center;gap:5px;font-size:13px" title="Abrir email com dados para o financeiro">📧 Enviar ao Financeiro</button>
       <button class="btn btn-accent" onclick="saveHistorico()">Salvar</button>
     </div>
   </div>
@@ -2601,6 +2602,48 @@ function editHistorico(id) {
   else { nl.style.display = 'none'; }
   if (h.boleto_url) { bl.href = h.boleto_url; bl.style.display = 'inline'; bl.textContent = 'Ver Boleto'; }
   else { bl.style.display = 'none'; }
+}
+
+function enviarEmailFinanceiro() {
+  const servico = document.getElementById('hist-servico').value.trim() || '—';
+  const fornSel = document.getElementById('hist-fornecedor-id');
+  const fornNome = fornSel.options[fornSel.selectedIndex]?.text || '—';
+  const competencia = document.getElementById('hist-competencia').value || '—';
+  const valor = document.getElementById('hist-valor').value || '0';
+  const fluxo = document.getElementById('hist-fluxo').value || '—';
+  const dataNf = document.getElementById('hist-data-nf').value || '—';
+  const vencimento = document.getElementById('hist-vencimento').value || '—';
+  const obs = document.getElementById('hist-obs').value || '';
+  const tipoServico = document.getElementById('hist-tipo-servico').value || '—';
+  const enviadoCP = document.getElementById('hist-enviado-cp').checked ? 'Sim' : 'Não';
+  const lancado = document.getElementById('hist-lancado').checked ? 'Sim' : 'Não';
+  const lancadoSist = document.getElementById('hist-lancado-sistema').checked ? 'Sim' : 'Não';
+  const notaUrl = document.getElementById('hist-nota-url').value || '';
+  const boletoUrl = document.getElementById('hist-boleto-url').value || '';
+
+  const to = 'contasapagar@serviseletronica.com.br,backoffice@serviseletronica.com.br,pedro.netto@serviseletronica.com.br';
+  const subject = encodeURIComponent(`[Backoffice] ${servico} - ${fornNome} - Competência ${competencia}`);
+
+  let body = `Segue informações do registro de pagamento:\n\n`;
+  body += `SERVIÇO: ${servico}\n`;
+  body += `FORNECEDOR: ${fornNome}\n`;
+  body += `TIPO: ${tipoServico}\n`;
+  body += `COMPETÊNCIA: ${competencia}\n`;
+  body += `VALOR: R$ ${Number(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2})}\n`;
+  body += `DATA NF: ${dataNf}\n`;
+  body += `VENCIMENTO: ${vencimento}\n`;
+  body += `FLUXO: ${fluxo}\n\n`;
+  body += `STATUS:\n`;
+  body += `• Enviado ao Contas a Pagar: ${enviadoCP}\n`;
+  body += `• Lançado para Pagamento: ${lancado}\n`;
+  body += `• Lançado no Sistema: ${lancadoSist}\n`;
+  if (obs) body += `\nOBSERVAÇÕES: ${obs}\n`;
+  if (notaUrl) body += `\nNOTA FISCAL: ${notaUrl}\n`;
+  if (boletoUrl) body += `BOLETO: ${boletoUrl}\n`;
+  body += `\n---\nEnviado via Backoffice Servis`;
+
+  window.open(`mailto:${to}?subject=${subject}&body=${encodeURIComponent(body)}`, '_blank');
+  showToast('Email aberto! Verifique e envie.');
 }
 
 async function deleteHistorico(id) {
