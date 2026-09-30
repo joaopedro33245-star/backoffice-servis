@@ -2596,8 +2596,11 @@ function editHistorico(id) {
   // Show existing PDF links
   const nl = document.getElementById('hist-nota-link');
   const bl = document.getElementById('hist-boleto-link');
+  console.log('[DEBUG EDIT] nota_url:', h.nota_url, '| boleto_url:', h.boleto_url);
   if (h.nota_url) { nl.href = h.nota_url; nl.style.display = 'inline'; nl.textContent = 'Ver Nota'; }
+  else { nl.style.display = 'none'; }
   if (h.boleto_url) { bl.href = h.boleto_url; bl.style.display = 'inline'; bl.textContent = 'Ver Boleto'; }
+  else { bl.style.display = 'none'; }
 }
 
 async function deleteHistorico(id) {
@@ -2627,13 +2630,24 @@ async function saveHistorico() {
     showToast('Enviando nota fiscal...');
     const url = await uploadPDF(notaFile, 'notas');
     console.log('[DEBUG SAVE] nota upload resultado:', url);
-    if (url) notaUrl = url;
+    if (url) {
+      notaUrl = url;
+      const nl = document.getElementById('hist-nota-link');
+      nl.href = url; nl.style.display = 'inline'; nl.textContent = 'Ver Nota';
+      document.getElementById('hist-nota-url').value = url;
+    }
   }
   if (boletoFile) {
     showToast('Enviando boleto...');
     const url = await uploadPDF(boletoFile, 'boletos');
     console.log('[DEBUG SAVE] boleto upload resultado:', url);
-    if (url) boletoUrl = url;
+    if (url) {
+      boletoUrl = url;
+      // Show link immediately in modal
+      const bl = document.getElementById('hist-boleto-link');
+      bl.href = url; bl.style.display = 'inline'; bl.textContent = 'Ver Boleto';
+      document.getElementById('hist-boleto-url').value = url;
+    }
   }
 
   const obj = {
