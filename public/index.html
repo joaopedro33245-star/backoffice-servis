@@ -856,8 +856,22 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
       </div>
       <div class="form-group"><label class="form-label">Observacoes</label><textarea class="form-input" id="hist-obs" rows="2" placeholder="Observacoes..."></textarea></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div class="form-group"><label class="form-label">Nota Fiscal (URL)</label><input class="form-input" id="hist-nota-url" placeholder="https://... link da nota"></div>
-        <div class="form-group"><label class="form-label">Boleto (URL)</label><input class="form-input" id="hist-boleto-url" placeholder="https://... link do boleto"></div>
+        <div class="form-group">
+          <label class="form-label">Nota Fiscal (PDF)</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="file" id="hist-nota-file" accept=".pdf" style="font-size:12px;color:var(--text-muted)">
+            <a id="hist-nota-link" href="#" target="_blank" style="display:none;font-size:11px;color:#1abf8f">Ver PDF</a>
+          </div>
+          <input type="hidden" id="hist-nota-url" value="">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Boleto (PDF)</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="file" id="hist-boleto-file" accept=".pdf" style="font-size:12px;color:var(--text-muted)">
+            <a id="hist-boleto-link" href="#" target="_blank" style="display:none;font-size:11px;color:#2a78d6">Ver PDF</a>
+          </div>
+          <input type="hidden" id="hist-boleto-url" value="">
+        </div>
       </div>
       <div class="form-group" style="display:flex;align-items:center;gap:8px">
         <input type="checkbox" id="hist-lancado-sistema"><label class="form-label" style="margin:0" for="hist-lancado-sistema">Lancado no Sistema</label>
@@ -2149,6 +2163,26 @@ function showFornTrend(name, fornId) {
 }
 
 // ===== HISTORICO MODAL =====
+async function uploadPDF(file, folder) {
+  if (!sb || !file) return null;
+  const ts = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${folder}/${ts}_${safeName}`;
+  const { data, error } = await sb.storage.from('documentos').upload(path, file, { contentType: 'application/pdf', upsert: false });
+  if (error) { showToast('Erro upload: ' + error.message, true); return null; }
+  const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+function resetFileLinks() {
+  document.getElementById('hist-nota-file').value = '';
+  document.getElementById('hist-boleto-file').value = '';
+  const nl = document.getElementById('hist-nota-link');
+  const bl = document.getElementById('hist-boleto-link');
+  nl.style.display = 'none'; nl.href = '#';
+  bl.style.display = 'none'; bl.href = '#';
+}
+
 function openHistoricoModal() {
   document.getElementById('hist-modal').classList.add('open');
   document.querySelector('#hist-modal h3').textContent = 'Novo Registro de Historico';
@@ -2168,6 +2202,7 @@ function openHistoricoModal() {
   document.getElementById('hist-obs').value = '';
   document.getElementById('hist-nota-url').value = '';
   document.getElementById('hist-boleto-url').value = '';
+  resetFileLinks();
 
   // Populate fornecedor select
   const sel = document.getElementById('hist-fornecedor-id');
@@ -2198,6 +2233,11 @@ function editHistorico(id) {
   document.getElementById('hist-obs').value = h.observacoes || '';
   document.getElementById('hist-nota-url').value = h.nota_url || '';
   document.getElementById('hist-boleto-url').value = h.boleto_url || '';
+  // Show existing PDF links
+  const nl = document.getElementById('hist-nota-link');
+  const bl = document.getElementById('hist-boleto-link');
+  if (h.nota_url) { nl.href = h.nota_url; nl.style.display = 'inline'; nl.textContent = 'Ver Nota'; }
+  if (h.boleto_url) { bl.href = h.boleto_url; bl.style.display = 'inline'; bl.textContent = 'Ver Boleto'; }
 }
 
 async function deleteHistorico(id) {
@@ -2215,6 +2255,23 @@ async function saveHistorico() {
   if (!fornId) { showToast('Selecione um fornecedor', true); return; }
   const servico = document.getElementById('hist-servico').value.trim();
   if (!servico) { showToast('Preencha o servico', true); return; }
+
+  // Upload PDFs if selected
+  const notaFile = document.getElementById('hist-nota-file').files[0];
+  const boletoFile = document.getElementById('hist-boleto-file').files[0];
+  let notaUrl = document.getElementById('hist-nota-url').value || null;
+  let boletoUrl = document.getElementById('hist-boleto-url').value || null;
+  if (notaFile) {
+    showToast('Enviando nota fiscal...');
+    const url = await uploadPDF(notaFile, 'notas');
+    if (url) notaUrl = url;
+  }
+  if (boletoFile) {
+    showToast('Enviando boleto...');
+    const url = await uploadPDF(boletoFile, 'boletos');
+    if (url) boletoUrl = url;
+  }
+
   const obj = {
     fornecedor_id: parseInt(fornId),
     servico,
@@ -2228,8 +2285,8 @@ async function saveHistorico() {
     data_nf: document.getElementById('hist-data-nf').value || null,
     dt_vencimento: document.getElementById('hist-vencimento').value || null,
     observacoes: document.getElementById('hist-obs').value,
-    nota_url: document.getElementById('hist-nota-url').value || null,
-    boleto_url: document.getElementById('hist-boleto-url').value || null,
+    nota_url: notaUrl,
+    boleto_url: boletoUrl,
   };
   const editId = document.getElementById('hist-edit-id').value;
   if (editId) {
