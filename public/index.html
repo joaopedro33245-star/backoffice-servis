@@ -1401,6 +1401,19 @@ function renderPagamentos() {
   const enviadosCP = rows.filter(r => r.enviado_cp === 'SIM').length;
   const pendentes = rows.filter(r => r.enviado_cp === 'PENDENTE').length;
 
+  // --- FILTERS ---
+  const searchVal = (document.getElementById('pag-search') || {}).value || '';
+  const filterFilial = (document.getElementById('pag-filter-filial') || {}).value || '';
+  const filterStatus = (document.getElementById('pag-filter-status') || {}).value || '';
+  if (searchVal) rows = rows.filter(r => (r.servico||'').toLowerCase().includes(searchVal.toLowerCase()));
+  if (filterFilial) rows = rows.filter(r => (r.filial||'') === filterFilial);
+  if (filterStatus === 'SIM') rows = rows.filter(r => r.enviado_cp === 'SIM');
+  else if (filterStatus === 'NAO') rows = rows.filter(r => r.enviado_cp === 'NÃO' || r.enviado_cp === 'NAO');
+  else if (filterStatus === 'PENDENTE') rows = rows.filter(r => r.enviado_cp === 'PENDENTE');
+
+  // Unique filiais for filter dropdown
+  const allFiliais = [...new Set(DATA.fornecedores.map(f => f.filial).filter(Boolean))].sort();
+
   // Filial color map
   const filialColor = (f) => {
     const fl = (f||'').toLowerCase();
@@ -1486,6 +1499,20 @@ function renderPagamentos() {
       <span style="font-size:18px">⚠️</span>
       <span style="color:#f39c12;font-weight:600;font-size:13px">${alertRows.length} pagamento${alertRows.length>1?'s':''} vencendo hoje/amanha: ${alertRows.map(r=>r.servico).join(', ')}</span>
     </div>` : ''}
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <input id="pag-search" type="text" placeholder="Buscar fornecedor/servico..." value="${searchVal}" oninput="renderPagamentos()" style="flex:1;min-width:180px;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px">
+      <select id="pag-filter-filial" onchange="renderPagamentos()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px">
+        <option value="">Todas Filiais</option>
+        ${allFiliais.map(f => `<option value="${f}" ${f===filterFilial?'selected':''}>${f}</option>`).join('')}
+      </select>
+      <select id="pag-filter-status" onchange="renderPagamentos()" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px">
+        <option value="">Todos Status</option>
+        <option value="SIM" ${filterStatus==='SIM'?'selected':''}>Enviado CP: SIM</option>
+        <option value="NAO" ${filterStatus==='NAO'?'selected':''}>Enviado CP: NÃO</option>
+        <option value="PENDENTE" ${filterStatus==='PENDENTE'?'selected':''}>Enviado CP: PENDENTE</option>
+      </select>
+      <button onclick="exportPagamentosExcel()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap" title="Exportar para Excel">📥 Excel</button>
+    </div>
     <div class="card"><div class="card-header"><div class="card-title">${selLabel} — ${rows.length} servicos</div></div>
     <div class="card-body"><div class="table-wrap" style="max-height:60vh;overflow-y:auto;overflow-x:auto">
       <table style="min-width:1200px"><thead><tr>
@@ -1495,6 +1522,75 @@ function renderPagamentos() {
         <th style="text-align:right">Forn.</th><th>Data NF</th><th>Vencimento</th>
       </tr></thead><tbody>${tableRows || '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text-muted)">Nenhum registro para este mes. Clique em "+ Novo Registro" para adicionar.</td></tr>'}</tbody></table>
     </div></div></div>`;
+}
+
+// ===== EXPORT EXCEL =====
+function exportPagamentosExcel() {
+  const F = DATA.fornecedores || [];
+  const H = DATA.fornHistorico || [];
+  const now = new Date();
+  const currentComp = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const month = currentPagMonth || currentComp;
+  const [selY, selMo] = month.split('-');
+  const selLabel = MONTH_NAMES[parseInt(selMo)] + ' ' + selY;
+
+  let rows = [];
+  if (month === currentComp) {
+    rows = F.map(d => ({
+      servico: d.servico||'', filial: d.filial||'', recorrencia: 'Mensal', responsavel: 'LEMOS',
+      lancado_fluxo: d.fluxo||'', enviado_cp: d.pagamento==='SIM'?'SIM':(d.pagamento==='PENDENTE'?'PENDENTE':'NÃO'),
+      uso: d.uso||'', tipo: d.tipo||'', valor: Number(d.valor)||0,
+      data_nf: d.data_nf||'', dt_vencimento: d.dt_vencimento||'', lancado_sistema: '—'
+    }));
+  } else {
+    rows = H.filter(h => h.competencia === month).map(h => {
+      const forn = F.find(f => f.id === h.fornecedor_id);
+      return {
+        servico: h.servico||(forn?forn.servico:''), filial: forn?forn.filial:'', recorrencia: 'Mensal', responsavel: 'LEMOS',
+        lancado_fluxo: h.fluxo||'', enviado_cp: h.enviado_contas_pagar?'SIM':'NÃO',
+        uso: h.tipo_servico||(forn?forn.uso:''), tipo: forn?forn.tipo:'', valor: Number(h.valor)||0,
+        data_nf: h.data_nf||'', dt_vencimento: h.dt_vencimento||'', lancado_sistema: h.lancado_sistema?'SIM':'NÃO'
+      };
+    });
+  }
+  // Apply current filters
+  const sv = (document.getElementById('pag-search')||{}).value||'';
+  const ff = (document.getElementById('pag-filter-filial')||{}).value||'';
+  const fs = (document.getElementById('pag-filter-status')||{}).value||'';
+  if (sv) rows = rows.filter(r => r.servico.toLowerCase().includes(sv.toLowerCase()));
+  if (ff) rows = rows.filter(r => r.filial === ff);
+  if (fs === 'SIM') rows = rows.filter(r => r.enviado_cp === 'SIM');
+  else if (fs === 'NAO') rows = rows.filter(r => r.enviado_cp === 'NÃO' || r.enviado_cp === 'NAO');
+  else if (fs === 'PENDENTE') rows = rows.filter(r => r.enviado_cp === 'PENDENTE');
+
+  // Build CSV (Excel-compatible with BOM + semicolons for pt-BR)
+  const headers = ['Servico','Filial','Recorrencia','Responsavel','Lancado Fluxo','Enviado CP','Lancado Sistema','Uso','Tipo','Valor','Data NF','Vencimento'];
+  const csvRows = [headers.join(';')];
+  rows.forEach(r => {
+    csvRows.push([
+      r.servico, r.filial, r.recorrencia, r.responsavel, r.lancado_fluxo, r.enviado_cp,
+      r.lancado_sistema, r.uso, r.tipo, r.valor.toFixed(2).replace('.',','),
+      r.data_nf, r.dt_vencimento
+    ].join(';'));
+  });
+  // Totals by filial
+  const filiais = [...new Set(rows.map(r => r.filial))].sort();
+  csvRows.push('');
+  csvRows.push('RESUMO POR FILIAL');
+  filiais.forEach(f => {
+    const t = rows.filter(r => r.filial === f).reduce((s,r) => s + r.valor, 0);
+    csvRows.push(`${f};${t.toFixed(2).replace('.',',')}`);
+  });
+  const totalGeral = rows.reduce((s,r) => s + r.valor, 0);
+  csvRows.push(`TOTAL GERAL;${totalGeral.toFixed(2).replace('.',',')}`);
+
+  const bom = '﻿';
+  const blob = new Blob([bom + csvRows.join('\n')], {type: 'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = `pagamentos_${selLabel.replace(/\s/g,'_')}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Exportado: ' + a.download);
 }
 
 // ===== BOLETOS =====
