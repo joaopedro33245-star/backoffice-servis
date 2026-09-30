@@ -2642,8 +2642,8 @@ function enviarEmailFinanceiro() {
   if (boletoUrl) body += `BOLETO: ${boletoUrl}\n`;
   body += `\n---\nEnviado via Backoffice Servis`;
 
-  // Abre direto no Zimbra compose
-  const zimbraUrl = `https://webmail.servisgr.com.br/h/search?action=compose&to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  // Tenta abrir no Zimbra Ajax compose, senão usa mailto
+  const zimbraUrl = `https://webmail.servisgr.com.br/?view=compose&to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.open(zimbraUrl, '_blank');
   showToast('Zimbra aberto! Verifique e envie o email.');
 }
