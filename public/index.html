@@ -855,6 +855,14 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
         </div>
       </div>
       <div class="form-group"><label class="form-label">Observacoes</label><textarea class="form-input" id="hist-obs" rows="2" placeholder="Observacoes..."></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group"><label class="form-label">Nota Fiscal (URL)</label><input class="form-input" id="hist-nota-url" placeholder="https://... link da nota"></div>
+        <div class="form-group"><label class="form-label">Boleto (URL)</label><input class="form-input" id="hist-boleto-url" placeholder="https://... link do boleto"></div>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="hist-lancado-sistema"><label class="form-label" style="margin:0" for="hist-lancado-sistema">Lancado no Sistema</label>
+      </div>
+      <input type="hidden" id="hist-edit-id" value="">
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeHistoricoModal()">Cancelar</button>
@@ -1358,12 +1366,15 @@ function renderPagamentos() {
         responsavel: 'LEMOS',
         lancado_fluxo: h.fluxo || '',
         enviado_cp: h.enviado_contas_pagar ? 'SIM' : 'NÃO',
+        lancado_sistema: !!h.lancado_sistema,
         uso: h.tipo_servico || (forn ? forn.uso : ''),
         tipo: forn ? forn.tipo : '',
         valor: Number(h.valor) || 0,
         forn: h.fornecedor_id || '',
         data_nf: h.data_nf || '',
         dt_vencimento: h.dt_vencimento || '',
+        nota_url: h.nota_url || '',
+        boleto_url: h.boleto_url || '',
         id: h.id,
         is_live: false
       };
@@ -1401,22 +1412,44 @@ function renderPagamentos() {
     return '<span style="color:var(--text-muted)">—</span>';
   };
 
+  // Vencimento alert: check if any due tomorrow or today
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+  const alertRows = rows.filter(r => {
+    if (!r.dt_vencimento) return false;
+    const vd = new Date(r.dt_vencimento+'T12:00:00'); vd.setHours(0,0,0,0);
+    return vd.getTime() === today.getTime() || vd.getTime() === tomorrow.getTime();
+  });
+
   const tableRows = rows.map(r => {
     const dnf = r.data_nf ? new Date(r.data_nf+'T12:00:00').toLocaleDateString('pt-BR') : '';
     const venc = r.dt_vencimento ? new Date(r.dt_vencimento+'T12:00:00').toLocaleDateString('pt-BR') : '';
-    return `<tr>
-      <td style="font-weight:600;white-space:nowrap">${r.servico}</td>
+    // Highlight if vence hoje ou amanha
+    let vencStyle = '';
+    if (r.dt_vencimento) {
+      const vd = new Date(r.dt_vencimento+'T12:00:00'); vd.setHours(0,0,0,0);
+      if (vd.getTime() === today.getTime()) vencStyle = 'color:#e74c3c;font-weight:700';
+      else if (vd.getTime() === tomorrow.getTime()) vencStyle = 'color:#f39c12;font-weight:700';
+      else if (vd < today) vencStyle = 'color:#e74c3c;font-weight:700;text-decoration:line-through';
+    }
+    const lancSist = r.lancado_sistema ? 'SIM' : (r.is_live ? '—' : 'NÃO');
+    const clickFn = r.is_live ? '' : `onclick="editHistorico(${r.id})" style="cursor:pointer"`;
+    const notaIcon = r.nota_url ? `<a href="${r.nota_url}" target="_blank" title="Ver Nota" style="color:#1abf8f;margin-left:4px">📄</a>` : '';
+    const boletoIcon = r.boleto_url ? `<a href="${r.boleto_url}" target="_blank" title="Ver Boleto" style="color:#2a78d6;margin-left:4px">🧾</a>` : '';
+    return `<tr ${clickFn}>
+      <td style="font-weight:600;white-space:nowrap">${r.servico}${notaIcon}${boletoIcon}</td>
       <td><span style="display:inline-block;padding:2px 10px;border-radius:3px;background:${filialColor(r.filial)};color:#fff;font-size:11px;font-weight:500">${r.filial}</span></td>
       <td>${r.recorrencia}</td>
       <td>${r.responsavel}</td>
       <td>${statusCell(r.lancado_fluxo)}</td>
       <td>${statusCell(r.enviado_cp)}</td>
-      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis" title="${r.uso}">${r.uso}</td>
+      <td>${statusCell(lancSist)}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${r.uso}">${r.uso}</td>
       <td><span style="display:inline-block;padding:2px 10px;border-radius:3px;background:${tipoColor(r.tipo)};color:#fff;font-size:11px;font-weight:500">${r.tipo || '—'}</span></td>
       <td style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">R$ ${Number(r.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
       <td style="text-align:right;font-variant-numeric:tabular-nums">${r.forn || '—'}</td>
       <td>${dnf}</td>
-      <td>${venc}</td>
+      <td style="${vencStyle}">${venc}${vencStyle && !vencStyle.includes('line-through') ? ' ⚠️' : ''}</td>
     </tr>`;
   }).join('');
 
@@ -1435,14 +1468,18 @@ function renderPagamentos() {
       <div class="kpi-tile"><div class="kpi-label">Enviado Contas a Pagar</div><div class="kpi-value" style="color:#27ae60">${enviadosCP}</div></div>
       <div class="kpi-tile"><div class="kpi-label">Pendentes</div><div class="kpi-value warning">${pendentes}</div></div>
     </div>
+    ${alertRows.length ? `<div style="background:rgba(243,156,18,0.15);border:1px solid #f39c12;border-radius:6px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:18px">⚠️</span>
+      <span style="color:#f39c12;font-weight:600;font-size:13px">${alertRows.length} pagamento${alertRows.length>1?'s':''} vencendo hoje/amanha: ${alertRows.map(r=>r.servico).join(', ')}</span>
+    </div>` : ''}
     <div class="card"><div class="card-header"><div class="card-title">${selLabel} — ${rows.length} servicos</div></div>
     <div class="card-body"><div class="table-wrap" style="max-height:60vh;overflow-y:auto;overflow-x:auto">
-      <table style="min-width:1100px"><thead><tr>
+      <table style="min-width:1200px"><thead><tr>
         <th>Servico</th><th>Filial</th><th>Recorrencia</th><th>Responsaveis</th>
-        <th>Lancado no Fluxo</th><th>Enviado Contas a Pagar</th>
+        <th>Lancado no Fluxo</th><th>Enviado Contas a Pagar</th><th>Lancado Sistema</th>
         <th>Uso</th><th>Tipo</th><th style="text-align:right">Valor Mensal</th>
         <th style="text-align:right">Forn.</th><th>Data NF</th><th>Vencimento</th>
-      </tr></thead><tbody>${tableRows || '<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--text-muted)">Nenhum registro para este mes. Clique em "+ Novo Registro" para adicionar.</td></tr>'}</tbody></table>
+      </tr></thead><tbody>${tableRows || '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text-muted)">Nenhum registro para este mes. Clique em "+ Novo Registro" para adicionar.</td></tr>'}</tbody></table>
     </div></div></div>`;
 }
 
@@ -2114,6 +2151,8 @@ function showFornTrend(name, fornId) {
 // ===== HISTORICO MODAL =====
 function openHistoricoModal() {
   document.getElementById('hist-modal').classList.add('open');
+  document.querySelector('#hist-modal h3').textContent = 'Novo Registro de Historico';
+  document.getElementById('hist-edit-id').value = '';
   document.getElementById('hist-fornecedor-id').value = '';
   document.getElementById('hist-servico').value = '';
   const now = new Date();
@@ -2122,10 +2161,13 @@ function openHistoricoModal() {
   document.getElementById('hist-fluxo').value = '';
   document.getElementById('hist-enviado-cp').checked = false;
   document.getElementById('hist-lancado').checked = false;
+  document.getElementById('hist-lancado-sistema').checked = false;
   document.getElementById('hist-tipo-servico').value = '';
   document.getElementById('hist-data-nf').value = '';
   document.getElementById('hist-vencimento').value = '';
   document.getElementById('hist-obs').value = '';
+  document.getElementById('hist-nota-url').value = '';
+  document.getElementById('hist-boleto-url').value = '';
 
   // Populate fornecedor select
   const sel = document.getElementById('hist-fornecedor-id');
@@ -2135,6 +2177,37 @@ function openHistoricoModal() {
   });
 }
 function closeHistoricoModal() { document.getElementById('hist-modal').classList.remove('open'); }
+
+function editHistorico(id) {
+  const h = DATA.fornHistorico.find(r => r.id === id);
+  if (!h) return;
+  openHistoricoModal();
+  document.querySelector('#hist-modal h3').textContent = 'Editar Registro';
+  document.getElementById('hist-edit-id').value = id;
+  document.getElementById('hist-fornecedor-id').value = h.fornecedor_id || '';
+  document.getElementById('hist-servico').value = h.servico || '';
+  document.getElementById('hist-competencia').value = h.competencia || '';
+  document.getElementById('hist-valor').value = h.valor || '';
+  document.getElementById('hist-fluxo').value = h.fluxo || '';
+  document.getElementById('hist-enviado-cp').checked = !!h.enviado_contas_pagar;
+  document.getElementById('hist-lancado').checked = !!h.lancado_pagamento;
+  document.getElementById('hist-lancado-sistema').checked = !!h.lancado_sistema;
+  document.getElementById('hist-tipo-servico').value = h.tipo_servico || '';
+  document.getElementById('hist-data-nf').value = h.data_nf || '';
+  document.getElementById('hist-vencimento').value = h.dt_vencimento || '';
+  document.getElementById('hist-obs').value = h.observacoes || '';
+  document.getElementById('hist-nota-url').value = h.nota_url || '';
+  document.getElementById('hist-boleto-url').value = h.boleto_url || '';
+}
+
+async function deleteHistorico(id) {
+  if (!sb || !confirm('Excluir este registro?')) return;
+  const { error } = await sb.from('fornecedores_historico').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  DATA.fornHistorico = DATA.fornHistorico.filter(r => r.id !== id);
+  showToast('Registro excluido');
+  renderPagamentos();
+}
 
 async function saveHistorico() {
   if (!sb) { showToast('Sem conexao', true); return; }
@@ -2150,14 +2223,24 @@ async function saveHistorico() {
     fluxo: document.getElementById('hist-fluxo').value,
     enviado_contas_pagar: document.getElementById('hist-enviado-cp').checked,
     lancado_pagamento: document.getElementById('hist-lancado').checked,
+    lancado_sistema: document.getElementById('hist-lancado-sistema').checked,
     tipo_servico: document.getElementById('hist-tipo-servico').value,
     data_nf: document.getElementById('hist-data-nf').value || null,
     dt_vencimento: document.getElementById('hist-vencimento').value || null,
     observacoes: document.getElementById('hist-obs').value,
+    nota_url: document.getElementById('hist-nota-url').value || null,
+    boleto_url: document.getElementById('hist-boleto-url').value || null,
   };
-  const { error } = await sb.from('fornecedores_historico').insert(obj);
-  if (error) { showToast('Erro: ' + error.message, true); return; }
-  showToast('Historico adicionado!');
+  const editId = document.getElementById('hist-edit-id').value;
+  if (editId) {
+    const { error } = await sb.from('fornecedores_historico').update(obj).eq('id', parseInt(editId));
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Registro atualizado!');
+  } else {
+    const { error } = await sb.from('fornecedores_historico').insert(obj);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Historico adicionado!');
+  }
   closeHistoricoModal();
   await refreshData();
 }
