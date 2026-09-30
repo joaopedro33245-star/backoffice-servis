@@ -2621,14 +2621,18 @@ async function saveHistorico() {
   const boletoFile = document.getElementById('hist-boleto-file').files[0];
   let notaUrl = document.getElementById('hist-nota-url').value || null;
   let boletoUrl = document.getElementById('hist-boleto-url').value || null;
+  console.log('[DEBUG SAVE] notaFile:', notaFile ? notaFile.name : 'NENHUM', '| boletoFile:', boletoFile ? boletoFile.name : 'NENHUM');
+  console.log('[DEBUG SAVE] notaUrl existente:', notaUrl, '| boletoUrl existente:', boletoUrl);
   if (notaFile) {
     showToast('Enviando nota fiscal...');
     const url = await uploadPDF(notaFile, 'notas');
+    console.log('[DEBUG SAVE] nota upload resultado:', url);
     if (url) notaUrl = url;
   }
   if (boletoFile) {
     showToast('Enviando boleto...');
     const url = await uploadPDF(boletoFile, 'boletos');
+    console.log('[DEBUG SAVE] boleto upload resultado:', url);
     if (url) boletoUrl = url;
   }
 
@@ -2648,9 +2652,11 @@ async function saveHistorico() {
     nota_url: notaUrl,
     boleto_url: boletoUrl,
   };
+  console.log('[DEBUG SAVE] objeto final:', JSON.stringify({nota_url: notaUrl, boleto_url: boletoUrl}));
   const editId = document.getElementById('hist-edit-id').value;
   if (editId) {
-    const { error } = await sb.from('fornecedores_historico').update(obj).eq('id', parseInt(editId));
+    const { error, data } = await sb.from('fornecedores_historico').update(obj).eq('id', parseInt(editId)).select();
+    console.log('[DEBUG SAVE] update resultado:', error ? error.message : 'OK', data);
     if (error) { showToast('Erro: ' + error.message, true); return; }
     showToast('Registro atualizado!');
   } else {
