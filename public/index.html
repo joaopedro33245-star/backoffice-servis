@@ -2621,8 +2621,8 @@ function enviarEmailFinanceiro() {
   const notaUrl = document.getElementById('hist-nota-url').value || '';
   const boletoUrl = document.getElementById('hist-boleto-url').value || '';
 
-  const to = 'contasapagar@serviseletronica.com.br,backoffice@serviseletronica.com.br,pedro.netto@serviseletronica.com.br';
-  const subject = encodeURIComponent(`[Backoffice] ${servico} - ${fornNome} - Competência ${competencia}`);
+  const to = 'contasapagar@serviseletronica.com.br;backoffice@serviseletronica.com.br;pedro.netto@serviseletronica.com.br';
+  const subject = `[Backoffice] ${servico} - ${fornNome} - Competência ${competencia}`;
 
   let body = `Segue informações do registro de pagamento:\n\n`;
   body += `SERVIÇO: ${servico}\n`;
@@ -2642,8 +2642,10 @@ function enviarEmailFinanceiro() {
   if (boletoUrl) body += `BOLETO: ${boletoUrl}\n`;
   body += `\n---\nEnviado via Backoffice Servis`;
 
-  window.open(`mailto:${to}?subject=${subject}&body=${encodeURIComponent(body)}`, '_blank');
-  showToast('Email aberto! Verifique e envie.');
+  // Abre direto no Zimbra compose
+  const zimbraUrl = `https://webmail.servisgr.com.br/h/search?action=compose&to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(zimbraUrl, '_blank');
+  showToast('Zimbra aberto! Verifique e envie o email.');
 }
 
 async function deleteHistorico(id) {
