@@ -371,6 +371,18 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
       <span>Armarios</span>
     </div>
+    <div class="nav-item" data-section="demandas" onclick="showSection('demandas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+      <span>Demandas</span>
+    </div>
+    <div class="nav-item" data-section="checklist" onclick="showSection('checklist')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span>Checklist</span>
+    </div>
+    <div class="nav-item" data-section="seguros" onclick="showSection('seguros')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>Seguros</span>
+    </div>
     <div class="nav-item" data-section="config" onclick="showSection('config')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       <span>Configuracoes</span>
@@ -378,7 +390,7 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
   </nav>
   <div class="sidebar-footer">
     Servis Eletronica — BackTech<br>
-    v2.0 · Set/2026 · Supabase
+    v3.0 · Set/2026 · Supabase
   </div>
 </div>
 
@@ -491,6 +503,69 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
       <div class="card" id="arm-resumo-forn" style="margin-bottom:16px"></div>
       <div class="filters" id="arm-filters"></div>
       <div class="card" id="arm-detail-card"></div>
+    </div>
+
+    <!-- ===== DEMANDAS EQUIPE ===== -->
+    <div class="section" id="sec-demandas">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px" id="dem-kpis"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px" id="dem-charts">
+        <div class="card"><div class="card-header"><div class="card-title">Demandas por Pessoa</div></div><div id="dem-chart-pessoa" style="padding:16px"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">Status Geral</div></div><div id="dem-chart-status" style="padding:16px"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">Por Categoria</div></div><div id="dem-chart-cat" style="padding:16px"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">Por Frequencia</div></div><div id="dem-chart-freq" style="padding:16px"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Todas as Demandas</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-input" id="dem-filter-pessoa" onchange="renderDemandas()" style="width:auto;font-size:12px"><option value="">Todos</option></select>
+            <select class="form-input" id="dem-filter-status" onchange="renderDemandas()" style="width:auto;font-size:12px"><option value="">Todos Status</option></select>
+            <button class="btn btn-accent" onclick="openDemandaModal()">+ Nova</button>
+            <button class="btn btn-outline" onclick="exportDemandasCSV()" title="Exportar CSV">CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table class="table" id="dem-table"><thead><tr>
+          <th>Resp.</th><th>Cat.</th><th>Tarefa</th><th>Freq.</th><th>Status</th><th>Acoes</th>
+        </tr></thead><tbody id="dem-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ===== CHECKLIST PORTARIA ===== -->
+    <div class="section" id="sec-checklist">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px" id="chk-kpis"></div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title">Checklist Semanal — Portaria Inteligente</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-input" id="chk-filter-data" onchange="renderChecklist()" style="width:auto;font-size:12px"></select>
+            <button class="btn btn-accent" onclick="openChecklistModal()">+ Novo Checklist</button>
+            <button class="btn btn-outline" onclick="openCondominioModal()">Gerenciar Condominios</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table class="table" id="chk-table"><thead><tr>
+          <th>Condominio</th><th>Cameras</th><th>DVR OK</th><th>Portao Grav.</th><th>Botoes Acoes</th><th>Alarme</th><th>IA</th><th>IA OK</th><th>Qual IA</th><th>Torre</th><th>Mudancas</th><th>Acoes</th>
+        </tr></thead><tbody id="chk-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ===== SEGUROS ===== -->
+    <div class="section" id="sec-seguros">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px" id="seg-kpis"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Solicitacoes de Seguro</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-input" id="seg-filter-status" onchange="renderSeguros()" style="width:auto;font-size:12px">
+              <option value="">Todos</option><option value="Pendente">Pendente</option><option value="Em análise">Em analise</option><option value="Aprovado">Aprovado</option><option value="Negado">Negado</option><option value="Concluído">Concluido</option>
+            </select>
+            <button class="btn btn-accent" onclick="openSeguroModal()">+ Nova Solicitacao</button>
+            <button class="btn btn-outline" onclick="exportSegurosCSV()">CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table class="table" id="seg-table"><thead><tr>
+          <th>Cliente</th><th>Conta</th><th>Tipo</th><th>Data</th><th>Seguradora</th><th>Sinistro</th><th>Valor</th><th>Status</th><th>Acoes</th>
+        </tr></thead><tbody id="seg-tbody"></tbody></table></div>
+      </div>
     </div>
 
     <!-- ===== CONFIG ===== -->
@@ -929,12 +1004,237 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
   </div>
 </div>
 
+<!-- Demanda Modal -->
+<div class="modal-overlay" id="dem-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="dem-modal-title">Nova Demanda</h3>
+      <button class="modal-close" onclick="closeDemandaModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Responsavel</label>
+          <select class="form-input" id="dem-responsavel">
+            <option value="">Selecione</option>
+            <option value="Pedro Lemos">Pedro Lemos</option>
+            <option value="Renata">Renata</option>
+            <option value="Jamile">Jamile</option>
+            <option value="Isac">Isac</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Numero</label>
+          <input class="form-input" id="dem-numero" type="number" placeholder="Ex: 1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <input class="form-input" id="dem-categoria" placeholder="Ex: Financeiro, Operacional, TI...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tarefa</label>
+        <input class="form-input" id="dem-tarefa" placeholder="Descricao da tarefa">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Frequencia</label>
+          <select class="form-input" id="dem-frequencia">
+            <option value="">Selecione</option>
+            <option value="Diária">Diaria</option>
+            <option value="Semanal">Semanal</option>
+            <option value="Quinzenal">Quinzenal</option>
+            <option value="Mensal">Mensal</option>
+            <option value="Sob demanda">Sob demanda</option>
+            <option value="Pontual">Pontual</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="dem-status">
+            <option value="Pendente">Pendente</option>
+            <option value="Em andamento">Em andamento</option>
+            <option value="Concluído">Concluido</option>
+            <option value="Negado">Negado</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prazo / Observacao</label>
+        <input class="form-input" id="dem-prazo-obs" placeholder="Prazo ou observacao">
+      </div>
+      <input type="hidden" id="dem-edit-id" value="">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeDemandaModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveDemanda()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Checklist Modal -->
+<div class="modal-overlay" id="chk-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h3 id="chk-modal-title">Novo Checklist</h3>
+      <button class="modal-close" onclick="closeChecklistModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Condominio</label>
+          <select class="form-input" id="chk-condominio"><option value="">Selecione</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input class="form-input" id="chk-data" type="date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Qtd Cameras</label>
+        <input class="form-input" id="chk-qtd-cameras" type="number" placeholder="Total de cameras">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0">
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin:0">
+          <input type="checkbox" id="chk-dvr"><label class="form-label" style="margin:0" for="chk-dvr">Todas gravando DVR</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin:0">
+          <input type="checkbox" id="chk-portao-grav"><label class="form-label" style="margin:0" for="chk-portao-grav">Cameras portao gravando</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin:0">
+          <input type="checkbox" id="chk-botoes"><label class="form-label" style="margin:0" for="chk-botoes">Botoes de acoes</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin:0">
+          <input type="checkbox" id="chk-alarme"><label class="form-label" style="margin:0" for="chk-alarme">Central alarme comunicando</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin:0">
+          <input type="checkbox" id="chk-tem-ia"><label class="form-label" style="margin:0" for="chk-tem-ia">Tem IA</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin:0">
+          <input type="checkbox" id="chk-ia-func"><label class="form-label" style="margin:0" for="chk-ia-func">IA funcionando</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;margin:0">
+          <input type="checkbox" id="chk-torre"><label class="form-label" style="margin:0" for="chk-torre">Tem torre</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cameras de portao (lista)</label>
+        <input class="form-input" id="chk-portao-lista" placeholder="Ex: Cam1-Portao Social, Cam2-Garagem">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Qual IA</label>
+        <input class="form-input" id="chk-qual-ia" placeholder="Nome da IA utilizada">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observacoes</label>
+        <input class="form-input" id="chk-obs" placeholder="Observacoes">
+      </div>
+      <input type="hidden" id="chk-edit-id" value="">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeChecklistModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveChecklist()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Condominio Management Modal -->
+<div class="modal-overlay" id="cond-modal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h3>Gerenciar Condominios</h3>
+      <button class="modal-close" onclick="closeCondominioModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input class="form-input" id="cond-novo-nome" placeholder="Nome do novo condominio" style="flex:1">
+        <button class="btn btn-accent" onclick="addCondominio()">Adicionar</button>
+      </div>
+      <div id="cond-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeCondominioModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Seguro Modal -->
+<div class="modal-overlay" id="seg-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="seg-modal-title">Nova Solicitacao de Seguro</h3>
+      <button class="modal-close" onclick="closeSeguroModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Cliente</label>
+          <input class="form-input" id="seg-cliente" placeholder="Nome do cliente">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Conta</label>
+          <input class="form-input" id="seg-conta" placeholder="Numero da conta">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Tipo de Seguro</label>
+          <input class="form-input" id="seg-tipo" placeholder="Ex: Equipamento, Predial...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data Solicitacao</label>
+          <input class="form-input" id="seg-data" type="date">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="seg-status">
+            <option value="Pendente">Pendente</option>
+            <option value="Em análise">Em analise</option>
+            <option value="Aprovado">Aprovado</option>
+            <option value="Negado">Negado</option>
+            <option value="Concluído">Concluido</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor (R$)</label>
+          <input class="form-input" id="seg-valor" type="number" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Seguradora</label>
+          <input class="form-input" id="seg-seguradora" placeholder="Nome da seguradora">
+        </div>
+        <div class="form-group">
+          <label class="form-label">N Sinistro</label>
+          <input class="form-input" id="seg-sinistro" placeholder="Numero do sinistro">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observacoes</label>
+        <input class="form-input" id="seg-obs" placeholder="Observacoes">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email de Origem</label>
+        <input class="form-input" id="seg-email" type="email" placeholder="email@exemplo.com">
+      </div>
+      <input type="hidden" id="seg-edit-id" value="">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSeguroModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveSeguro()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ===== SUPABASE CONFIG =====
 const DEFAULT_SB_URL = 'https://fxmdsumcqukxuzooiiju.supabase.co';
 const DEFAULT_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4bWRzdW1jcXVreHV6b29paWp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MTcyNjAsImV4cCI6MjA4ODk5MzI2MH0.qEKKHqvJAt_5Bsk9V5uBI1eN27eWu1wiFhHoFbpI2lo';
 let sb = null;
-let DATA = { fornecedores: [], torres: [], iaFilial: [], iaProvedor: [], armResumo: [], armDetail: [], boletos: [], iaDetail: [], fornHistorico: [] };
+let DATA = { fornecedores: [], torres: [], iaFilial: [], iaProvedor: [], armResumo: [], armDetail: [], boletos: [], iaDetail: [], fornHistorico: [], demandas: [], condominios: [], checklists: [], seguros: [] };
 
 function getConfig() {
   try {
@@ -1007,6 +1307,10 @@ async function loadAllData() {
     { key: 'boletos', q: sb.from('boletos').select('*') },
     { key: 'clientes_ia_detail', q: sb.from('clientes_ia_detail').select('*') },
     { key: 'fornecedores_historico', q: sb.from('fornecedores_historico').select('*') },
+    { key: 'demandas_equipe', q: sb.from('demandas_equipe').select('*') },
+    { key: 'condominios_portaria', q: sb.from('condominios_portaria').select('*') },
+    { key: 'checklist_portaria', q: sb.from('checklist_portaria').select('*') },
+    { key: 'solicitacoes_seguro', q: sb.from('solicitacoes_seguro').select('*') },
   ];
   const results = await Promise.all(tables.map(t => t.q));
   let errors = [];
@@ -1014,7 +1318,6 @@ async function loadAllData() {
     const r = results[i];
     if (r.error) {
       errors.push(t.key + ': ' + r.error.message);
-      console.error('Supabase error [' + t.key + ']:', r.error);
     }
   });
   DATA.fornecedores = results[0].data || [];
@@ -1026,22 +1329,14 @@ async function loadAllData() {
   DATA.boletos = results[6].data || [];
   DATA.iaDetail = results[7].data || [];
   DATA.fornHistorico = results[8].data || [];
+  DATA.demandas = results[9].data || [];
+  DATA.condominios = results[10].data || [];
+  DATA.checklists = results[11].data || [];
+  DATA.seguros = results[12].data || [];
 
   if (errors.length > 0) {
     showToast('Erro RLS: ' + errors[0], true);
-    console.warn('Total erros:', errors.length, errors);
   }
-  console.log('Dados carregados:', {
-    fornecedores: DATA.fornecedores.length,
-    torres: DATA.torres.length,
-    iaFilial: DATA.iaFilial.length,
-    iaProvedor: DATA.iaProvedor.length,
-    armResumo: DATA.armResumo.length,
-    armDetail: DATA.armDetail.length,
-    boletos: DATA.boletos.length,
-    iaDetail: DATA.iaDetail.length,
-    fornHistorico: DATA.fornHistorico.length,
-  });
 }
 
 async function refreshData() {
@@ -1079,6 +1374,9 @@ const titles = {
   torres: ['Torres','Acompanhamento de torres Servis'],
   clientes: ['Clientes IA','Bonificacao e inteligencia artificial'],
   armarios: ['Armarios','Controle de armarios por filial'],
+  demandas: ['Demandas','Acompanhamento de demandas da equipe'],
+  checklist: ['Checklist Portaria','Verificacao semanal dos condominios'],
+  seguros: ['Seguros','Solicitacoes de seguro'],
   config: ['Configuracoes','Supabase e preferencias'],
 };
 
@@ -1132,6 +1430,9 @@ function renderAll() {
   renderTorres();
   renderIA();
   renderArmarios();
+  renderDemandas();
+  renderChecklist();
+  renderSeguros();
 }
 
 // ===== DASHBOARD =====
@@ -2597,7 +2898,6 @@ function editHistorico(id) {
   // Show existing PDF links
   const nl = document.getElementById('hist-nota-link');
   const bl = document.getElementById('hist-boleto-link');
-  console.log('[DEBUG EDIT] nota_url:', h.nota_url, '| boleto_url:', h.boleto_url);
   if (h.nota_url) { nl.href = h.nota_url; nl.style.display = 'inline'; nl.textContent = 'Ver Nota'; }
   else { nl.style.display = 'none'; }
   if (h.boleto_url) { bl.href = h.boleto_url; bl.style.display = 'inline'; bl.textContent = 'Ver Boleto'; }
@@ -2618,8 +2918,8 @@ function enviarEmailFinanceiro() {
   const enviadoCP = document.getElementById('hist-enviado-cp').checked ? 'Sim' : 'Não';
   const lancado = document.getElementById('hist-lancado').checked ? 'Sim' : 'Não';
   const lancadoSist = document.getElementById('hist-lancado-sistema').checked ? 'Sim' : 'Não';
-  const notaUrl = document.getElementById('hist-nota-url').value || '';
-  const boletoUrl = document.getElementById('hist-boleto-url').value || '';
+  const notaUrl = document.getElementById('hist-nota-url').value || document.getElementById('hist-nota-link').href || '';
+  const boletoUrl = document.getElementById('hist-boleto-url').value || document.getElementById('hist-boleto-link').href || '';
 
   const to = 'contasapagar@serviseletronica.com.br;backoffice@serviseletronica.com.br;pedro.netto@serviseletronica.com.br';
   const subject = `[Backoffice] ${servico} - ${fornNome} - Competência ${competencia}`;
@@ -2638,8 +2938,11 @@ function enviarEmailFinanceiro() {
   body += `• Lançado para Pagamento: ${lancado}\n`;
   body += `• Lançado no Sistema: ${lancadoSist}\n`;
   if (obs) body += `\nOBSERVAÇÕES: ${obs}\n`;
-  if (notaUrl) body += `\nNOTA FISCAL: ${notaUrl}\n`;
-  if (boletoUrl) body += `BOLETO: ${boletoUrl}\n`;
+  const notaReal = (notaUrl && notaUrl !== '' && !notaUrl.endsWith('#')) ? notaUrl : '';
+  const boletoReal = (boletoUrl && boletoUrl !== '' && !boletoUrl.endsWith('#')) ? boletoUrl : '';
+  body += `\nDOCUMENTOS:\n`;
+  body += `• Nota Fiscal: ${notaReal || 'Não anexada'}\n`;
+  body += `• Boleto: ${boletoReal || 'Não anexado'}\n`;
   body += `\n---\nEnviado via Backoffice Servis`;
 
   // Tenta abrir no Zimbra Ajax compose, senão usa mailto
@@ -2669,12 +2972,9 @@ async function saveHistorico() {
   const boletoFile = document.getElementById('hist-boleto-file').files[0];
   let notaUrl = document.getElementById('hist-nota-url').value || null;
   let boletoUrl = document.getElementById('hist-boleto-url').value || null;
-  console.log('[DEBUG SAVE] notaFile:', notaFile ? notaFile.name : 'NENHUM', '| boletoFile:', boletoFile ? boletoFile.name : 'NENHUM');
-  console.log('[DEBUG SAVE] notaUrl existente:', notaUrl, '| boletoUrl existente:', boletoUrl);
   if (notaFile) {
     showToast('Enviando nota fiscal...');
     const url = await uploadPDF(notaFile, 'notas');
-    console.log('[DEBUG SAVE] nota upload resultado:', url);
     if (url) {
       notaUrl = url;
       const nl = document.getElementById('hist-nota-link');
@@ -2685,7 +2985,6 @@ async function saveHistorico() {
   if (boletoFile) {
     showToast('Enviando boleto...');
     const url = await uploadPDF(boletoFile, 'boletos');
-    console.log('[DEBUG SAVE] boleto upload resultado:', url);
     if (url) {
       boletoUrl = url;
       // Show link immediately in modal
@@ -2711,11 +3010,9 @@ async function saveHistorico() {
     nota_url: notaUrl,
     boleto_url: boletoUrl,
   };
-  console.log('[DEBUG SAVE] objeto final:', JSON.stringify({nota_url: notaUrl, boleto_url: boletoUrl}));
   const editId = document.getElementById('hist-edit-id').value;
   if (editId) {
     const { error, data } = await sb.from('fornecedores_historico').update(obj).eq('id', parseInt(editId)).select();
-    console.log('[DEBUG SAVE] update resultado:', error ? error.message : 'OK', data);
     if (error) { showToast('Erro: ' + error.message, true); return; }
     showToast('Registro atualizado!');
   } else {
@@ -2725,6 +3022,527 @@ async function saveHistorico() {
   }
   closeHistoricoModal();
   await refreshData();
+}
+
+// ===== DEMANDAS EQUIPE =====
+function renderDemandas() {
+  const d = DATA.demandas;
+  // KPIs
+  const total = d.length;
+  const pendente = d.filter(x => x.status === 'Pendente').length;
+  const emAndamento = d.filter(x => x.status === 'Em andamento').length;
+  const concluido = d.filter(x => x.status === 'Concluído' || x.status === 'Concluido').length;
+  const kpiEl = document.getElementById('dem-kpis');
+  kpiEl.innerHTML = `
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:var(--accent)">${total}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Total Demandas</div>
+    </div>
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:#f59e0b">${pendente}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Pendente</div>
+    </div>
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:#3b82f6">${emAndamento}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Em Andamento</div>
+    </div>
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:var(--accent)">${concluido}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Concluido</div>
+    </div>`;
+
+  // Populate filters
+  const pessoas = [...new Set(d.map(x => x.responsavel).filter(Boolean))].sort();
+  const fPessoa = document.getElementById('dem-filter-pessoa');
+  const curP = fPessoa.value;
+  fPessoa.innerHTML = '<option value="">Todos</option>' + pessoas.map(p => `<option value="${p}" ${p===curP?'selected':''}>${p}</option>`).join('');
+  const statuses = [...new Set(d.map(x => x.status).filter(Boolean))].sort();
+  const fStatus = document.getElementById('dem-filter-status');
+  const curS = fStatus.value;
+  fStatus.innerHTML = '<option value="">Todos Status</option>' + statuses.map(s => `<option value="${s}" ${s===curS?'selected':''}>${s}</option>`).join('');
+
+  // Charts
+  const byPessoa = {};
+  pessoas.forEach(p => byPessoa[p] = d.filter(x => x.responsavel === p).length);
+  hBar('dem-chart-pessoa', Object.entries(byPessoa).map(([l,v]) => ({l,v,t:v})), ['#1abf8f','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899']);
+
+  const byStatus = {};
+  d.forEach(x => { byStatus[x.status] = (byStatus[x.status]||0) + 1; });
+  const statusColors = {'Pendente':'#f59e0b','Em andamento':'#3b82f6','Concluído':'#1abf8f','Concluido':'#1abf8f','Negado':'#ef4444'};
+  hBar('dem-chart-status', Object.entries(byStatus).map(([l,v]) => ({l,v,t:v})), Object.entries(byStatus).map(([l]) => statusColors[l] || '#6b7280'));
+
+  const byCat = {};
+  d.forEach(x => { const c = x.categoria || 'Sem cat.'; byCat[c] = (byCat[c]||0) + 1; });
+  const catEntries = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
+  hBar('dem-chart-cat', catEntries.map(([l,v]) => ({l:l.length>25?l.slice(0,22)+'...':l,v,t:v})), ['#1abf8f','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316']);
+
+  const byFreq = {};
+  d.forEach(x => { const f = x.frequencia || 'N/A'; byFreq[f] = (byFreq[f]||0) + 1; });
+  hBar('dem-chart-freq', Object.entries(byFreq).sort((a,b)=>b[1]-a[1]).map(([l,v]) => ({l,v,t:v})), ['#8b5cf6','#3b82f6','#1abf8f','#f59e0b','#ef4444','#ec4899']);
+
+  // Table
+  let filtered = [...d];
+  const fp = document.getElementById('dem-filter-pessoa').value;
+  const fs = document.getElementById('dem-filter-status').value;
+  if (fp) filtered = filtered.filter(x => x.responsavel === fp);
+  if (fs) filtered = filtered.filter(x => x.status === fs);
+  filtered.sort((a,b) => (a.responsavel||'').localeCompare(b.responsavel||'') || (a.numero||0) - (b.numero||0));
+
+  const tbody = document.getElementById('dem-tbody');
+  tbody.innerHTML = filtered.map(r => {
+    const sc = statusColors[r.status] || '#6b7280';
+    return `<tr>
+      <td style="font-weight:500">${r.responsavel||'—'}</td>
+      <td>${r.categoria||'—'}</td>
+      <td>${r.tarefa||'—'}</td>
+      <td>${r.frequencia||'—'}</td>
+      <td><span style="padding:2px 8px;border-radius:12px;font-size:11px;background:${sc}22;color:${sc};font-weight:600">${r.status||'—'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline" style="padding:2px 8px;font-size:11px" onclick="editDemanda(${r.id})">Editar</button>
+        <button class="btn btn-outline" style="padding:2px 8px;font-size:11px;color:var(--danger);border-color:var(--danger)" onclick="deleteDemanda(${r.id})">Excluir</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openDemandaModal(editId) {
+  document.getElementById('dem-modal').classList.add('open');
+  document.getElementById('dem-edit-id').value = '';
+  document.getElementById('dem-modal-title').textContent = 'Nova Demanda';
+  document.getElementById('dem-responsavel').value = '';
+  document.getElementById('dem-numero').value = '';
+  document.getElementById('dem-categoria').value = '';
+  document.getElementById('dem-tarefa').value = '';
+  document.getElementById('dem-frequencia').value = '';
+  document.getElementById('dem-prazo-obs').value = '';
+  document.getElementById('dem-status').value = 'Pendente';
+}
+function closeDemandaModal() { document.getElementById('dem-modal').classList.remove('open'); }
+
+function editDemanda(id) {
+  const r = DATA.demandas.find(d => d.id === id);
+  if (!r) return;
+  openDemandaModal();
+  document.getElementById('dem-modal-title').textContent = 'Editar Demanda';
+  document.getElementById('dem-edit-id').value = id;
+  document.getElementById('dem-responsavel').value = r.responsavel || '';
+  document.getElementById('dem-numero').value = r.numero || '';
+  document.getElementById('dem-categoria').value = r.categoria || '';
+  document.getElementById('dem-tarefa').value = r.tarefa || '';
+  document.getElementById('dem-frequencia').value = r.frequencia || '';
+  document.getElementById('dem-prazo-obs').value = r.prazo_obs || '';
+  document.getElementById('dem-status').value = r.status || 'Pendente';
+}
+
+async function saveDemanda() {
+  if (!sb) { showToast('Sem conexao', true); return; }
+  const obj = {
+    responsavel: document.getElementById('dem-responsavel').value.trim(),
+    numero: parseInt(document.getElementById('dem-numero').value) || null,
+    categoria: document.getElementById('dem-categoria').value.trim(),
+    tarefa: document.getElementById('dem-tarefa').value.trim(),
+    frequencia: document.getElementById('dem-frequencia').value,
+    prazo_obs: document.getElementById('dem-prazo-obs').value.trim(),
+    status: document.getElementById('dem-status').value,
+  };
+  if (!obj.responsavel || !obj.tarefa) { showToast('Preencha responsavel e tarefa', true); return; }
+  const editId = document.getElementById('dem-edit-id').value;
+  if (editId) {
+    obj.updated_at = new Date().toISOString();
+    const { error } = await sb.from('demandas_equipe').update(obj).eq('id', parseInt(editId));
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Demanda atualizada!');
+  } else {
+    const { error } = await sb.from('demandas_equipe').insert(obj);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Demanda adicionada!');
+  }
+  closeDemandaModal();
+  await refreshData();
+}
+
+async function deleteDemanda(id) {
+  if (!sb || !confirm('Excluir esta demanda?')) return;
+  const { error } = await sb.from('demandas_equipe').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  DATA.demandas = DATA.demandas.filter(r => r.id !== id);
+  showToast('Demanda excluida');
+  renderDemandas();
+}
+
+function exportDemandasCSV() {
+  const rows = DATA.demandas;
+  if (!rows.length) { showToast('Sem dados para exportar', true); return; }
+  const BOM = '﻿';
+  let csv = BOM + 'Responsavel;Numero;Categoria;Tarefa;Frequencia;Prazo/Obs;Status\n';
+  rows.forEach(r => {
+    csv += `"${r.responsavel||''}";"${r.numero||''}";"${r.categoria||''}";"${(r.tarefa||'').replace(/"/g,'""')}";"${r.frequencia||''}";"${(r.prazo_obs||'').replace(/"/g,'""')}";"${r.status||''}"\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'demandas_equipe.csv'; a.click();
+}
+
+// ===== CHECKLIST PORTARIA =====
+function renderChecklist() {
+  const chk = DATA.checklists;
+  const conds = DATA.condominios.filter(c => c.ativo !== false);
+
+  // KPIs
+  const totalConds = conds.length;
+  const dates = [...new Set(chk.map(c => c.data_checklist))].sort().reverse();
+  const lastDate = dates[0] || '—';
+  const lastChecks = chk.filter(c => c.data_checklist === lastDate);
+  const allOk = lastChecks.filter(c => c.todas_gravando_dvr && c.central_alarme_comunicando).length;
+
+  const kpiEl = document.getElementById('chk-kpis');
+  kpiEl.innerHTML = `
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:var(--accent)">${totalConds}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Condominios</div>
+    </div>
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:#3b82f6">${dates.length}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Checklists Feitos</div>
+    </div>
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:var(--accent)">${allOk}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Tudo OK (ultimo)</div>
+    </div>
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:14px;font-weight:600;color:var(--text-primary)">${lastDate !== '—' ? new Date(lastDate+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Ultimo Checklist</div>
+    </div>`;
+
+  // Date filter
+  const fData = document.getElementById('chk-filter-data');
+  const curD = fData.value;
+  fData.innerHTML = '<option value="">Todas Datas</option>' + dates.map(dt => {
+    const label = new Date(dt+'T12:00:00').toLocaleDateString('pt-BR');
+    return `<option value="${dt}" ${dt===curD?'selected':''}>${label}</option>`;
+  }).join('');
+
+  // Table
+  let filtered = [...chk];
+  const fd = document.getElementById('chk-filter-data').value;
+  if (fd) filtered = filtered.filter(c => c.data_checklist === fd);
+  filtered.sort((a,b) => (b.data_checklist||'').localeCompare(a.data_checklist||''));
+
+  // Get previous checklist for change detection
+  const prevDate = dates.length > 1 ? dates[1] : null;
+  const prevChecks = prevDate ? chk.filter(c => c.data_checklist === prevDate) : [];
+
+  const tbody = document.getElementById('chk-tbody');
+  tbody.innerHTML = filtered.map(r => {
+    const cond = DATA.condominios.find(c => c.id === r.condominio_id);
+    const condNome = cond ? cond.nome : 'ID:'+r.condominio_id;
+    const prev = prevChecks.find(p => p.condominio_id === r.condominio_id);
+    let changes = [];
+    if (prev) {
+      if (prev.qtd_cameras !== r.qtd_cameras) changes.push(`Cam: ${prev.qtd_cameras}→${r.qtd_cameras}`);
+      if (prev.todas_gravando_dvr !== r.todas_gravando_dvr) changes.push('DVR mudou');
+      if (prev.cameras_portao_gravando !== r.cameras_portao_gravando) changes.push('Portao mudou');
+      if (prev.central_alarme_comunicando !== r.central_alarme_comunicando) changes.push('Alarme mudou');
+      if (prev.ia_funcionando !== r.ia_funcionando) changes.push('IA mudou');
+    }
+    const tick = '<span style="color:var(--accent)">✓</span>';
+    const cross = '<span style="color:var(--danger)">✗</span>';
+    return `<tr>
+      <td style="font-weight:500">${condNome}<br><span style="font-size:10px;color:var(--text-muted)">${r.data_checklist ? new Date(r.data_checklist+'T12:00:00').toLocaleDateString('pt-BR') : ''}</span></td>
+      <td style="text-align:center">${r.qtd_cameras ?? '—'}</td>
+      <td style="text-align:center">${r.todas_gravando_dvr ? tick : cross}</td>
+      <td style="text-align:center">${r.cameras_portao_gravando ? tick : cross}</td>
+      <td style="text-align:center">${r.cameras_botoes_acoes ? tick : cross}</td>
+      <td style="text-align:center">${r.central_alarme_comunicando ? tick : cross}</td>
+      <td style="text-align:center">${r.tem_ia ? tick : cross}</td>
+      <td style="text-align:center">${r.ia_funcionando ? tick : cross}</td>
+      <td>${r.qual_ia || '—'}</td>
+      <td style="text-align:center">${r.tem_torre ? tick : cross}</td>
+      <td>${changes.length ? '<span style="color:#f59e0b;font-size:11px">'+changes.join(', ')+'</span>' : '<span style="color:var(--text-muted);font-size:11px">—</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline" style="padding:2px 8px;font-size:11px" onclick="editChecklist(${r.id})">Editar</button>
+        <button class="btn btn-outline" style="padding:2px 8px;font-size:11px;color:var(--danger);border-color:var(--danger)" onclick="deleteChecklist(${r.id})">Excluir</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openChecklistModal(editId) {
+  document.getElementById('chk-modal').classList.add('open');
+  document.getElementById('chk-edit-id').value = '';
+  document.getElementById('chk-modal-title').textContent = 'Novo Checklist';
+  // Populate condominios
+  const sel = document.getElementById('chk-condominio');
+  sel.innerHTML = '<option value="">Selecione</option>' + DATA.condominios.filter(c=>c.ativo!==false).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  document.getElementById('chk-condominio').value = '';
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('chk-data').value = today;
+  document.getElementById('chk-qtd-cameras').value = '';
+  document.getElementById('chk-dvr').checked = false;
+  document.getElementById('chk-portao-grav').checked = false;
+  document.getElementById('chk-portao-lista').value = '';
+  document.getElementById('chk-botoes').checked = false;
+  document.getElementById('chk-alarme').checked = false;
+  document.getElementById('chk-tem-ia').checked = false;
+  document.getElementById('chk-ia-func').checked = false;
+  document.getElementById('chk-qual-ia').value = '';
+  document.getElementById('chk-torre').checked = false;
+  document.getElementById('chk-obs').value = '';
+}
+function closeChecklistModal() { document.getElementById('chk-modal').classList.remove('open'); }
+
+function editChecklist(id) {
+  const r = DATA.checklists.find(c => c.id === id);
+  if (!r) return;
+  openChecklistModal();
+  document.getElementById('chk-modal-title').textContent = 'Editar Checklist';
+  document.getElementById('chk-edit-id').value = id;
+  document.getElementById('chk-condominio').value = r.condominio_id || '';
+  document.getElementById('chk-data').value = r.data_checklist || '';
+  document.getElementById('chk-qtd-cameras').value = r.qtd_cameras || '';
+  document.getElementById('chk-dvr').checked = !!r.todas_gravando_dvr;
+  document.getElementById('chk-portao-grav').checked = !!r.cameras_portao_gravando;
+  document.getElementById('chk-portao-lista').value = r.cameras_portao_lista || '';
+  document.getElementById('chk-botoes').checked = !!r.cameras_botoes_acoes;
+  document.getElementById('chk-alarme').checked = !!r.central_alarme_comunicando;
+  document.getElementById('chk-tem-ia').checked = !!r.tem_ia;
+  document.getElementById('chk-ia-func').checked = !!r.ia_funcionando;
+  document.getElementById('chk-qual-ia').value = r.qual_ia || '';
+  document.getElementById('chk-torre').checked = !!r.tem_torre;
+  document.getElementById('chk-obs').value = r.observacoes || '';
+}
+
+async function saveChecklist() {
+  if (!sb) { showToast('Sem conexao', true); return; }
+  const condId = document.getElementById('chk-condominio').value;
+  const dataChk = document.getElementById('chk-data').value;
+  if (!condId || !dataChk) { showToast('Selecione condominio e data', true); return; }
+  const obj = {
+    condominio_id: parseInt(condId),
+    data_checklist: dataChk,
+    qtd_cameras: parseInt(document.getElementById('chk-qtd-cameras').value) || 0,
+    todas_gravando_dvr: document.getElementById('chk-dvr').checked,
+    cameras_portao_gravando: document.getElementById('chk-portao-grav').checked,
+    cameras_portao_lista: document.getElementById('chk-portao-lista').value.trim(),
+    cameras_botoes_acoes: document.getElementById('chk-botoes').checked,
+    central_alarme_comunicando: document.getElementById('chk-alarme').checked,
+    tem_ia: document.getElementById('chk-tem-ia').checked,
+    ia_funcionando: document.getElementById('chk-ia-func').checked,
+    qual_ia: document.getElementById('chk-qual-ia').value.trim(),
+    tem_torre: document.getElementById('chk-torre').checked,
+    observacoes: document.getElementById('chk-obs').value.trim(),
+  };
+  const editId = document.getElementById('chk-edit-id').value;
+  if (editId) {
+    const { error } = await sb.from('checklist_portaria').update(obj).eq('id', parseInt(editId));
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Checklist atualizado!');
+  } else {
+    const { error } = await sb.from('checklist_portaria').insert(obj);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Checklist adicionado!');
+  }
+  closeChecklistModal();
+  await refreshData();
+}
+
+async function deleteChecklist(id) {
+  if (!sb || !confirm('Excluir este checklist?')) return;
+  const { error } = await sb.from('checklist_portaria').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  DATA.checklists = DATA.checklists.filter(r => r.id !== id);
+  showToast('Checklist excluido');
+  renderChecklist();
+}
+
+// Condominio management
+function openCondominioModal() {
+  document.getElementById('cond-modal').classList.add('open');
+  renderCondominioList();
+}
+function closeCondominioModal() { document.getElementById('cond-modal').classList.remove('open'); }
+
+function renderCondominioList() {
+  const list = document.getElementById('cond-list');
+  list.innerHTML = DATA.condominios.map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-weight:500">${c.nome}</span>
+      <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${c.ativo!==false?'var(--accent)22':'var(--danger)22'};color:${c.ativo!==false?'var(--accent)':'var(--danger)'}">${c.ativo!==false?'Ativo':'Inativo'}</span>
+      <button class="btn btn-outline" style="padding:2px 8px;font-size:11px" onclick="toggleCondominio(${c.id},${c.ativo===false})">${c.ativo!==false?'Desativar':'Ativar'}</button>
+      <button class="btn btn-outline" style="padding:2px 8px;font-size:11px;color:var(--danger);border-color:var(--danger)" onclick="deleteCondominio(${c.id})">Excluir</button>
+    </div>`).join('') || '<p style="color:var(--text-muted)">Nenhum condominio cadastrado</p>';
+}
+
+async function addCondominio() {
+  if (!sb) return;
+  const nome = document.getElementById('cond-novo-nome').value.trim();
+  if (!nome) { showToast('Digite o nome do condominio', true); return; }
+  const { error } = await sb.from('condominios_portaria').insert({ nome, ativo: true });
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  document.getElementById('cond-novo-nome').value = '';
+  showToast('Condominio adicionado!');
+  await refreshData();
+  renderCondominioList();
+}
+
+async function toggleCondominio(id, activate) {
+  if (!sb) return;
+  const { error } = await sb.from('condominios_portaria').update({ ativo: activate }).eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  const c = DATA.condominios.find(x => x.id === id);
+  if (c) c.ativo = activate;
+  renderCondominioList();
+  renderChecklist();
+}
+
+async function deleteCondominio(id) {
+  if (!sb || !confirm('Excluir este condominio?')) return;
+  const { error } = await sb.from('condominios_portaria').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  DATA.condominios = DATA.condominios.filter(c => c.id !== id);
+  renderCondominioList();
+  renderChecklist();
+  showToast('Condominio excluido');
+}
+
+// ===== SEGUROS =====
+function renderSeguros() {
+  const s = DATA.seguros;
+  const total = s.length;
+  const pendente = s.filter(x => x.status === 'Pendente').length;
+  const aprovado = s.filter(x => x.status === 'Aprovado').length;
+  const analise = s.filter(x => x.status === 'Em análise' || x.status === 'Em analise').length;
+
+  const kpiEl = document.getElementById('seg-kpis');
+  kpiEl.innerHTML = `
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:var(--accent)">${total}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Total Solicitacoes</div>
+    </div>
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:#f59e0b">${pendente}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Pendente</div>
+    </div>
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:#3b82f6">${analise}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Em Analise</div>
+    </div>
+    <div class="card" style="flex:1;min-width:140px;padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:700;color:var(--accent)">${aprovado}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Aprovado</div>
+    </div>`;
+
+  let filtered = [...s];
+  const fs = document.getElementById('seg-filter-status').value;
+  if (fs) filtered = filtered.filter(x => x.status === fs);
+  filtered.sort((a,b) => (b.data_solicitacao||'').localeCompare(a.data_solicitacao||''));
+
+  const statusColors = {'Pendente':'#f59e0b','Em análise':'#3b82f6','Em analise':'#3b82f6','Aprovado':'#1abf8f','Negado':'#ef4444','Concluído':'#8b5cf6','Concluido':'#8b5cf6'};
+
+  const tbody = document.getElementById('seg-tbody');
+  tbody.innerHTML = filtered.map(r => {
+    const sc = statusColors[r.status] || '#6b7280';
+    return `<tr>
+      <td style="font-weight:500">${r.cliente||'—'}</td>
+      <td>${r.conta||'—'}</td>
+      <td>${r.tipo_seguro||'—'}</td>
+      <td>${r.data_solicitacao ? new Date(r.data_solicitacao+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+      <td>${r.seguradora||'—'}</td>
+      <td>${r.numero_sinistro||'—'}</td>
+      <td>${r.valor ? fmtVal(r.valor) : '—'}</td>
+      <td><span style="padding:2px 8px;border-radius:12px;font-size:11px;background:${sc}22;color:${sc};font-weight:600">${r.status||'—'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline" style="padding:2px 8px;font-size:11px" onclick="editSeguro(${r.id})">Editar</button>
+        <button class="btn btn-outline" style="padding:2px 8px;font-size:11px;color:var(--danger);border-color:var(--danger)" onclick="deleteSeguro(${r.id})">Excluir</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openSeguroModal() {
+  document.getElementById('seg-modal').classList.add('open');
+  document.getElementById('seg-edit-id').value = '';
+  document.getElementById('seg-modal-title').textContent = 'Nova Solicitacao de Seguro';
+  document.getElementById('seg-cliente').value = '';
+  document.getElementById('seg-conta').value = '';
+  document.getElementById('seg-tipo').value = '';
+  document.getElementById('seg-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('seg-status').value = 'Pendente';
+  document.getElementById('seg-valor').value = '';
+  document.getElementById('seg-seguradora').value = '';
+  document.getElementById('seg-sinistro').value = '';
+  document.getElementById('seg-obs').value = '';
+  document.getElementById('seg-email').value = '';
+}
+function closeSeguroModal() { document.getElementById('seg-modal').classList.remove('open'); }
+
+function editSeguro(id) {
+  const r = DATA.seguros.find(s => s.id === id);
+  if (!r) return;
+  openSeguroModal();
+  document.getElementById('seg-modal-title').textContent = 'Editar Solicitacao';
+  document.getElementById('seg-edit-id').value = id;
+  document.getElementById('seg-cliente').value = r.cliente || '';
+  document.getElementById('seg-conta').value = r.conta || '';
+  document.getElementById('seg-tipo').value = r.tipo_seguro || '';
+  document.getElementById('seg-data').value = r.data_solicitacao || '';
+  document.getElementById('seg-status').value = r.status || 'Pendente';
+  document.getElementById('seg-valor').value = r.valor || '';
+  document.getElementById('seg-seguradora').value = r.seguradora || '';
+  document.getElementById('seg-sinistro').value = r.numero_sinistro || '';
+  document.getElementById('seg-obs').value = r.observacoes || '';
+  document.getElementById('seg-email').value = r.email_origem || '';
+}
+
+async function saveSeguro() {
+  if (!sb) { showToast('Sem conexao', true); return; }
+  const obj = {
+    cliente: document.getElementById('seg-cliente').value.trim(),
+    conta: document.getElementById('seg-conta').value.trim(),
+    tipo_seguro: document.getElementById('seg-tipo').value.trim(),
+    data_solicitacao: document.getElementById('seg-data').value || null,
+    status: document.getElementById('seg-status').value,
+    valor: parseFloat(document.getElementById('seg-valor').value) || null,
+    seguradora: document.getElementById('seg-seguradora').value.trim(),
+    numero_sinistro: document.getElementById('seg-sinistro').value.trim(),
+    observacoes: document.getElementById('seg-obs').value.trim(),
+    email_origem: document.getElementById('seg-email').value.trim(),
+  };
+  if (!obj.cliente) { showToast('Preencha o nome do cliente', true); return; }
+  const editId = document.getElementById('seg-edit-id').value;
+  if (editId) {
+    const { error } = await sb.from('solicitacoes_seguro').update(obj).eq('id', parseInt(editId));
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Solicitacao atualizada!');
+  } else {
+    const { error } = await sb.from('solicitacoes_seguro').insert(obj);
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Solicitacao adicionada!');
+  }
+  closeSeguroModal();
+  await refreshData();
+}
+
+async function deleteSeguro(id) {
+  if (!sb || !confirm('Excluir esta solicitacao?')) return;
+  const { error } = await sb.from('solicitacoes_seguro').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  DATA.seguros = DATA.seguros.filter(r => r.id !== id);
+  showToast('Solicitacao excluida');
+  renderSeguros();
+}
+
+function exportSegurosCSV() {
+  const rows = DATA.seguros;
+  if (!rows.length) { showToast('Sem dados para exportar', true); return; }
+  const BOM = '﻿';
+  let csv = BOM + 'Cliente;Conta;Tipo Seguro;Data;Status;Valor;Seguradora;Sinistro;Observacoes;Email\n';
+  rows.forEach(r => {
+    csv += `"${r.cliente||''}";"${r.conta||''}";"${r.tipo_seguro||''}";"${r.data_solicitacao||''}";"${r.status||''}";"${r.valor||''}";"${r.seguradora||''}";"${r.numero_sinistro||''}";"${(r.observacoes||'').replace(/"/g,'""')}";"${r.email_origem||''}"\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'solicitacoes_seguro.csv'; a.click();
 }
 
 // ===== INIT =====
