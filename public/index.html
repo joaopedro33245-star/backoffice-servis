@@ -1741,6 +1741,7 @@ function renderPagamentos() {
 
   // Live fornecedor rows (no historico yet)
   rows = filteredF.map(d => ({
+    fornecedor_nome: d.servico || '',
     servico: d.servico || '',
     filial: d.filial || '',
     recorrencia: 'Mensal',
@@ -1761,6 +1762,7 @@ function renderPagamentos() {
   rows = rows.concat(monthH.map(h => {
     const forn = F.find(f => f.id === h.fornecedor_id);
     return {
+      fornecedor_nome: forn ? forn.servico : '',
       servico: h.servico || (forn ? forn.servico : ''),
       filial: forn ? forn.filial : '',
       recorrencia: 'Mensal',
@@ -1851,7 +1853,8 @@ function renderPagamentos() {
     const boletoBtn = r.boleto_url ? `<a href="${r.boleto_url}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:4px;background:rgba(42,120,214,0.15);color:#2a78d6;font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap">🧾 Boleto</a>` : '';
     const docsCell = (notaBtn || boletoBtn) ? `${notaBtn} ${boletoBtn}` : '<span style="color:var(--text-muted);font-size:11px">—</span>';
     return `<tr ${clickFn}>
-      <td style="font-weight:600;white-space:nowrap">${r.servico}</td>
+      <td style="font-weight:600;white-space:nowrap">${r.fornecedor_nome}</td>
+      <td style="white-space:nowrap">${r.servico}</td>
       <td><span style="display:inline-block;padding:2px 10px;border-radius:3px;background:${filialColor(r.filial)};color:#fff;font-size:11px;font-weight:500">${r.filial}</span></td>
       <td>${r.recorrencia}</td>
       <td>${r.responsavel}</td>
@@ -1903,12 +1906,12 @@ function renderPagamentos() {
     </div>
     <div class="card"><div class="card-header"><div class="card-title">${selLabel} — ${rows.length} servicos</div></div>
     <div class="card-body"><div class="table-wrap" style="max-height:60vh;overflow-y:auto;overflow-x:auto">
-      <table style="min-width:1350px"><thead><tr>
-        <th>Servico</th><th>Filial</th><th>Recorrencia</th><th>Responsaveis</th>
+      <table style="min-width:1500px"><thead><tr>
+        <th>Fornecedor</th><th>Servico</th><th>Filial</th><th>Recorrencia</th><th>Responsaveis</th>
         <th>Lancado no Fluxo</th><th>Enviado Contas a Pagar</th><th>Lancado Sistema</th>
         <th>Uso</th><th>Tipo</th><th style="text-align:right">Valor Mensal</th>
         <th style="text-align:right">Forn.</th><th>Data NF</th><th>Vencimento</th><th>Docs</th>
-      </tr></thead><tbody>${tableRows || '<tr><td colspan="14" style="text-align:center;padding:30px;color:var(--text-muted)">Nenhum registro para este mes. Clique em "+ Novo Registro" para adicionar.</td></tr>'}</tbody></table>
+      </tr></thead><tbody>${tableRows || '<tr><td colspan="15" style="text-align:center;padding:30px;color:var(--text-muted)">Nenhum registro para este mes. Clique em "+ Novo Registro" para adicionar.</td></tr>'}</tbody></table>
     </div></div></div>`;
 }
 
