@@ -1082,9 +1082,11 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
     </div>
     <div class="modal-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div class="form-group">
+        <div class="form-group" style="position:relative">
           <label class="form-label">Condominio</label>
-          <select class="form-input" id="chk-condominio"><option value="">Selecione</option></select>
+          <input class="form-input" id="chk-condominio-search" type="text" placeholder="Digite o nome do condomínio..." autocomplete="off">
+          <input type="hidden" id="chk-condominio" value="">
+          <div id="chk-cond-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1100;background:#1a2736;border:1px solid #2a3a4a;border-radius:6px;max-height:220px;overflow-y:auto;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
         </div>
         <div class="form-group">
           <label class="form-label">Data</label>
@@ -3313,14 +3315,44 @@ function renderChecklist() {
   }).join('');
 }
 
+// === Condominio autocomplete logic ===
+let chkCondList = [];
+function initCondAutocomplete() {
+  chkCondList = DATA.condominios.filter(c => c.ativo !== false).sort((a,b) => a.nome.localeCompare(b.nome));
+  const input = document.getElementById('chk-condominio-search');
+  const dd = document.getElementById('chk-cond-dropdown');
+  const hidden = document.getElementById('chk-condominio');
+
+  function renderDD(filter) {
+    const q = (filter || '').toUpperCase();
+    const filtered = q ? chkCondList.filter(c => c.nome.toUpperCase().includes(q)) : chkCondList;
+    if (!filtered.length) { dd.innerHTML = '<div style="padding:10px 14px;color:#667">Nenhum resultado</div>'; dd.style.display='block'; return; }
+    dd.innerHTML = filtered.map(c => `<div class="cond-dd-item" data-id="${c.id}" style="padding:8px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #1f2f3f;transition:background .15s">${c.nome}</div>`).join('');
+    dd.style.display = 'block';
+    dd.querySelectorAll('.cond-dd-item').forEach(el => {
+      el.addEventListener('mouseenter', () => el.style.background='#243447');
+      el.addEventListener('mouseleave', () => el.style.background='transparent');
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        hidden.value = el.dataset.id;
+        input.value = el.textContent;
+        dd.style.display = 'none';
+      });
+    });
+  }
+
+  input.addEventListener('focus', () => renderDD(input.value));
+  input.addEventListener('input', () => { hidden.value = ''; renderDD(input.value); });
+  input.addEventListener('blur', () => { setTimeout(() => dd.style.display='none', 180); });
+}
+
 function openChecklistModal(editId) {
   document.getElementById('chk-modal').classList.add('open');
   document.getElementById('chk-edit-id').value = '';
   document.getElementById('chk-modal-title').textContent = 'Novo Checklist';
-  // Populate condominios
-  const sel = document.getElementById('chk-condominio');
-  sel.innerHTML = '<option value="">Selecione</option>' + DATA.condominios.filter(c=>c.ativo!==false).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  initCondAutocomplete();
   document.getElementById('chk-condominio').value = '';
+  document.getElementById('chk-condominio-search').value = '';
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('chk-data').value = today;
   document.getElementById('chk-qtd-cameras').value = '';
@@ -3344,6 +3376,8 @@ function editChecklist(id) {
   document.getElementById('chk-modal-title').textContent = 'Editar Checklist';
   document.getElementById('chk-edit-id').value = id;
   document.getElementById('chk-condominio').value = r.condominio_id || '';
+  const condMatch = DATA.condominios.find(c => c.id === r.condominio_id);
+  document.getElementById('chk-condominio-search').value = condMatch ? condMatch.nome : '';
   document.getElementById('chk-data').value = r.data_checklist || '';
   document.getElementById('chk-qtd-cameras').value = r.qtd_cameras || '';
   document.getElementById('chk-dvr').checked = !!r.todas_gravando_dvr;
