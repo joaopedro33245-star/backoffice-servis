@@ -436,6 +436,7 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
 
     <!-- ===== FORNECEDORES ===== -->
     <div class="section" id="sec-fornecedores">
+      <div id="forn-comp-tabs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
       <div class="kpi-grid-dash" style="grid-template-columns:repeat(4,1fr)" id="forn-kpis"></div>
       <div class="chart-grid" style="margin-bottom:22px" id="forn-charts"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">
@@ -1614,15 +1615,15 @@ function renderFornecedores() {
     `<button class="tab-pill ${m===comp?'active':''}" onclick="currentFornComp='${m}';renderFornecedores()" style="font-size:11px;padding:5px 12px">${monthLabel(m)}</button>`
   ).join('') + `<button class="tab-pill ${comp==='todos'?'active':''}" onclick="currentFornComp='todos';renderFornecedores()" style="font-size:11px;padding:5px 12px">Todos</button>`;
 
+  // Month tabs (in separate container above KPIs)
+  document.getElementById('forn-comp-tabs').innerHTML = compTabs;
+
   // KPIs
   document.getElementById('forn-kpis').innerHTML = `
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${compTabs}</div>
-    <div class="kpi-grid">
     <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div><div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div class="kpi-label">Servicos</div><div class="kpi-value blue">${F.length}</div><div class="kpi-sub">${comp==='todos'?'todos os meses':monthLabel(comp)}</div></div>
     <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Custo Total</div><div class="kpi-value accent">R$ ${fmtK(custoTotal)}</div><div class="kpi-sub">mensal recorrente</div></div>
     <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="kpi-label">Pagos</div><div class="kpi-value accent">${pagos}</div><div class="kpi-sub">de ${F.length}</div></div>
-    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--danger)"></div><div class="kpi-card-icon" style="background:var(--danger-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="kpi-label">Pendentes / Vencidos</div><div class="kpi-value danger">${pend}</div><div class="kpi-sub">${pend > 0 ? 'requerem atencao' : 'tudo em dia'}</div></div>
-    </div>`;
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--danger)"></div><div class="kpi-card-icon" style="background:var(--danger-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="kpi-label">Pendentes / Vencidos</div><div class="kpi-value danger">${pend}</div><div class="kpi-sub">${pend > 0 ? 'requerem atencao' : 'tudo em dia'}</div></div>`;
 
   // Charts
   const byTipo = {}, byFilial = {};
@@ -1713,11 +1714,12 @@ function renderPagamentos() {
   const F = DATA.fornecedores;
   const H = DATA.fornHistorico;
 
-  // Build available months from fornecedores (current) and historico
+  // Build available months from fornecedores dt_competencia and historico
   const now = new Date();
   const currentComp = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const fornMonths = [...new Set(F.filter(d=>d.dt_competencia).map(d=>d.dt_competencia.substring(0,7)))];
   const histMonths = [...new Set(H.map(h => h.competencia))];
-  const allMonths = [...new Set([...histMonths, currentComp])].sort();
+  const allMonths = [...new Set([...fornMonths, ...histMonths, currentComp])].sort();
   if (!currentPagMonth || !allMonths.includes(currentPagMonth)) currentPagMonth = currentComp;
 
   // Month tabs
@@ -1732,8 +1734,9 @@ function renderPagamentos() {
   let rows = [];
   const isCurrent = currentPagMonth === currentComp;
   if (isCurrent) {
-    // Use live fornecedores data for current month
-    rows = F.map(d => ({
+    // Use live fornecedores data filtered by dt_competencia for current month
+    const filteredF = F.filter(d => d.dt_competencia && d.dt_competencia.substring(0,7) === currentComp);
+    rows = filteredF.map(d => ({
       servico: d.servico || '',
       filial: d.filial || '',
       recorrencia: 'Mensal',
