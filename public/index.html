@@ -1730,54 +1730,56 @@ function renderPagamentos() {
     return `<button class="tab-pill ${active}" onclick="currentPagMonth='${m}';renderPagamentos()" style="font-size:11px;padding:5px 12px">${label}</button>`;
   }).join('');
 
-  // Get data for selected month
+  // Get data for selected month — always check both fornecedores and historico
   let rows = [];
-  const isCurrent = currentPagMonth === currentComp;
-  if (isCurrent) {
-    // Use live fornecedores data filtered by dt_competencia for current month
-    const filteredF = F.filter(d => d.dt_competencia && d.dt_competencia.substring(0,7) === currentComp);
-    rows = filteredF.map(d => ({
-      servico: d.servico || '',
-      filial: d.filial || '',
+  // Historico records for selected month
+  const monthH = H.filter(h => h.competencia === currentPagMonth);
+  const histFornIds = new Set(monthH.map(h => h.fornecedor_id));
+
+  // Fornecedores with dt_competencia matching selected month (that DON'T already have a historico record)
+  const filteredF = F.filter(d => d.dt_competencia && d.dt_competencia.substring(0,7) === currentPagMonth && !histFornIds.has(d.id));
+
+  // Live fornecedor rows (no historico yet)
+  rows = filteredF.map(d => ({
+    servico: d.servico || '',
+    filial: d.filial || '',
+    recorrencia: 'Mensal',
+    responsavel: 'LEMOS',
+    lancado_fluxo: d.fluxo || '',
+    enviado_cp: d.pagamento === 'SIM' ? 'SIM' : (d.pagamento === 'PENDENTE' ? 'PENDENTE' : 'NÃO'),
+    uso: d.uso || '',
+    tipo: d.tipo || '',
+    valor: Number(d.valor) || 0,
+    forn: d.fornecedor_id || '',
+    data_nf: d.data_nf || '',
+    dt_vencimento: d.dt_vencimento || '',
+    id: d.id,
+    is_live: true
+  }));
+
+  // Historico rows
+  rows = rows.concat(monthH.map(h => {
+    const forn = F.find(f => f.id === h.fornecedor_id);
+    return {
+      servico: h.servico || (forn ? forn.servico : ''),
+      filial: forn ? forn.filial : '',
       recorrencia: 'Mensal',
       responsavel: 'LEMOS',
-      lancado_fluxo: d.fluxo || '',
-      enviado_cp: d.pagamento === 'SIM' ? 'SIM' : (d.pagamento === 'PENDENTE' ? 'PENDENTE' : 'NÃO'),
-      uso: d.uso || '',
-      tipo: d.tipo || '',
-      valor: Number(d.valor) || 0,
-      forn: d.fornecedor_id || '',
-      data_nf: d.data_nf || '',
-      dt_vencimento: d.dt_vencimento || '',
-      id: d.id,
-      is_live: true
-    }));
-  } else {
-    // Use historico data for past months
-    const monthH = H.filter(h => h.competencia === currentPagMonth);
-    rows = monthH.map(h => {
-      const forn = F.find(f => f.id === h.fornecedor_id);
-      return {
-        servico: h.servico || (forn ? forn.servico : ''),
-        filial: forn ? forn.filial : '',
-        recorrencia: 'Mensal',
-        responsavel: 'LEMOS',
-        lancado_fluxo: h.fluxo || '',
-        enviado_cp: h.enviado_contas_pagar ? 'SIM' : 'NÃO',
-        lancado_sistema: !!h.lancado_sistema,
-        uso: h.tipo_servico || (forn ? forn.uso : ''),
-        tipo: forn ? forn.tipo : '',
-        valor: Number(h.valor) || 0,
-        forn: h.fornecedor_id || '',
-        data_nf: h.data_nf || '',
-        dt_vencimento: h.dt_vencimento || '',
-        nota_url: h.nota_url || '',
-        boleto_url: h.boleto_url || '',
-        id: h.id,
-        is_live: false
-      };
-    });
-  }
+      lancado_fluxo: h.fluxo || '',
+      enviado_cp: h.enviado_contas_pagar ? 'SIM' : 'NÃO',
+      lancado_sistema: !!h.lancado_sistema,
+      uso: h.tipo_servico || (forn ? forn.uso : ''),
+      tipo: forn ? forn.tipo : '',
+      valor: Number(h.valor) || 0,
+      forn: h.fornecedor_id || '',
+      data_nf: h.data_nf || '',
+      dt_vencimento: h.dt_vencimento || '',
+      nota_url: h.nota_url || '',
+      boleto_url: h.boleto_url || '',
+      id: h.id,
+      is_live: false
+    };
+  }));
 
   // KPIs for selected month
   const total = rows.reduce((s,r) => s + r.valor, 0);
@@ -2456,7 +2458,9 @@ function openFornModal(editId) {
     document.getElementById('fm-recorrencia').value = 'Mensal';
     document.getElementById('fm-valor').value = '';
     document.getElementById('fm-fornecedor-id').value = '';
-    document.getElementById('fm-competencia').value = '';
+    // Default competencia to first day of current month (or selected month)
+    const defComp = currentFornComp && currentFornComp !== 'todos' ? currentFornComp + '-01' : new Date().toISOString().substring(0,10);
+    document.getElementById('fm-competencia').value = defComp;
     document.getElementById('fm-vencimento').value = '';
   }
 }
