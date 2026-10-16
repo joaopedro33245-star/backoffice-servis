@@ -206,6 +206,12 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
   font-size: 13px; font-family: inherit; outline: none;
 }
 .form-input:focus { border-color: var(--accent); }
+.tm-section-title { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; margin: 6px 0 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+.tm-check { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text-primary); margin-bottom: 8px; user-select: none; }
+.tm-check input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.tm-check:has(input:checked) { border-color: var(--accent); }
+.tm-grat-hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+.tm-obs-ico { display: inline-block; margin-left: 6px; color: var(--text-muted); cursor: help; font-size: 12px; }
 .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
 
 /* Inline editable */
@@ -914,6 +920,28 @@ td:first-child { color: var(--text-primary); font-weight: 500; }
       <div class="form-group">
         <label class="form-label">Responsável</label>
         <input class="form-input" id="tm-responsavel" placeholder="Responsavel">
+      </div>
+      <div class="tm-section-title">Gratificação</div>
+      <div class="form-group">
+        <label class="form-label">Término da gratificação</label>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="tm-data-fim" type="date" oninput="updateGratHint()">
+          <button type="button" class="btn btn-outline btn-sm" style="white-space:nowrap" onclick="sugerirFimGrat()" title="Calcula a partir de hoje usando os meses do modelo (ex.: CORTESIA 6 MESES)">+ meses do modelo</button>
+        </div>
+        <div class="tm-grat-hint" id="tm-grat-hint"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observação</label>
+        <textarea class="form-input" id="tm-obs" rows="3" style="resize:vertical" placeholder="Anotações sobre o cliente, combinados, pendências..."></textarea>
+      </div>
+      <div class="tm-section-title">Checklist pós-teste</div>
+      <label class="tm-check"><input type="checkbox" id="tm-chk-app" onchange="chkTouched()">Cliente está usando o app</label>
+      <label class="tm-check"><input type="checkbox" id="tm-chk-deteccao" onchange="chkTouched()">Detecção está chegando após teste</label>
+      <label class="tm-check"><input type="checkbox" id="tm-chk-cameras" onchange="chkTouched()">Câmeras online no Sigma</label>
+      <label class="tm-check"><input type="checkbox" id="tm-chk-treinado" onchange="chkTouched()">Cliente orientado / treinado</label>
+      <div class="form-group" style="margin-top:6px">
+        <label class="form-label">Data da verificação</label>
+        <input class="form-input" id="tm-chk-data" type="date">
       </div>
     </div>
     <div class="modal-footer">
@@ -1665,6 +1693,10 @@ function renderDashboard() {
   if (inatArm > 0) alerts.push({cls:'orange', go:'armarios', txt:`${inatArm} armários inativos`});
   const semInst = T.length - instaladas;
   if (semInst > 0) alerts.push({cls:'amber', go:'torres', txt:`${semInst} torres ainda não instaladas`});
+  const gratVenc = T.filter(d => { const n = diasAte(d.data_fim_gratificacao); return n !== null && n < 0; }).length;
+  const gratProx = T.filter(d => { const n = diasAte(d.data_fim_gratificacao); return n !== null && n >= 0 && n <= 30; }).length;
+  if (gratVenc > 0) alerts.push({cls:'red', go:'torres', txt:`${gratVenc} gratificações de torre vencidas`});
+  if (gratProx > 0) alerts.push({cls:'amber', go:'torres', txt:`${gratProx} gratificações de torre vencem em 30 dias`});
   document.getElementById('dash-alerts').innerHTML = alerts.length
     ? alerts.map(a => `<button class="dash-alert ${a.cls}" onclick="showSection('${a.go}')">${a.txt}</button>`).join('')
     : '<span class="dash-alert ok">Nenhum alerta no momento</span>';
@@ -2277,11 +2309,18 @@ function renderTorresTable() {
   const T = DATA.torres;
   const stEl = document.querySelector('#torres-filters [data-filter="status"]');
   const srEl = document.querySelector('#torres-filters [data-filter="search"]');
+  const grEl = document.querySelector('#torres-filters [data-filter="grat"]');
   const st = stEl ? stEl.value : '';
   const search = srEl ? srEl.value.toLowerCase() : '';
+  const gr = grEl ? grEl.value : '';
 
   let filtered = T.filter(d => {
     if (st && d.status !== st) return false;
+    const dias = diasAte(d.data_fim_gratificacao);
+    if (gr === 'vencendo' && !(dias !== null && dias >= 0 && dias <= 30)) return false;
+    if (gr === 'vencidas' && !(dias !== null && dias < 0)) return false;
+    if (gr === 'semdata' && d.data_fim_gratificacao) return false;
+    if (gr === 'chkpend' && !(d.status === 'INSTALADA' && torreChecklist(d) < 4)) return false;
     if (search && !d.cliente.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -2296,13 +2335,27 @@ function renderTorresTable() {
       <option value="SEGUNDO PLANO" ${st==='SEGUNDO PLANO'?'selected':''}>Segundo Plano</option>
       <option value="AVALIAR/AGUARDAR" ${st==='AVALIAR/AGUARDAR'?'selected':''}>Avaliar/Aguardar</option>
     </select>
+    <select class="filter-select" data-filter="grat" onchange="renderTorresTable()">
+      <option value="">Gratificação / Checklist</option>
+      <option value="vencendo" ${gr==='vencendo'?'selected':''}>Vencendo em 30 dias</option>
+      <option value="vencidas" ${gr==='vencidas'?'selected':''}>Gratificação vencida</option>
+      <option value="semdata" ${gr==='semdata'?'selected':''}>Sem data de término</option>
+      <option value="chkpend" ${gr==='chkpend'?'selected':''}>Instaladas c/ checklist pendente</option>
+    </select>
     <input class="filter-input" data-filter="search" placeholder="Buscar cliente..." oninput="renderTorresTable()" style="width:200px" value="${search}">`;
 
   document.getElementById('torres-table-wrap').innerHTML = `
-    <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th style="text-align:right">Câmeras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Cobrado</th><th>Responsável</th><th>Ações</th></tr></thead>
+    <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th style="text-align:right">Câmeras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Cobrado</th><th>Fim Gratif.</th><th style="text-align:center">Checklist</th><th>Responsável</th><th>Ações</th></tr></thead>
     <tbody>${filtered.map(d => {
       const stBadge = d.status==='INSTALADA'?'badge-success':d.status==='AUTORIZADA'?'badge-blue':d.status==='EM AUTORIZAÇÃO'?'badge-warning':d.status==='NÃO AUTORIZADA'?'badge-danger':'badge-neutral';
-      return `<tr><td>${d.cliente}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+      const dias = diasAte(d.data_fim_gratificacao);
+      const gratCell = dias === null ? '<span style="color:var(--text-muted)">—</span>'
+        : `<span class="badge ${dias < 0 ? 'badge-danger' : dias <= 30 ? 'badge-warning' : 'badge-neutral'}" title="${dias < 0 ? 'Vencida há ' + (-dias) + ' dia(s)' : 'Faltam ' + dias + ' dia(s)'}">${fmtDataBR(d.data_fim_gratificacao)}</span>`;
+      const ck = torreChecklist(d);
+      const ckTip = `App: ${d.chk_usando_app?'✔':'✘'} | Detecção: ${d.chk_deteccao_teste?'✔':'✘'} | Câmeras: ${d.chk_cameras_online?'✔':'✘'} | Treinado: ${d.chk_cliente_treinado?'✔':'✘'}${d.chk_data_verificacao ? ' — verificado em ' + fmtDataBR(d.chk_data_verificacao) : ''}`;
+      const ckCell = `<span class="badge ${ck === 4 ? 'badge-success' : ck === 0 ? 'badge-neutral' : 'badge-warning'}" title="${ckTip}" style="cursor:help">${ck}/4</span>`;
+      const obsIco = d.observacao ? `<span class="tm-obs-ico" title="${escAttr(d.observacao)}">📝</span>` : '';
+      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
@@ -2755,6 +2808,13 @@ function openTorreModal(editId) {
     document.getElementById('tm-pago').value = d.pago_forn || '';
     document.getElementById('tm-cobrado').value = d.cobrado || '';
     document.getElementById('tm-responsavel').value = d.responsavel || '';
+    document.getElementById('tm-data-fim').value = d.data_fim_gratificacao || '';
+    document.getElementById('tm-obs').value = d.observacao || '';
+    document.getElementById('tm-chk-app').checked = !!d.chk_usando_app;
+    document.getElementById('tm-chk-deteccao').checked = !!d.chk_deteccao_teste;
+    document.getElementById('tm-chk-cameras').checked = !!d.chk_cameras_online;
+    document.getElementById('tm-chk-treinado').checked = !!d.chk_cliente_treinado;
+    document.getElementById('tm-chk-data').value = d.chk_data_verificacao || '';
   } else {
     document.getElementById('torre-modal-title').textContent = 'Nova Torre';
     document.getElementById('torre-edit-id').value = '';
@@ -2766,7 +2826,40 @@ function openTorreModal(editId) {
     document.getElementById('tm-pago').value = '';
     document.getElementById('tm-cobrado').value = '';
     document.getElementById('tm-responsavel').value = '';
+    document.getElementById('tm-data-fim').value = '';
+    document.getElementById('tm-obs').value = '';
+    ['tm-chk-app','tm-chk-deteccao','tm-chk-cameras','tm-chk-treinado'].forEach(id => document.getElementById(id).checked = false);
+    document.getElementById('tm-chk-data').value = '';
   }
+  updateGratHint();
+}
+function hojeISO() { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function diasAte(iso) {
+  if (!iso) return null;
+  const [y,m,d] = iso.split('-').map(Number);
+  const alvo = new Date(y, m-1, d); const h = new Date(); h.setHours(0,0,0,0);
+  return Math.round((alvo - h) / 86400000);
+}
+function fmtDataBR(iso) { if (!iso) return '—'; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
+function escAttr(t) { return String(t||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function chkTouched() { const el = document.getElementById('tm-chk-data'); if (!el.value) el.value = hojeISO(); }
+function sugerirFimGrat() {
+  const m = (document.getElementById('tm-modelo').value.match(/(\d+)\s*MES/i) || [])[1];
+  if (!m) { showToast('O modelo não tem quantidade de meses (ex.: CORTESIA 6 MESES)', true); return; }
+  const d = new Date(); d.setMonth(d.getMonth() + parseInt(m));
+  document.getElementById('tm-data-fim').value = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  updateGratHint();
+}
+function updateGratHint() {
+  const el = document.getElementById('tm-grat-hint'); if (!el) return;
+  const n = diasAte(document.getElementById('tm-data-fim').value);
+  if (n === null) { el.textContent = 'Sem data definida'; el.style.color = ''; return; }
+  if (n < 0) { el.textContent = `Vencida há ${-n} dia(s)`; el.style.color = 'var(--danger)'; }
+  else if (n <= 30) { el.textContent = `Vence em ${n} dia(s)`; el.style.color = 'var(--warning)'; }
+  else { el.textContent = `Faltam ${n} dias`; el.style.color = 'var(--accent)'; }
+}
+function torreChecklist(d) {
+  return [d.chk_usando_app, d.chk_deteccao_teste, d.chk_cameras_online, d.chk_cliente_treinado].filter(Boolean).length;
 }
 function closeTorreModal() { document.getElementById('torre-modal').classList.remove('open'); }
 
@@ -2783,6 +2876,13 @@ async function saveTorre() {
     pago_forn: parseFloat(document.getElementById('tm-pago').value) || 0,
     cobrado: parseFloat(document.getElementById('tm-cobrado').value) || 0,
     responsavel: document.getElementById('tm-responsavel').value,
+    data_fim_gratificacao: document.getElementById('tm-data-fim').value || null,
+    observacao: document.getElementById('tm-obs').value.trim() || null,
+    chk_usando_app: document.getElementById('tm-chk-app').checked,
+    chk_deteccao_teste: document.getElementById('tm-chk-deteccao').checked,
+    chk_cameras_online: document.getElementById('tm-chk-cameras').checked,
+    chk_cliente_treinado: document.getElementById('tm-chk-treinado').checked,
+    chk_data_verificacao: document.getElementById('tm-chk-data').value || null,
   };
   const filial = filialDaCidade(obj.cidade);
   if (!filial) { showToast('Cidade "' + obj.cidade + '" não cadastrada. Use "+ Cidade" no dashboard.', true); return; }
