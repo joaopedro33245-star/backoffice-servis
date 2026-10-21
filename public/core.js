@@ -63,12 +63,12 @@ async function initSupabase() {
 const TABLE_KEYS = {
   fornecedores:'fornecedores', torres:'torres', clientes_ia_filial:'iaFilial', clientes_ia_provedor:'iaProvedor',
   armarios_resumo:'armResumo', armarios_detail:'armDetail', boletos:'boletos', clientes_ia_detail:'iaDetail',
-  fornecedores_historico:'fornHistorico', demandas_equipe:'demandas', condominios_portaria:'condominios',
+  fornecedores_historico:'fornHistorico', demandas_equipe:'demandas', dem_tasks:'demTasks', condominios_portaria:'condominios',
   checklist_portaria:'checklists', solicitacoes_seguro:'seguros', cidades_filial:'cidadesFilial',
 };
 // o que cada aba precisa para montar a tela
 const SECTION_TABLES = {
-  dashboard:    ['fornecedores','torres','clientes_ia_filial','armarios_resumo','demandas_equipe','checklist_portaria','condominios_portaria','solicitacoes_seguro'],
+  dashboard:    ['fornecedores','torres','clientes_ia_filial','armarios_resumo','dem_tasks','checklist_portaria','condominios_portaria','solicitacoes_seguro'],
   fornecedores: ['fornecedores','boletos','fornecedores_historico'],
   torres:       ['torres','cidades_filial','clientes_ia_filial','armarios_resumo'],
   clientes:     ['clientes_ia_detail','clientes_ia_filial','clientes_ia_provedor'],
@@ -201,6 +201,7 @@ function updateNavBadges() {
   set('badge-seguros', pend ? String(pend) : '', pend > 0);
 }
 function showSection(id, fromHash) {
+  if (id === 'demandas') { location.href = 'demandas.html'; return Promise.resolve(); }
   if (!titles[id] || !document.getElementById('sec-' + id)) id = 'dashboard';
   if (!fromHash && location.hash !== '#' + id) { try { history.pushState(null, '', '#' + id); } catch(e) { location.hash = id; } }
   document.querySelector('.main') && document.querySelector('.main').scrollTo(0, 0);
@@ -278,11 +279,12 @@ function statusBadge(st) {
 
 // ===== OPERAÇÕES (Demandas / Checklist / Seguros) =====
 function opsStats() {
-  const D = DATA.demandas || [], S = DATA.seguros || [], C = DATA.checklists || [];
-  const isConcl = s => /^conclu/i.test(s || '');
-  const demPend = D.filter(x => x.status === 'Pendente').length;
-  const demAnd = D.filter(x => x.status === 'Em andamento').length;
-  const demConc = D.filter(x => isConcl(x.status)).length;
+  const D = (DATA.demTasks || []).filter(x => !x.arquivada && !x.is_demo), S = DATA.seguros || [], C = DATA.checklists || [];
+  const demAberta = x => x.status !== 'concluida' && x.status !== 'cancelada';
+  const demPend = D.filter(x => x.status === 'nao_iniciada').length;
+  const demAnd = D.filter(x => demAberta(x) && x.status !== 'nao_iniciada').length;
+  const demConc = D.filter(x => x.status === 'concluida').length;
+  const demAtras = D.filter(x => demAberta(x) && x.prazo && (diasAte(String(x.prazo).slice(0,10)) ?? 0) < 0).length;
   const segPend = S.filter(x => x.status === 'Pendente').length;
   const segAnal = S.filter(x => /^em an[aá]lise$/i.test(x.status || '')).length;
   const segAprov = S.filter(x => x.status === 'Aprovado').length;
@@ -294,14 +296,15 @@ function opsStats() {
   const chkProb = lastChecks.length - chkOk;
   const diasChk = last ? -diasAte(last) : null;
   const condAtivos = (DATA.condominios || []).filter(c => c.ativo !== false).length;
-  return { D, S, demPend, demAnd, demConc, segPend, segAnal, segAprov, segAbertoValor, dates, last, lastChecks, chkOk, chkProb, diasChk, condAtivos };
+  return { D, S, demPend, demAnd, demConc, demAtras, segPend, segAnal, segAprov, segAbertoValor, dates, last, lastChecks, chkOk, chkProb, diasChk, condAtivos };
 }
 function opsAlerts() {
   const o = opsStats(); const a = [];
   if (o.segPend) a.push({cls:'red', go:'seguros', txt:`${o.segPend} seguro${o.segPend>1?'s':''} pendente${o.segPend>1?'s':''}`});
   if (o.chkProb) a.push({cls:'orange', go:'checklist', txt:`${o.chkProb} condomínio${o.chkProb>1?'s':''} com falha no último checklist`});
   if (o.diasChk !== null && o.diasChk > 7) a.push({cls:'amber', go:'checklist', txt:`Checklist de portaria atrasado (${o.diasChk} dias)`});
-  if (o.demPend) a.push({cls:'amber', go:'demandas', txt:`${o.demPend} demanda${o.demPend>1?'s':''} pendente${o.demPend>1?'s':''}`});
+  if (o.demAtras) a.push({cls:'red', go:'demandas', txt:`${o.demAtras} demanda${o.demAtras>1?'s':''} atrasada${o.demAtras>1?'s':''}`});
+  if (o.demPend) a.push({cls:'amber', go:'demandas', txt:`${o.demPend} demanda${o.demPend>1?'s':''} não iniciada${o.demPend>1?'s':''}`});
   return a;
 }
 function renderDashOps() {
@@ -311,7 +314,7 @@ function renderDashOps() {
   const lastBR = o.last ? fmtDataBR(o.last) : '—';
   el.innerHTML =
     kpiCard({ label:'Demandas em aberto', value:abertas, color: abertas ? 'warning' : 'accent', icon:'list', go:'demandas',
-      tag:`${o.demPend} pendente${o.demPend===1?'':'s'}`, tagCls: o.demPend ? 'kpi-tag-down' : 'kpi-tag-up', sub:`${o.demAnd} em andamento · ${o.demConc} concluída${o.demConc===1?'':'s'}` }) +
+      tag: o.demAtras ? `${o.demAtras} atrasada${o.demAtras===1?'':'s'}` : `${o.demPend} não iniciada${o.demPend===1?'':'s'}`, tagCls: o.demAtras ? 'kpi-tag-down' : 'kpi-tag-up', sub:`${o.demAnd} em andamento · ${o.demConc} concluída${o.demConc===1?'':'s'}` }) +
     kpiCard({ label:'Checklist Portaria', value: o.last ? `${o.chkOk}/${o.lastChecks.length}` : '—', color: o.chkProb ? 'danger' : 'accent', icon:'check', go:'checklist',
       tag: o.last ? (o.diasChk === 0 ? 'hoje' : `há ${o.diasChk}d`) : 'sem registro', tagCls: (o.diasChk ?? 99) > 7 ? 'kpi-tag-down' : 'kpi-tag-up', sub:`OK no último (${lastBR})` }) +
     kpiCard({ label:'Seguros em aberto', value: o.segPend + o.segAnal, color: o.segPend ? 'danger' : 'blue', icon:'shield', go:'seguros',
@@ -379,12 +382,12 @@ function searchIndex() {
   (DATA.iaDetail || []).forEach(d => out.push({ g:'Clientes IA', title:d.nome_cliente, sub:j(d.filial, d.provedor, d.status), keys:[d.nome_cliente, d.filial, d.provedor], act:() => { showSection('clientes'); editIADetail(d.id); } }));
   (DATA.armDetail || []).forEach(d => out.push({ g:'Armários', title:d.condominio, sub:j(d.filial, d.fornecedor, d.status), keys:[d.condominio, d.fornecedor, d.endereco], act:() => { showSection('armarios'); editArmDetail(d.id); } }));
   (DATA.fornecedores || []).forEach(d => out.push({ g:'Fornecedores', title:d.servico, sub:j(d.tipo, d.filial, d.valor != null ? fmtVal(d.valor) : ''), keys:[d.servico, d.tipo, d.uso, d.fornecedor_id], act:() => { showSection('fornecedores'); openFornModal(d.id); } }));
-  (DATA.demandas || []).forEach(d => out.push({ g:'Demandas', title:d.tarefa, sub:j(d.responsavel, d.categoria, d.status), keys:[d.tarefa, d.responsavel, d.categoria], act:() => { showSection('demandas'); editDemanda(d.id); } }));
+  (DATA.demTasks || []).filter(d => !d.arquivada).forEach(d => out.push({ g:'Demandas', title:d.titulo, sub:j(d.codigo, d.categoria, ({nao_iniciada:'Não iniciada',em_andamento:'Em andamento',aguardando_terceiros:'Aguardando terceiros',bloqueada:'Bloqueada',em_revisao:'Em revisão',concluida:'Concluída',cancelada:'Cancelada'})[d.status] || d.status), keys:[d.titulo, d.codigo, d.categoria], act:() => { location.href = 'demandas.html#/tarefa/' + d.id; } }));
   (DATA.seguros || []).forEach(d => out.push({ g:'Seguros', title:d.cliente, sub:j(d.conta, d.tipo_seguro, d.status), keys:[d.cliente, d.conta, d.numero_sinistro, d.seguradora], act:() => { showSection('seguros'); editSeguro(d.id); } }));
   (DATA.condominios || []).forEach(d => out.push({ g:'Condomínios (portaria)', title:d.nome, sub: d.ativo === false ? 'inativo' : 'ativo', keys:[d.nome], act:() => { showSection('checklist'); } }));
   return out;
 }
-const SEARCH_TABLES = ['torres','clientes_ia_detail','armarios_detail','fornecedores','demandas_equipe','solicitacoes_seguro','condominios_portaria'];
+const SEARCH_TABLES = ['torres','clientes_ia_detail','armarios_detail','fornecedores','dem_tasks','solicitacoes_seguro','condominios_portaria'];
 function openSearch() {
   document.getElementById('search-overlay').classList.add('open');
   const inp = document.getElementById('search-input'); inp.value = ''; runSearch(''); setTimeout(() => inp.focus(), 20);
@@ -432,7 +435,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ===== TEMPO REAL (Supabase Realtime) =====
-const RT_TABLES = ['fornecedores','torres','clientes_ia_filial','clientes_ia_provedor','armarios_resumo','armarios_detail','boletos','clientes_ia_detail','fornecedores_historico','demandas_equipe','condominios_portaria','checklist_portaria','solicitacoes_seguro','cidades_filial'];
+const RT_TABLES = ['dem_tasks','fornecedores','torres','clientes_ia_filial','clientes_ia_provedor','armarios_resumo','armarios_detail','boletos','clientes_ia_detail','fornecedores_historico','demandas_equipe','condominios_portaria','checklist_portaria','solicitacoes_seguro','cidades_filial'];
 let rtChannel = null, rtTimer = null, rtBusy = false;
 function startRealtime() {
   if (!sb || typeof sb.channel !== 'function') return;
