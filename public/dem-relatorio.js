@@ -10,7 +10,7 @@
   const R = { dia: hojeISO(), pessoa: '' };
   const ACAO = { criada: 'Criou', status_alterado: 'Status', prazo_alterado: 'Mudou o prazo', prioridade_alterada: 'Mudou a prioridade', responsavel_alterado: 'Mudou o responsável', atualizacao: 'Registrou atualização', comentario: 'Comentou', cobranca: 'Cobrou', bloqueada: 'Bloqueou', arquivada: 'Arquivou', editada: 'Editou' };
   const hora = ts => new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const diaSemana = iso => dataLocal(iso).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+  const diaSemana = iso => { const s = dataLocal(iso).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }); return s.charAt(0).toUpperCase() + s.slice(1); };
   const podeEditar = l => S.me && (S.me.id === l.pessoa_id || ehGestor());
 
   function mudarDia(delta) { const d = dataLocal(R.dia); d.setDate(d.getDate() + delta); R.dia = isoDe(d); App.render(); }
@@ -26,7 +26,7 @@
         <button class="btn btn-sm" onclick="Diario.mudarDia(1)" ${ehHoje ? 'disabled' : ''} aria-label="Próximo dia">›</button>
         ${ehHoje ? '' : '<button class="btn btn-sm" onclick="Diario.R.dia=hojeISO();App.render()">Hoje</button>'}
         <select class="sel" onchange="Diario.R.pessoa=this.value;App.render()" aria-label="Pessoa">${o('', 'Todas as pessoas', R.pessoa)}${ativos.map(p => o(p.id, p.nome, R.pessoa)).join('')}</select>
-        <span class="small muted" style="text-transform:capitalize">${esc(diaSemana(R.dia))}</span>
+        <span class="small muted">${esc(diaSemana(R.dia))}</span>
       </div>
       ${S.me ? `<div class="card mb"><div class="card-h"><h3>Registrar atividade${ehHoje ? '' : ' em ' + fmtData(R.dia)}</h3><span class="small muted">como ${esc(S.me.nome)}</span></div><div class="card-b">
         <textarea class="inp" id="dr-txt" rows="3" style="width:100%;resize:vertical" placeholder="O que você fez? Uma atividade por linha. Ex.: Conferi os e-mails das seguradoras"></textarea>
