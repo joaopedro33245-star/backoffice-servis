@@ -387,3 +387,20 @@ body, .topbar, .card, .kpi-card, .chart-card { transition: background-color .2s,
   .section-banner { flex-direction: column; align-items: flex-start; }
   .section-banner img { height: 110px; max-width: 100%; }
 }
+
+/* ================= ÁREA RESTRITA (Fornecedores) ================= */
+.section.locked > :not(.lock-panel) { display: none !important; }
+.lock-panel { max-width: 400px; margin: 6vh auto 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 26px 24px; box-shadow: var(--shadow-card); text-align: center; }
+.lock-panel h3 { font-size: 17px; color: var(--navy); margin: 10px 0 6px; }
+:root[data-theme="dark"] .lock-panel h3 { color: var(--text-primary); }
+.lock-panel p { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
+.lock-panel form { text-align: left; }
+.lock-ico { width: 46px; height: 46px; border-radius: 12px; background: var(--primary-50); color: var(--primary); display: inline-flex; align-items: center; justify-content: center; }
+.lock-ico svg { width: 22px; height: 22px; }
+.lock-err { color: var(--danger); font-size: 12.5px; min-height: 18px; margin-top: 8px; }
+.nav-lock { width: 14px !important; height: 14px !important; margin-left: auto; opacity: .6; }
+.auth-out { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 1px solid rgba(255,255,255,.12); color: #c9d4ea; border-radius: 8px; padding: 7px 10px; margin-bottom: 8px; font: inherit; font-size: 12px; cursor: pointer; }
+.auth-out:hover { background: var(--navy-2); color: #fff; }
+.auth-out svg { width: 15px; height: 15px; flex-shrink: 0; }
+.sidebar.collapsed .auth-out span { display: none; }
+.sidebar.collapsed .auth-out { justify-content: center; }
