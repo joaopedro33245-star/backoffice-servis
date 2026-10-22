@@ -152,6 +152,7 @@ kbd { font-family: inherit; font-size: 10px; font-weight: 600; color: var(--text
 
 .kpi-grid-dash { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 20px; }
 .kpi-grid-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+.kpi-grid-dash[style*="grid-template-columns"] { grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)) !important; }
 .kpi-card {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r);
   padding: 14px 16px 14px 18px; position: relative; overflow: hidden; box-shadow: var(--shadow-card);
