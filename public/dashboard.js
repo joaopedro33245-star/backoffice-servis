@@ -55,7 +55,11 @@ function renderDashboard() {
     ? alerts.map(a => `<button class="dash-alert ${a.cls}" onclick="showSection('${a.go}')">${a.txt}</button>`).join('')
     : '<span class="dash-alert ok">Nenhum alerta no momento</span>';
 
-  document.getElementById('dash-kpis').innerHTML = `
+  const lockCard = (rot) => `<div class="kpi-card clickable" onclick="showSection('fornecedores')"><div class="kpi-card-stripe" style="background:var(--border)"></div>
+      <div class="kpi-card-icon" style="background:var(--border-2)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
+      <div class="kpi-label">${rot}</div><div class="kpi-value" style="font-size:18px;color:var(--text-muted)">Restrito</div>
+      <div class="kpi-sub">visível só com acesso de gestor</div></div>`;
+  document.getElementById('dash-kpis').innerHTML = (boAdmin ? '' : lockCard('Fornecedores Lemos') + lockCard('Custo Mensal Lemos')) + (!boAdmin ? '' : `
     <div class="kpi-card clickable" onclick="showSection('fornecedores')"><div class="kpi-card-stripe" style="background:var(--blue)"></div>
       <div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v20M2 12h20"/></svg></div>
       <div class="kpi-label">Fornecedores Lemos</div><div class="kpi-value blue">${F.length}</div>
@@ -63,7 +67,7 @@ function renderDashboard() {
     <div class="kpi-card clickable" onclick="showSection('fornecedores')"><div class="kpi-card-stripe" style="background:var(--accent)"></div>
       <div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
       <div class="kpi-label">Custo Mensal Lemos</div><div class="kpi-value accent">R$ ${fmtK(custoTotal)}</div>
-      <div class="kpi-sub">sistemas + servidores + suporte</div></div>
+      <div class="kpi-sub">sistemas + servidores + suporte</div></div>`) + `
     <div class="kpi-card clickable" onclick="showSection('clientes')"><div class="kpi-card-stripe" style="background:#8a9bb5"></div>
       <div class="kpi-card-icon" style="background:rgba(235,104,52,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#eb6834" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
       <div class="kpi-label">Clientes IA</div><div class="kpi-value">${totalCli}</div>
@@ -88,7 +92,7 @@ function renderDashboard() {
   const byTipo = {};
   F.forEach(d => { const t = d.tipo || 'Outros'; byTipo[t] = (byTipo[t] || 0) + Number(d.valor); });
   document.getElementById('dash-charts-1').innerHTML = `
-    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Fornecedores por Tipo</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Distribuição de custo mensal</div></div><div class="chart-card-badge">${F.length} servicos</div></div><div class="chart-card-body" id="dchart-tipo"></div></div>
+    <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Fornecedores por Tipo</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Distribuição de custo mensal</div></div><div class="chart-card-badge">${boAdmin ? F.length + ' servicos' : 'restrito'}</div></div><div class="chart-card-body" id="dchart-tipo">${boAdmin ? '' : '<div class="empty-state">Visível só com acesso de gestor</div>'}</div></div>
     <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Clientes IA por Filial</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Câmeras com inteligência artificial</div></div><div class="chart-card-badge">${IA.length} filiais</div></div><div class="chart-card-body" id="dchart-ia"></div></div>`;
   hBar('dchart-tipo', Object.entries(byTipo).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v,t:'R$ '+fmtK(v)})), ['#2a78d6','#1abf8f','#eb6834','#eda100','#e87ba4']);
   hBar('dchart-ia', IA.map(d=>({l:d.filial.replace('Servis ','').replace('Secopi ',''), v:d.cameras, t:`${d.cameras} cam. · ${d.clientes ? Math.round(d.ativos/d.clientes*100) : 0}% ativos`})), ['#2a78d6']);
@@ -119,7 +123,8 @@ function renderDashboard() {
     document.getElementById('dchart-arm').innerHTML = s;
   }
 
-  // Bottom: vencimentos + payment donut
+  // Bottom: vencimentos + payment donut (só gestor)
+  if (!boAdmin) { document.getElementById('dash-bottom').innerHTML = ''; return; }
   const pagos = F.filter(d => d.pagamento === 'SIM').length;
   const pend = F.filter(d => d.pagamento === 'PENDENTE').length;
   const semInfo = F.length - pagos - pend;

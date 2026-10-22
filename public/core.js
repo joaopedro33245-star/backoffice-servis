@@ -29,9 +29,9 @@ async function testConnection() {
     const url = document.getElementById('cfg-url').value.trim();
     const key = document.getElementById('cfg-key').value.trim();
     const client = window.supabase.createClient(url, key);
-    const { data, error } = await client.from('fornecedores').select('id', { count: 'exact', head: true });
+    const { data, error } = await client.from('torres').select('id', { count: 'exact', head: true });
     if (error) throw error;
-    s.innerHTML = '<span style="color:var(--accent)">Conexão OK! Tabela fornecedores encontrada.</span>';
+    s.innerHTML = '<span style="color:var(--accent)">Conexão OK! Tabela torres encontrada.</span>';
   } catch(e) {
     s.innerHTML = '<span style="color:var(--danger)">Erro: ' + e.message + '</span>';
   }
@@ -43,6 +43,8 @@ async function initSupabase() {
   document.getElementById('cfg-key').value = cfg.key;
   try {
     sb = window.supabase.createClient(cfg.url, cfg.key);
+    await refreshAuth();
+    sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT' && boAdmin) setTimeout(() => applyAuth(false), 0); });
     // abre direto na aba do link (#torres etc.) e carrega só o que ela precisa
     await showSection(sectionFromHash(), true);
     document.getElementById('loading').style.display = 'none';
@@ -79,7 +81,7 @@ const SECTION_TABLES = {
   config:       [],
 };
 const SECTION_RENDER = {
-  dashboard: () => renderDashboard(), fornecedores: () => renderFornecedores(), torres: () => renderTorres(),
+  dashboard: () => renderDashboard(), fornecedores: () => renderFornSection(), torres: () => renderTorres(),
   clientes: () => renderIA(), armarios: () => renderArmarios(), demandas: () => renderDemandas(),
   checklist: () => renderChecklist(), seguros: () => renderSeguros(), config: () => {},
 };
@@ -88,7 +90,7 @@ const dirtySections = new Set(Object.keys(SECTION_TABLES)); // abas que precisam
 let currentSection = 'dashboard';
 
 async function loadTables(names, force) {
-  const need = [...new Set(names)].filter(n => force || !loadedTables.has(n));
+  const need = [...new Set(names)].filter(n => (boAdmin || !FORN_TABLES.includes(n)) && (force || !loadedTables.has(n)));
   if (!need.length) return [];
   const results = await Promise.all(need.map(t => sb.from(t).select('*')));
   const errors = [];
@@ -129,7 +131,7 @@ async function ensureSection(sec) {
   finally { if (el) el.classList.remove('is-loading'); }
   if (sec === currentSection && dirtySections.has(sec)) safeRender(sec);
   // tabela que falhou: avisa na própria aba para os zeros não parecerem dados reais
-  const faltando = tbs.filter(t => !loadedTables.has(t));
+  const faltando = tbs.filter(t => !loadedTables.has(t) && (boAdmin || !FORN_TABLES.includes(t)));
   if (el && faltando.length && !el.querySelector(':scope > .section-error')) {
     el.insertAdjacentHTML('afterbegin', `<div class="section-error"><b>Parte dos dados não carregou (${faltando.join(', ')}).</b> Os números desta aba podem estar incompletos.<button class="btn btn-outline btn-sm" onclick="refreshData()">Tentar novamente</button></div>`);
   }
@@ -154,6 +156,87 @@ async function refreshData() {
     document.getElementById('sync-dot').classList.add('offline');
     showToast('Erro: ' + e.message, true);
   }
+}
+
+// ===== ACESSO RESTRITO: FORNECEDORES (login do gestor) =====
+// A proteção real está no banco (RLS): sem login de gestor o Supabase não devolve essas tabelas.
+const FORN_TABLES = ['fornecedores','boletos','fornecedores_historico'];
+let boAdmin = false, boEmail = null;
+async function refreshAuth() {
+  boAdmin = false; boEmail = null;
+  try {
+    const { data } = await sb.auth.getSession();
+    const s = data && data.session;
+    if (s) {
+      boEmail = s.user && s.user.email;
+      const r = await sb.rpc('bo_is_admin');
+      boAdmin = r.data === true;
+    }
+  } catch (e) { boAdmin = false; }
+  paintAuth();
+  return boAdmin;
+}
+function paintAuth() {
+  const nav = document.querySelector('[data-section="fornecedores"]');
+  if (nav) {
+    let lk = nav.querySelector('.nav-lock');
+    if (!boAdmin && !lk) nav.insertAdjacentHTML('beforeend', '<svg class="nav-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Restrito"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>');
+    if (boAdmin && lk) lk.remove();
+  }
+  const foot = document.querySelector('.sidebar-footer');
+  let out = document.getElementById('auth-out');
+  if (boAdmin && foot && !out) foot.insertAdjacentHTML('afterbegin', '<button id="auth-out" class="auth-out" onclick="sairGestor()" title="Sair do acesso de gestor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Sair do acesso de gestor</span></button>');
+  if (!boAdmin && out) out.remove();
+}
+async function applyAuth(admin) {
+  boAdmin = admin; paintAuth();
+  if (!admin) {
+    boEmail = null;
+    FORN_TABLES.forEach(t => { loadedTables.delete(t); DATA[TABLE_KEYS[t]] = []; });
+    Object.keys(SECTION_TABLES).forEach(k => dirtySections.add(k));
+  } else {
+    await loadTables(FORN_TABLES, true);
+  }
+  safeRender(currentSection);
+}
+function renderFornSection() {
+  const sec = document.getElementById('sec-fornecedores');
+  sec.classList.toggle('locked', !boAdmin);
+  let lock = document.getElementById('forn-lock');
+  if (boAdmin) { if (lock) lock.remove(); renderFornecedores(); return; }
+  if (lock) return;
+  sec.insertAdjacentHTML('afterbegin', `<div class="lock-panel" id="forn-lock">
+    <div class="lock-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
+    <h3>Área restrita ao gestor</h3>
+    <p>Fornecedores, pagamentos, boletos e notas só aparecem para quem entra com o acesso de gestor.</p>
+    <form onsubmit="event.preventDefault();entrarGestor()" autocomplete="on">
+      <label class="form-label" for="lk-email">E-mail</label>
+      <input class="form-input" id="lk-email" type="email" autocomplete="username" required>
+      <label class="form-label" for="lk-senha" style="margin-top:10px">Senha</label>
+      <input class="form-input" id="lk-senha" type="password" autocomplete="current-password" required>
+      <div class="lock-err" id="lk-err" role="alert"></div>
+      <button class="btn btn-accent" id="lk-btn" type="submit" style="width:100%;margin-top:12px">Entrar</button>
+    </form></div>`);
+}
+async function entrarGestor() {
+  const err = document.getElementById('lk-err'), btn = document.getElementById('lk-btn');
+  const email = document.getElementById('lk-email').value.trim(), senha = document.getElementById('lk-senha').value;
+  err.textContent = ''; btn.disabled = true; btn.textContent = 'Entrando...';
+  try {
+    const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+    if (error) throw error;
+    if (!(await refreshAuth())) { await sb.auth.signOut(); throw new Error('Este usuário não tem acesso à área de fornecedores.'); }
+    document.getElementById('lk-senha').value = '';
+    await applyAuth(true);
+    showToast('Acesso de gestor liberado');
+  } catch (e) {
+    err.textContent = /invalid login/i.test(e.message || '') ? 'E-mail ou senha incorretos.' : (e.message || 'Não foi possível entrar.');
+  } finally { if (document.getElementById('lk-btn')) { btn.disabled = false; btn.textContent = 'Entrar'; } }
+}
+async function sairGestor() {
+  try { await sb.auth.signOut(); } catch (e) {}
+  await applyAuth(false);
+  showToast('Você saiu do acesso de gestor');
 }
 
 // ===== HELPERS =====
