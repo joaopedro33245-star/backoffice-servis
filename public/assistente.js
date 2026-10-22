@@ -23,6 +23,8 @@
       ['titulo', 'Título', 'text', true], ['responsavel', 'Responsável', 'pessoa', true], ['prioridade', 'Prioridade', [['critica', 'Crítica'], ['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa']]],
       ['categoria', 'Categoria', 'categoria'], ['complexidade', 'Complexidade (1–5)', 'number'], ['data_inicio', 'Início', 'date'], ['prazo', 'Prazo', 'date'],
       ['descricao', 'Descrição', 'area'], ['resultado_esperado', 'Resultado esperado', 'area'], ['criado_por', 'Quem está cadastrando', 'pessoa', true]] },
+    atividade: { nome: 'Relatório diário', tabela: 'dem_daily_log', campos: [
+      ['atividades', 'Atividades (uma por linha)', 'area', true], ['pessoa', 'Quem fez', 'pessoa', true], ['data', 'Dia', 'date']] },
     checklist: { nome: 'Checklist de portaria', tabela: 'checklist_portaria', campos: [
       ['condominio', 'Condomínio', 'condominio', true], ['data_checklist', 'Data', 'date'], ['qtd_cameras', 'Câmeras', 'number'],
       ['todas_gravando_dvr', 'DVR gravando todas', SIMNAO], ['cameras_portao_gravando', 'Câmeras do portão gravando', SIMNAO], ['cameras_botoes_acoes', 'Câmeras com botões de ação', SIMNAO],
@@ -96,7 +98,7 @@
   function telaInicial(msg) {
     st.prop = null;
     $('as-b').innerHTML = `${msg || ''}<textarea id="as-txt" placeholder="Ex.: cole o e-mail da seguradora, ou escreva &quot;abre uma demanda pra Renata conferir o boleto da Zurich até sexta&quot;"></textarea>
-      <p class="as-dica">Funciona para pedido de seguro, nova torre, demanda e checklist de portaria. Você confere tudo antes de gravar. CPF e senhas são descartados.</p>
+      <p class="as-dica">Funciona para pedido de seguro, nova torre, demanda, checklist de portaria e relatório diário (ex.: &quot;registra que conferi os e-mails da Zurich&quot;). Você confere tudo antes de gravar. CPF e senhas são descartados.</p>
       <div class="as-row"><button class="as-btn pri" id="as-go" onclick="Assistente.interpretar()">Interpretar</button></div>`;
   }
   function alternar(v) {
@@ -130,13 +132,19 @@
   // ---------- 2. conferir ----------
   async function formulario() {
     const ctx = await contexto(); const P = st.prop; const T = TIPOS[P.tipo]; const d = P.dados;
+    const pid = nome => (ctx.pessoas.find(p => norm(p.nome) === norm(nome)) || ctx.pessoas.find(p => norm(p.nome).includes(norm(nome)) && norm(nome)) || {}).id || '';
+    const eu = usuarioAtual() && ctx.pessoas.some(p => p.id === usuarioAtual()) ? usuarioAtual() : '';
+    if (P.tipo === 'atividade') {
+      d.atividades = (Array.isArray(d.atividades) ? d.atividades : [d.atividades || d.texto || '']).filter(Boolean).join('\n');
+      d.pessoa = pid(d.pessoa) || eu; d.data = d.data || new Date().toLocaleDateString('en-CA');
+    }
     if (P.tipo === 'demanda') {
-      const pid = nome => (ctx.pessoas.find(p => norm(p.nome) === norm(nome)) || ctx.pessoas.find(p => norm(p.nome).includes(norm(nome)) && norm(nome)) || {}).id || '';
       d.responsavel = pid(d.responsavel); d.criado_por = usuarioAtual() && ctx.pessoas.some(p => p.id === usuarioAtual()) ? usuarioAtual() : '';
       if (!ctx.categorias.includes(d.categoria)) d.categoria = '';
       d.complexidade = d.complexidade || 3; d.prioridade = d.prioridade || 'media';
     }
     if (P.tipo === 'checklist') { const c = acharCondominio(d.condominio, ctx.condominios); d.condominio_texto = d.condominio; d.condominio = c ? String(c.id) : ''; }
+    P.faltando = P.faltando.filter(f => d[f] === undefined || d[f] === null || d[f] === '');
     const dup = await duplicado(P.tipo, d);
     const campo = ([k, rot, tipo, req]) => {
       const v = d[k] === null || d[k] === undefined ? '' : String(d[k]);
@@ -179,17 +187,20 @@
     if (P.tipo === 'checklist') { obj = { ...v, condominio_id: Number(v.condominio) }; delete obj.condominio; ['todas_gravando_dvr', 'cameras_portao_gravando', 'cameras_botoes_acoes', 'central_alarme_comunicando', 'tem_ia', 'ia_funcionando', 'tem_torre'].forEach(k => { if (obj[k] === null) obj[k] = false; }); }
     if (P.tipo === 'torre') { if (obj.cidade) obj.cidade = String(obj.cidade).toUpperCase(); obj.cameras = obj.cameras || 0; obj.pago_forn = obj.pago_forn || 0; obj.cobrado = obj.cobrado || 0; obj.status = obj.status || 'EM AUTORIZAÇÃO'; }
     if (P.tipo === 'seguro') obj.status = obj.status || 'Pendente';
+    if (P.tipo === 'atividade') obj = String(v.atividades).split('\n').map(t => t.trim()).filter(t => t.length >= 3).map(texto => ({ texto, pessoa_id: v.pessoa, data: v.data || new Date().toLocaleDateString('en-CA'), origem: 'assistente' }));
     const btn = $('as-save'); btn.disabled = true; btn.textContent = 'Gravando...';
     const r = await sb.from(T.tabela).insert(obj).select();
     if (r.error) { btn.disabled = false; btn.textContent = 'Gravar'; alert('Não foi possível gravar: ' + r.error.message); return; }
     const novo = r.data && r.data[0];
     if (P.tipo === 'demanda' && usuarioAtual() === '' && obj.criado_por) { try { localStorage.setItem('dem_usuario', obj.criado_por); } catch (e) {} }
     const abrir = abrirLink(P.tipo, novo);
-    telaInicial(`<div class="as-msg ok">✓ ${esc(T.nome)} gravado${novo && novo.codigo ? ' como <b>' + esc(novo.codigo) + '</b>' : ''}. ${abrir ? `<a href="javascript:void(0)" onclick="${abrir}">Abrir</a>` : ''}</div>`);
+    const qtd = Array.isArray(obj) ? ` (${obj.length} atividade${obj.length > 1 ? 's' : ''})` : '';
+    telaInicial(`<div class="as-msg ok">✓ ${esc(T.nome)}${qtd} gravado${novo && novo.codigo ? ' como <b>' + esc(novo.codigo) + '</b>' : ''}. ${abrir ? `<a href="javascript:void(0)" onclick="${abrir}">Abrir</a>` : ''}</div>`);
     try { if (!NA_DEMANDAS && typeof refreshData === 'function') refreshData(); if (NA_DEMANDAS && typeof App !== 'undefined' && App.reload) App.reload(); } catch (e) {}
   }
   function abrirLink(tipo, novo) {
     if (!novo) return '';
+    if (tipo === 'atividade') return NA_DEMANDAS ? `location.hash='#/diario'` : `location.href='demandas.html#/diario'`;
     if (tipo === 'demanda') return NA_DEMANDAS ? `location.hash='#/tarefa/${novo.id}'` : `location.href='demandas.html#/tarefa/${novo.id}'`;
     const sec = { seguro: ['seguros', 'seg'], torre: ['torres', 'torres'], checklist: ['checklist', 'chk'] }[tipo];
     if (!sec) return '';
