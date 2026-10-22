@@ -144,6 +144,7 @@
       d.complexidade = d.complexidade || 3; d.prioridade = d.prioridade || 'media';
     }
     if (P.tipo === 'checklist') { const c = acharCondominio(d.condominio, ctx.condominios); d.condominio_texto = d.condominio; d.condominio = c ? String(c.id) : ''; }
+    P.faltando = P.faltando.filter(f => d[f] === undefined || d[f] === null || d[f] === '');
     const dup = await duplicado(P.tipo, d);
     const campo = ([k, rot, tipo, req]) => {
       const v = d[k] === null || d[k] === undefined ? '' : String(d[k]);
