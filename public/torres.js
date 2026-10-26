@@ -85,7 +85,7 @@ function renderTorresTable() {
       const ckTip = `App: ${d.chk_usando_app?'✔':'✘'} | Detecção: ${d.chk_deteccao_teste?'✔':'✘'} | Câmeras: ${d.chk_cameras_online?'✔':'✘'} | Treinado: ${d.chk_cliente_treinado?'✔':'✘'}${d.chk_data_verificacao ? ' — verificado em ' + fmtDataBR(d.chk_data_verificacao) : ''}`;
       const ckCell = `<span class="badge ${ck === 4 ? 'badge-success' : ck === 0 ? 'badge-neutral' : 'badge-warning'}" title="${ckTip}" style="cursor:help">${ck}/4</span>`;
       const obsIco = d.observacao ? `<span class="tm-obs-ico" title="${escAttr(d.observacao)}">📝</span>` : '';
-      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null ? 'Sigma Image: ' + fmtVal(d.valor_imagem||0) + ' | IA: ' + fmtVal(d.valor_ia||0) : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null ? 'Sigma Image: ' + fmtVal(d.valor_imagem||0) + ' | IA' + (d.forn_ia==='Segware' ? ' (servidor Adentro)' : '') + ': ' + fmtVal(d.valor_ia||0) + (d.valor_licenca_ia ? ' | Licença Segware: ' + fmtVal(d.valor_licenca_ia) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
@@ -133,6 +133,7 @@ function openTorreModal(editId) {
     const semDivisao = d.valor_imagem == null && d.valor_ia == null;
     document.getElementById('tm-valor-imagem').value = semDivisao ? (d.pago_forn || '') : (d.valor_imagem ?? '');
     document.getElementById('tm-valor-ia').value = semDivisao ? '' : (d.valor_ia ?? '');
+    document.getElementById('tm-valor-licenca').value = d.valor_licenca_ia ?? '';
     somaFornTorre();
     document.getElementById('tm-cobrado').value = d.cobrado || '';
     document.getElementById('tm-responsavel').value = d.responsavel || '';
@@ -155,6 +156,7 @@ function openTorreModal(editId) {
     document.getElementById('tm-forn-ia').value = '';
     document.getElementById('tm-valor-imagem').value = '';
     document.getElementById('tm-valor-ia').value = '';
+    document.getElementById('tm-valor-licenca').value = '';
     somaFornTorre();
     document.getElementById('tm-cobrado').value = '';
     document.getElementById('tm-responsavel').value = '';
@@ -207,7 +209,11 @@ function somaFornTorre() {
   const temImg = !!document.getElementById('tm-forn-imagem').value, temIa = !!document.getElementById('tm-forn-ia').value;
   img.disabled = !temImg; ia.disabled = !temIa;
   img.placeholder = temImg ? '0,00' : 'Sem fornecedor de imagem'; ia.placeholder = temIa ? '0,00' : 'Sem IA';
-  const t = (temImg ? parseFloat(img.value) || 0 : 0) + (temIa ? parseFloat(ia.value) || 0 : 0);
+  const seg = document.getElementById('tm-forn-ia').value === 'Segware';
+  const lic = document.getElementById('tm-valor-licenca');
+  document.getElementById('tm-lic-wrap').style.display = seg ? 'grid' : 'none';
+  document.getElementById('tm-valor-ia-label').textContent = seg ? 'Servidor Adentro (R$)' : 'Valor da IA (R$)';
+  const t = (temImg ? parseFloat(img.value) || 0 : 0) + (temIa ? parseFloat(ia.value) || 0 : 0) + (seg ? parseFloat(lic.value) || 0 : 0);
   document.getElementById('tm-pago').value = t ? t.toFixed(2) : '';
   const hint = document.getElementById('tm-ia-hint');
   if (hint) {
@@ -238,6 +244,7 @@ async function saveTorre() {
     forn_ia: document.getElementById('tm-forn-ia').value || null,
     valor_imagem: document.getElementById('tm-forn-imagem').value ? (parseFloat(document.getElementById('tm-valor-imagem').value) || 0) : null,
     valor_ia: document.getElementById('tm-forn-ia').value ? (parseFloat(document.getElementById('tm-valor-ia').value) || 0) : null,
+    valor_licenca_ia: document.getElementById('tm-forn-ia').value === 'Segware' ? (parseFloat(document.getElementById('tm-valor-licenca').value) || 0) : null,
     pago_forn: parseFloat(document.getElementById('tm-pago').value) || 0,
     cobrado: parseFloat(document.getElementById('tm-cobrado').value) || 0,
     responsavel: document.getElementById('tm-responsavel').value,
