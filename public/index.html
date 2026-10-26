@@ -537,8 +537,9 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="form-group">
           <label class="form-label">Fornecedor de imagem</label>
-          <select class="form-input" id="tm-forn-imagem" onchange="somaFornTorre()">
+          <select class="form-input" id="tm-forn-imagem" onchange="iaSegwareAuto()">
             <option value="Sigma Image">Sigma Image</option>
+            <option value="Monuv">Monuv</option>
             <option value="">Nenhum</option>
           </select>
         </div>
@@ -548,14 +549,14 @@
             <option value="">Sem IA</option>
             <option value="Segware">Segware</option>
             <option value="Octos">Octos</option>
-            <option value="Monuv">Monuv</option>
           </select>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="form-group">
-          <label class="form-label">Valor Sigma Image (R$)</label>
+          <label class="form-label" id="tm-valor-imagem-label">Valor Sigma Image (R$)</label>
           <input class="form-input" id="tm-valor-imagem" type="number" step="0.01" placeholder="0,00" oninput="somaFornTorre()">
+          <div id="tm-img-hint" style="font-size:11.5px;color:var(--text-muted);margin-top:4px"></div>
         </div>
         <div class="form-group">
           <label class="form-label" id="tm-valor-ia-label">Valor da IA (R$)</label>
@@ -572,7 +573,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="form-group">
           <label class="form-label">Total pago a fornecedores (R$)</label>
-          <input class="form-input" id="tm-pago" type="number" step="0.01" placeholder="0,00" readonly tabindex="-1" title="Soma automática: Sigma Image + IA" style="font-weight:700;background:var(--bg-secondary,#f1f5f9);cursor:default">
+          <input class="form-input" id="tm-pago" type="number" step="0.01" placeholder="0,00" readonly tabindex="-1" title="Soma automática: imagem + IA" style="font-weight:700;background:var(--bg-secondary,#f1f5f9);cursor:default">
         </div>
         <div class="form-group">
           <label class="form-label">Cobrado do Cliente (R$)</label>
