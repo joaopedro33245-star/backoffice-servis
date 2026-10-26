@@ -29,7 +29,7 @@
           titulo: d.cliente, sub: d.cidade, badges: [tag(d.status, stTorre(d.status))],
           kpis: [['Câmeras', d.cameras || 0], ['Pago ao fornecedor', money(d.pago_forn)], ['Cobrado do cliente', money(d.cobrado)]],
           blocos: [
-            { t: 'Dados da torre', campos: [['Cidade', val(d.cidade)], ['Modelo', val(d.modelo)], ['Responsável', val(d.responsavel)], ['Fim da gratificação', grat]] },
+            { t: 'Dados da torre', campos: [['Cidade', val(d.cidade)], ['Modelo', val(d.modelo)], ['Fornecedor de imagem', val(d.forn_imagem)], ['Fornecedor da IA', val(d.forn_ia || 'Sem IA')], ['Responsável', val(d.responsavel)], ['Fim da gratificação', grat]] },
             { t: `Checklist pós-teste · ${n}/4`, html: `<div class="pn-checks">${[['Cliente usando o app', d.chk_usando_app], ['Teste de detecção', d.chk_deteccao_teste], ['Câmeras online', d.chk_cameras_online], ['Cliente treinado', d.chk_cliente_treinado]].map(([l, b]) => `<div class="pn-check ${b ? 'on' : ''}"><span>${b ? '✓' : '✗'}</span>${l}</div>`).join('')}</div>${d.chk_data_verificacao ? `<div class="pn-muted pn-small">Verificado em ${dt(d.chk_data_verificacao)}</div>` : ''}` },
             d.observacao ? { t: 'Observação', html: `<div class="pn-text">${esc(d.observacao)}</div>` } : null,
           ],
