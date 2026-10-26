@@ -208,11 +208,17 @@ function torreChecklist(d) {
   return [d.chk_usando_app, d.chk_deteccao_teste, d.chk_cameras_online, d.chk_cliente_treinado].filter(Boolean).length;
 }
 // Segware: a IA roda no servidor da Adentro (R$ 11.262,02 / 1.500 licenças ≈ R$ 7,50 por licença; 1 licença por câmera)
-const ADENTRO_LICENCA = 7.50;
+const ADENTRO_LICENCA = 7.50;   // servidor Adentro, por licença/câmera
+const SEGWARE_LICENCA = 4.50;   // licença da IA Segware, por câmera
+const MONUV_CAMERA = 17.00;     // Monuv, por câmera visualizada
 function iaSegwareAuto() {
-  if (document.getElementById('tm-forn-ia').value === 'Segware') {
-    const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
+  const forn = document.getElementById('tm-forn-ia').value;
+  const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
+  if (forn === 'Segware') {
     document.getElementById('tm-valor-ia').value = (n * ADENTRO_LICENCA).toFixed(2);
+    document.getElementById('tm-valor-licenca').value = (n * SEGWARE_LICENCA).toFixed(2);
+  } else if (forn === 'Monuv') {
+    document.getElementById('tm-valor-ia').value = (n * MONUV_CAMERA).toFixed(2);
   }
   somaFornTorre();
 }
@@ -224,13 +230,16 @@ function somaFornTorre() {
   const seg = document.getElementById('tm-forn-ia').value === 'Segware';
   const lic = document.getElementById('tm-valor-licenca');
   document.getElementById('tm-lic-wrap').style.display = seg ? 'grid' : 'none';
-  document.getElementById('tm-valor-ia-label').textContent = seg ? 'Servidor Adentro (R$)' : 'Valor da IA (R$)';
+  const fornIa = document.getElementById('tm-forn-ia').value;
+  document.getElementById('tm-valor-ia-label').textContent = seg ? 'Servidor Adentro (R$)' : fornIa === 'Monuv' ? 'Monuv (R$)' : 'Valor da IA (R$)';
   const t = (temImg ? parseFloat(img.value) || 0 : 0) + (temIa ? parseFloat(ia.value) || 0 : 0) + (seg ? parseFloat(lic.value) || 0 : 0);
   document.getElementById('tm-pago').value = t ? t.toFixed(2) : '';
   const hint = document.getElementById('tm-ia-hint');
   if (hint) {
     const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
-    hint.textContent = document.getElementById('tm-forn-ia').value === 'Segware' ? `Servidor Adentro: ${n} licença(s) × R$ 7,50 = R$ ${(n * ADENTRO_LICENCA).toFixed(2).replace('.', ',')}` : '';
+    const br = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+    hint.textContent = fornIa === 'Segware' ? `Adentro: ${n} câmera(s) × R$ 7,50 = ${br(n * ADENTRO_LICENCA)} · Licença Segware: ${n} × R$ 4,50 = ${br(n * SEGWARE_LICENCA)}`
+      : fornIa === 'Monuv' ? `Monuv: ${n} câmera(s) visualizada(s) × R$ 17,00 = ${br(n * MONUV_CAMERA)}` : '';
   }
 }
 // ---- financeiro das torres (valores mensais) ----
