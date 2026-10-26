@@ -23,6 +23,7 @@ function renderTorres() {
   hBar('tc-st', Object.entries(tSt).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v,t:v+''})), ['#1abf8f','#2a78d6','#eda100','#e34948','#8a9bb5','#e87ba4','#4a3aa7']);
   hBar('tc-cid', Object.entries(tCid).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([l,v])=>({l,v,t:v+''})), ['#2a78d6','#1abf8f','#eb6834','#eda100','#e87ba4']);
 
+  renderTorresFinanceiro();
   renderTorresTable();
 }
 
@@ -43,6 +44,8 @@ function renderTorresTable() {
     if (gr === 'vencendo' && !(dias !== null && dias >= 0 && dias <= 30)) return false;
     if (gr === 'vencidas' && !(dias !== null && dias < 0)) return false;
     if (gr === 'semdata' && d.data_fim_gratificacao) return false;
+    if (gr === 'gratificadas' && d.gratificada === false) return false;
+    if (gr === 'pagas' && d.gratificada !== false) return false;
     if (gr === 'chkpend' && !(d.status === 'INSTALADA' && torreChecklist(d) < 4)) return false;
     if (iaF === 'sem' && d.forn_ia) return false;
     if (iaF && iaF !== 'sem' && d.forn_ia !== iaF) return false;
@@ -71,21 +74,23 @@ function renderTorresTable() {
       <option value="vencidas" ${gr==='vencidas'?'selected':''}>Gratificação vencida</option>
       <option value="semdata" ${gr==='semdata'?'selected':''}>Sem data de término</option>
       <option value="chkpend" ${gr==='chkpend'?'selected':''}>Instaladas c/ checklist pendente</option>
+      <option value="gratificadas" ${gr==='gratificadas'?'selected':''}>Só gratificadas</option>
+      <option value="pagas" ${gr==='pagas'?'selected':''}>Só pagas pelo cliente</option>
     </select>
     <input class="filter-input" data-filter="search" placeholder="Buscar cliente..." oninput="renderTorresTable()" style="width:200px" value="${search}">`;
 
   document.getElementById('torres-table-wrap').innerHTML = `
-    <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th>Fornecedores</th><th style="text-align:right">Câmeras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Cobrado</th><th>Fim Gratif.</th><th style="text-align:center">Checklist</th><th>Responsável</th><th>Ações</th></tr></thead>
+    <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th>Fornecedores</th><th style="text-align:right">Câmeras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Margem</th><th>Fim Gratif.</th><th style="text-align:center">Checklist</th><th>Responsável</th><th>Ações</th></tr></thead>
     <tbody>${filtered.map(d => {
       const stBadge = d.status==='INSTALADA'?'badge-success':d.status==='AUTORIZADA'?'badge-blue':d.status==='EM AUTORIZAÇÃO'?'badge-warning':d.status==='NÃO AUTORIZADA'?'badge-danger':'badge-neutral';
       const dias = diasAte(d.data_fim_gratificacao);
-      const gratCell = dias === null ? '<span style="color:var(--text-muted)">—</span>'
+      const gratCell = d.gratificada === false ? '<span class="badge badge-blue" title="Cliente paga pelo serviço">Paga</span>' : dias === null ? '<span style="color:var(--text-muted)">—</span>'
         : `<span class="badge ${dias < 0 ? 'badge-danger' : dias <= 30 ? 'badge-warning' : 'badge-neutral'}" title="${dias < 0 ? 'Vencida há ' + (-dias) + ' dia(s)' : 'Faltam ' + dias + ' dia(s)'}">${fmtDataBR(d.data_fim_gratificacao)}</span>`;
       const ck = torreChecklist(d);
       const ckTip = `App: ${d.chk_usando_app?'✔':'✘'} | Detecção: ${d.chk_deteccao_teste?'✔':'✘'} | Câmeras: ${d.chk_cameras_online?'✔':'✘'} | Treinado: ${d.chk_cliente_treinado?'✔':'✘'}${d.chk_data_verificacao ? ' — verificado em ' + fmtDataBR(d.chk_data_verificacao) : ''}`;
       const ckCell = `<span class="badge ${ck === 4 ? 'badge-success' : ck === 0 ? 'badge-neutral' : 'badge-warning'}" title="${ckTip}" style="cursor:help">${ck}/4</span>`;
       const obsIco = d.observacao ? `<span class="tm-obs-ico" title="${escAttr(d.observacao)}">📝</span>` : '';
-      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null ? 'Sigma Image: ' + fmtVal(d.valor_imagem||0) + ' | IA' + (d.forn_ia==='Segware' ? ' (servidor Adentro)' : '') + ': ' + fmtVal(d.valor_ia||0) + (d.valor_licenca_ia ? ' | Licença Segware: ' + fmtVal(d.valor_licenca_ia) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null ? 'Sigma Image: ' + fmtVal(d.valor_imagem||0) + ' | IA' + (d.forn_ia==='Segware' ? ' (servidor Adentro)' : '') + ': ' + fmtVal(d.valor_ia||0) + (d.valor_licenca_ia ? ' | Licença Segware: ' + fmtVal(d.valor_licenca_ia) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
@@ -138,6 +143,7 @@ function openTorreModal(editId) {
     document.getElementById('tm-cobrado').value = d.cobrado || '';
     document.getElementById('tm-responsavel').value = d.responsavel || '';
     document.getElementById('tm-data-fim').value = d.data_fim_gratificacao || '';
+    document.getElementById('tm-gratificada').value = d.gratificada === false ? 'nao' : 'sim';
     document.getElementById('tm-obs').value = d.observacao || '';
     document.getElementById('tm-chk-app').checked = !!d.chk_usando_app;
     document.getElementById('tm-chk-deteccao').checked = !!d.chk_deteccao_teste;
@@ -161,11 +167,17 @@ function openTorreModal(editId) {
     document.getElementById('tm-cobrado').value = '';
     document.getElementById('tm-responsavel').value = '';
     document.getElementById('tm-data-fim').value = '';
+    document.getElementById('tm-gratificada').value = 'sim';
     document.getElementById('tm-obs').value = '';
     ['tm-chk-app','tm-chk-deteccao','tm-chk-cameras','tm-chk-treinado'].forEach(id => document.getElementById(id).checked = false);
     document.getElementById('tm-chk-data').value = '';
   }
+  gratTipoChange();
   updateGratHint();
+}
+function gratTipoChange() {
+  const sim = document.getElementById('tm-gratificada').value !== 'nao';
+  document.getElementById('tm-grat-data-wrap').style.display = sim ? '' : 'none';
 }
 function hojeISO() { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function diasAte(iso) {
@@ -221,6 +233,48 @@ function somaFornTorre() {
     hint.textContent = document.getElementById('tm-forn-ia').value === 'Segware' ? `Servidor Adentro: ${n} licença(s) × R$ 7,50 = R$ ${(n * ADENTRO_LICENCA).toFixed(2).replace('.', ',')}` : '';
   }
 }
+// ---- financeiro das torres (valores mensais) ----
+function custosTorre(d) {
+  const semDivisao = d.valor_imagem == null && d.valor_ia == null && d.valor_licenca_ia == null;
+  const imagem = semDivisao ? Number(d.pago_forn || 0) : Number(d.valor_imagem || 0);
+  const servidor = semDivisao ? 0 : Number(d.valor_ia || 0);
+  const licenca = semDivisao ? 0 : Number(d.valor_licenca_ia || 0);
+  const total = Number(d.pago_forn || 0) || (imagem + servidor + licenca);
+  const receita = Number(d.cobrado || 0);
+  return { imagem, ia: servidor + licenca, servidor, licenca, total, receita, lucro: receita - total };
+}
+function margemCell(d) {
+  const c = custosTorre(d);
+  if (!c.total && !c.receita) return '<span style="color:var(--text-muted)">—</span>';
+  const cor = c.lucro > 0 ? 'var(--accent)' : c.lucro < 0 ? 'var(--danger)' : 'var(--text-muted)';
+  const pct = c.receita ? Math.round(c.lucro / c.receita * 100) + '%' : (d.gratificada === false ? 'sem cobrança' : 'cortesia');
+  return `<span style="color:${cor};font-weight:600;font-variant-numeric:tabular-nums">${c.lucro < 0 ? '−' : ''}${fmtVal(Math.abs(c.lucro))}</span><div style="font-size:11px;color:var(--text-muted)">${pct}</div>`;
+}
+function renderTorresFinanceiro() {
+  let box = document.getElementById('torres-fin');
+  if (!box) { box = document.createElement('div'); box.id = 'torres-fin'; document.getElementById('torres-charts').before(box); }
+  const T = DATA.torres || [];
+  const soma = (lista) => lista.reduce((a, d) => { const c = custosTorre(d); a.n++; a.imagem += c.imagem; a.ia += c.ia; a.servidor += c.servidor; a.licenca += c.licenca; a.total += c.total; a.receita += c.receita; a.lucro += c.lucro; return a; }, { n: 0, imagem: 0, ia: 0, servidor: 0, licenca: 0, total: 0, receita: 0, lucro: 0 });
+  const g = soma(T), grat = soma(T.filter(d => d.gratificada !== false)), pagas = soma(T.filter(d => d.gratificada === false));
+  const porIa = ['Segware', 'Octos', 'Monuv'].map(n => [n, soma(T.filter(d => d.forn_ia === n))]).filter(([, s]) => s.n);
+  const margem = g.receita ? Math.round(g.lucro / g.receita * 100) : null;
+  const corL = g.lucro >= 0 ? 'var(--accent)' : 'var(--danger)';
+  const item = (l, v, s, cor) => `<div style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card)"><div style="font-size:11.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">${l}</div><div style="font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;color:${cor || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
+  const linha = (l, s) => `<tr><td>${l}</td><td style="text-align:right">${s.n}</td><td style="text-align:right">${fmtVal(s.receita)}</td><td style="text-align:right">${fmtVal(s.imagem)}</td><td style="text-align:right">${fmtVal(s.ia)}</td><td style="text-align:right">${fmtVal(s.total)}</td><td style="text-align:right;font-weight:700;color:${s.lucro >= 0 ? 'var(--accent)' : 'var(--danger)'}">${s.lucro < 0 ? '−' : ''}${fmtVal(Math.abs(s.lucro))}</td><td style="text-align:right">${s.receita ? Math.round(s.lucro / s.receita * 100) + '%' : '—'}</td></tr>`;
+  box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:12px"><div style="font-weight:700;font-size:15px">Resultado financeiro das torres <span style="font-weight:500;color:var(--text-muted);font-size:12.5px">· valores mensais</span></div><div style="font-size:12px;color:var(--text-muted)">Lucro = cobrado do cliente − fornecedores (Sigma Image + IA)</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+      ${item('Cobrado dos clientes', fmtVal(g.receita), pagas.n + ' torre(s) pagas')}
+      ${item('Gasto Sigma Image', fmtVal(g.imagem))}
+      ${item('Gasto com IA', fmtVal(g.ia), g.servidor || g.licenca ? `Adentro ${fmtVal(g.servidor)} · Licenças ${fmtVal(g.licenca)}` : '')}
+      ${item('Total fornecedores', fmtVal(g.total), '', 'var(--danger)')}
+      ${item('Lucro', (g.lucro < 0 ? '−' : '') + fmtVal(Math.abs(g.lucro)), margem === null ? 'sem receita' : 'margem ' + margem + '%', corL)}
+    </div>
+    <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Grupo</th><th style="text-align:right">Torres</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Sigma Image</th><th style="text-align:right">IA</th><th style="text-align:right">Fornecedores</th><th style="text-align:right">Lucro</th><th style="text-align:right">Margem</th></tr></thead><tbody>
+      ${linha('Gratificadas (cortesia)', grat)}${linha('Pagas pelo cliente', pagas)}${porIa.map(([n, s]) => linha('IA ' + n, s)).join('')}
+    </tbody></table></div>
+  </div></div>`;
+}
 function fornTorreCell(d) {
   const cor = { Segware: '#2563eb', Octos: '#7c3aed', Monuv: '#0891b2' };
   const p = [];
@@ -248,7 +302,8 @@ async function saveTorre() {
     pago_forn: parseFloat(document.getElementById('tm-pago').value) || 0,
     cobrado: parseFloat(document.getElementById('tm-cobrado').value) || 0,
     responsavel: document.getElementById('tm-responsavel').value,
-    data_fim_gratificacao: document.getElementById('tm-data-fim').value || null,
+    gratificada: document.getElementById('tm-gratificada').value !== 'nao',
+    data_fim_gratificacao: document.getElementById('tm-gratificada').value === 'nao' ? null : (document.getElementById('tm-data-fim').value || null),
     observacao: document.getElementById('tm-obs').value.trim() || null,
     chk_usando_app: document.getElementById('tm-chk-app').checked,
     chk_deteccao_teste: document.getElementById('tm-chk-deteccao').checked,

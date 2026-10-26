@@ -585,6 +585,13 @@
       </div>
       <div class="tm-section-title">Gratificação</div>
       <div class="form-group">
+        <label class="form-label">Torre gratificada?</label>
+        <select class="form-input" id="tm-gratificada" onchange="gratTipoChange()">
+          <option value="sim">Sim — cortesia (gratificada)</option>
+          <option value="nao">Não — cliente paga</option>
+        </select>
+      </div>
+      <div class="form-group" id="tm-grat-data-wrap">
         <label class="form-label">Término da gratificação</label>
         <div style="display:flex;gap:8px">
           <input class="form-input" id="tm-data-fim" type="date" oninput="updateGratHint()">
