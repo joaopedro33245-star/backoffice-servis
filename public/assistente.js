@@ -17,7 +17,7 @@
       ['numero_sinistro', 'Nº sinistro / protocolo'], ['observacoes', 'Observações', 'area'], ['email_origem', 'E-mail de origem']] },
     torre: { nome: 'Nova torre', tabela: 'torres', campos: [
       ['cliente', 'Cliente', 'text', true], ['cidade', 'Cidade'], ['status', 'Status', ['EM AUTORIZAÇÃO', 'AUTORIZADA', 'INSTALADA', 'NÃO AUTORIZADA', 'SEGUNDO PLANO', 'AVALIAR/AGUARDAR']],
-      ['modelo', 'Modelo'], ['cameras', 'Câmeras', 'number'], ['pago_forn', 'Pago ao fornecedor', 'number'], ['cobrado', 'Cobrado do cliente', 'number'],
+      ['modelo', 'Modelo'], ['cameras', 'Câmeras', 'number'], ['forn_imagem', 'Fornecedor de imagem', [['Sigma Image', 'Sigma Image'], ['', 'Nenhum']]], ['forn_ia', 'Fornecedor da IA', [['', 'Sem IA'], ['Segware', 'Segware'], ['Octos', 'Octos'], ['Monuv', 'Monuv']]], ['pago_forn', 'Pago ao fornecedor', 'number'], ['cobrado', 'Cobrado do cliente', 'number'],
       ['responsavel', 'Responsável'], ['data_fim_gratificacao', 'Fim da gratificação', 'date'], ['observacao', 'Observação', 'area']] },
     demanda: { nome: 'Nova demanda', tabela: 'dem_tasks', campos: [
       ['titulo', 'Título', 'text', true], ['responsavel', 'Responsável', 'pessoa', true], ['prioridade', 'Prioridade', [['critica', 'Crítica'], ['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa']]],
@@ -143,6 +143,7 @@
       if (!ctx.categorias.includes(d.categoria)) d.categoria = '';
       d.complexidade = d.complexidade || 3; d.prioridade = d.prioridade || 'media';
     }
+    if (P.tipo === 'torre') { if (d.forn_imagem == null) d.forn_imagem = 'Sigma Image'; if (!['Segware', 'Octos', 'Monuv'].includes(d.forn_ia)) d.forn_ia = ''; }
     if (P.tipo === 'checklist') { const c = acharCondominio(d.condominio, ctx.condominios); d.condominio_texto = d.condominio; d.condominio = c ? String(c.id) : ''; }
     P.faltando = P.faltando.filter(f => d[f] === undefined || d[f] === null || d[f] === '');
     const dup = await duplicado(P.tipo, d);
@@ -185,7 +186,7 @@
     let obj = v;
     if (P.tipo === 'demanda') obj = { titulo: v.titulo, descricao: v.descricao, responsavel_id: v.responsavel, prioridade: v.prioridade || 'media', categoria: v.categoria, complexidade: Math.min(5, Math.max(1, Math.round(v.complexidade || 3))), data_inicio: v.data_inicio, prazo: v.prazo, resultado_esperado: v.resultado_esperado, criado_por: v.criado_por, atualizado_por: v.criado_por };
     if (P.tipo === 'checklist') { obj = { ...v, condominio_id: Number(v.condominio) }; delete obj.condominio; ['todas_gravando_dvr', 'cameras_portao_gravando', 'cameras_botoes_acoes', 'central_alarme_comunicando', 'tem_ia', 'ia_funcionando', 'tem_torre'].forEach(k => { if (obj[k] === null) obj[k] = false; }); }
-    if (P.tipo === 'torre') { if (obj.cidade) obj.cidade = String(obj.cidade).toUpperCase(); obj.cameras = obj.cameras || 0; obj.pago_forn = obj.pago_forn || 0; obj.cobrado = obj.cobrado || 0; obj.status = obj.status || 'EM AUTORIZAÇÃO'; }
+    if (P.tipo === 'torre') { if (obj.forn_imagem === undefined) obj.forn_imagem = 'Sigma Image'; if (obj.cidade) obj.cidade = String(obj.cidade).toUpperCase(); obj.cameras = obj.cameras || 0; obj.pago_forn = obj.pago_forn || 0; obj.cobrado = obj.cobrado || 0; obj.status = obj.status || 'EM AUTORIZAÇÃO'; }
     if (P.tipo === 'seguro') obj.status = obj.status || 'Pendente';
     if (P.tipo === 'atividade') obj = String(v.atividades).split('\n').map(t => t.trim()).filter(t => t.length >= 3).map(texto => ({ texto, pessoa_id: v.pessoa, data: v.data || new Date().toLocaleDateString('en-CA'), origem: 'assistente' }));
     const btn = $('as-save'); btn.disabled = true; btn.textContent = 'Gravando...';
