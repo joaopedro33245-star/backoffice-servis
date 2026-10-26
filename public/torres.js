@@ -65,7 +65,7 @@ function renderTorresTable() {
     </select>
     <select class="filter-select" data-filter="ia" onchange="renderTorresTable()">
       <option value="">Todas as IAs</option>
-      ${['Segware','Octos'].map(x => `<option value="${x}" ${iaF===x?'selected':''}>${x}</option>`).join('')}
+      ${['Segware','Monuv','Octos'].map(x => `<option value="${x}" ${iaF===x?'selected':''}>${x}</option>`).join('')}
       <option value="sem" ${iaF==='sem'?'selected':''}>Sem IA</option>
     </select>
     <select class="filter-select" data-filter="grat" onchange="renderTorresTable()">
@@ -90,7 +90,7 @@ function renderTorresTable() {
       const ckTip = `App: ${d.chk_usando_app?'✔':'✘'} | Detecção: ${d.chk_deteccao_teste?'✔':'✘'} | Câmeras: ${d.chk_cameras_online?'✔':'✘'} | Treinado: ${d.chk_cliente_treinado?'✔':'✘'}${d.chk_data_verificacao ? ' — verificado em ' + fmtDataBR(d.chk_data_verificacao) : ''}`;
       const ckCell = `<span class="badge ${ck === 4 ? 'badge-success' : ck === 0 ? 'badge-neutral' : 'badge-warning'}" title="${ckTip}" style="cursor:help">${ck}/4</span>`;
       const obsIco = d.observacao ? `<span class="tm-obs-ico" title="${escAttr(d.observacao)}">📝</span>` : '';
-      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null ? (d.forn_imagem||'Imagem') + ': ' + fmtVal(d.valor_imagem||0) + ' | IA' + (d.forn_ia==='Segware' ? ' (servidor Adentro)' : '') + ': ' + fmtVal(d.valor_ia||0) + (d.valor_licenca_ia ? ' | Licença Segware: ' + fmtVal(d.valor_licenca_ia) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null||d.valor_servidor!=null ? 'Visualização ' + (d.forn_imagem||'') + ': ' + fmtVal(d.valor_imagem||0) + ' | Inteligência ' + (d.forn_ia||'') + ': ' + fmtVal(Number(d.valor_ia||0) + Number(d.valor_licenca_ia||0)) + (d.valor_servidor ? ' | Servidor Adentro: ' + fmtVal(d.valor_servidor) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
@@ -138,7 +138,7 @@ function openTorreModal(editId) {
     const semDivisao = d.valor_imagem == null && d.valor_ia == null;
     document.getElementById('tm-valor-imagem').value = semDivisao ? (d.pago_forn || '') : (d.valor_imagem ?? '');
     document.getElementById('tm-valor-ia').value = semDivisao ? '' : (d.valor_ia ?? '');
-    document.getElementById('tm-valor-licenca').value = d.valor_licenca_ia ?? '';
+    document.getElementById('tm-valor-licenca').value = d.valor_servidor ?? '';
     somaFornTorre();
     document.getElementById('tm-cobrado').value = d.cobrado || '';
     document.getElementById('tm-responsavel').value = d.responsavel || '';
@@ -207,50 +207,46 @@ function updateGratHint() {
 function torreChecklist(d) {
   return [d.chk_usando_app, d.chk_deteccao_teste, d.chk_cameras_online, d.chk_cliente_treinado].filter(Boolean).length;
 }
-// Segware: a IA roda no servidor da Adentro (R$ 11.262,02 / 1.500 licenças ≈ R$ 7,50 por licença; 1 licença por câmera)
-const ADENTRO_LICENCA = 7.50;   // servidor Adentro, por licença/câmera
-const SEGWARE_LICENCA = 4.50;   // licença da IA Segware, por câmera
-const MONUV_CAMERA = 17.00;     // Monuv (fornecedor de imagem), por câmera visualizada
+// Custos por câmera (mensais) de cada fornecedor
+// Segware: visualização (Sigma Image) 6,50 + inteligência 4,50 + servidor Adentro 7,50 (R$ 11.262,02 / 1.500 licenças)
+// Monuv: visualização 17,00 + inteligência 48,00
+const CUSTO_VISUALIZACAO = { 'Sigma Image': 6.50, 'Monuv': 17.00 };
+const CUSTO_INTELIGENCIA = { 'Segware': 4.50, 'Monuv': 48.00 };
+const CUSTO_SERVIDOR = { 'Segware': 7.50 };
 function iaSegwareAuto() {
-  const forn = document.getElementById('tm-forn-ia').value;
   const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
-  if (forn === 'Segware') {
-    document.getElementById('tm-valor-ia').value = (n * ADENTRO_LICENCA).toFixed(2);
-    document.getElementById('tm-valor-licenca').value = (n * SEGWARE_LICENCA).toFixed(2);
-  }
-  if (document.getElementById('tm-forn-imagem').value === 'Monuv') document.getElementById('tm-valor-imagem').value = (n * MONUV_CAMERA).toFixed(2);
+  const img = document.getElementById('tm-forn-imagem').value, ia = document.getElementById('tm-forn-ia').value;
+  if (CUSTO_VISUALIZACAO[img]) document.getElementById('tm-valor-imagem').value = (n * CUSTO_VISUALIZACAO[img]).toFixed(2);
+  if (CUSTO_INTELIGENCIA[ia]) document.getElementById('tm-valor-ia').value = (n * CUSTO_INTELIGENCIA[ia]).toFixed(2);
+  if (CUSTO_SERVIDOR[ia]) document.getElementById('tm-valor-licenca').value = (n * CUSTO_SERVIDOR[ia]).toFixed(2);
   somaFornTorre();
 }
 function somaFornTorre() {
-  const img = document.getElementById('tm-valor-imagem'), ia = document.getElementById('tm-valor-ia');
-  const temImg = !!document.getElementById('tm-forn-imagem').value, temIa = !!document.getElementById('tm-forn-ia').value;
-  img.disabled = !temImg; ia.disabled = !temIa;
-  img.placeholder = temImg ? '0,00' : 'Sem fornecedor de imagem'; ia.placeholder = temIa ? '0,00' : 'Sem IA';
-  const seg = document.getElementById('tm-forn-ia').value === 'Segware';
-  const lic = document.getElementById('tm-valor-licenca');
-  document.getElementById('tm-lic-wrap').style.display = seg ? 'grid' : 'none';
-  const fornIa = document.getElementById('tm-forn-ia').value;
-  const fornImg = document.getElementById('tm-forn-imagem').value;
-  document.getElementById('tm-valor-ia-label').textContent = seg ? 'Servidor Adentro (R$)' : 'Valor da IA (R$)';
-  const imgLabel = document.getElementById('tm-valor-imagem-label');
-  if (imgLabel) imgLabel.textContent = fornImg === 'Monuv' ? 'Monuv (R$)' : fornImg ? 'Valor Sigma Image (R$)' : 'Valor da imagem (R$)';
-  const t = (temImg ? parseFloat(img.value) || 0 : 0) + (temIa ? parseFloat(ia.value) || 0 : 0) + (seg ? parseFloat(lic.value) || 0 : 0);
-  document.getElementById('tm-pago').value = t ? t.toFixed(2) : '';
-  const hint = document.getElementById('tm-ia-hint');
-  if (hint) {
-    const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
-    const br = v => 'R$ ' + v.toFixed(2).replace('.', ',');
-    hint.textContent = fornIa === 'Segware' ? `Adentro: ${n} câmera(s) × R$ 7,50 = ${br(n * ADENTRO_LICENCA)} · Licença Segware: ${n} × R$ 4,50 = ${br(n * SEGWARE_LICENCA)}` : '';
-    const ih = document.getElementById('tm-img-hint');
-    if (ih) ih.textContent = fornImg === 'Monuv' ? `Monuv: ${n} câmera(s) visualizada(s) × R$ 17,00 = ${br(n * MONUV_CAMERA)}` : '';
-  }
+  const $i = id => document.getElementById(id);
+  const img = $i('tm-valor-imagem'), ia = $i('tm-valor-ia'), srv = $i('tm-valor-licenca');
+  const fornImg = $i('tm-forn-imagem').value, fornIa = $i('tm-forn-ia').value;
+  const temSrv = !!CUSTO_SERVIDOR[fornIa];
+  img.disabled = !fornImg; ia.disabled = !fornIa;
+  img.placeholder = fornImg ? '0,00' : 'Sem fornecedor de imagem'; ia.placeholder = fornIa ? '0,00' : 'Sem IA';
+  $i('tm-lic-wrap').style.display = temSrv ? 'grid' : 'none';
+  const nomeImg = fornImg;
+  if ($i('tm-valor-imagem-label')) $i('tm-valor-imagem-label').textContent = fornImg ? `Visualização ${nomeImg} (R$)` : 'Visualização (R$)';
+  $i('tm-valor-ia-label').textContent = fornIa ? `Inteligência ${fornIa} (R$)` : 'Inteligência (R$)';
+  const t = (fornImg ? parseFloat(img.value) || 0 : 0) + (fornIa ? parseFloat(ia.value) || 0 : 0) + (temSrv ? parseFloat(srv.value) || 0 : 0);
+  $i('tm-pago').value = t ? t.toFixed(2) : '';
+  const n = Math.max(1, parseInt($i('tm-cameras').value) || 0);
+  const br = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+  const conta = (taxa) => taxa ? `${n} câmera(s) × ${br(taxa)} = ${br(n * taxa)}` : '';
+  if ($i('tm-img-hint')) $i('tm-img-hint').textContent = conta(CUSTO_VISUALIZACAO[fornImg]);
+  if ($i('tm-ia-hint')) $i('tm-ia-hint').textContent = conta(CUSTO_INTELIGENCIA[fornIa]) || (fornIa ? 'Digite o valor' : '');
+  if ($i('tm-srv-hint')) $i('tm-srv-hint').textContent = conta(CUSTO_SERVIDOR[fornIa]);
 }
 // ---- financeiro das torres (valores mensais) ----
 function custosTorre(d) {
-  const semDivisao = d.valor_imagem == null && d.valor_ia == null && d.valor_licenca_ia == null;
+  const semDivisao = d.valor_imagem == null && d.valor_ia == null && d.valor_licenca_ia == null && d.valor_servidor == null;
   const imagem = semDivisao ? Number(d.pago_forn || 0) : Number(d.valor_imagem || 0);
-  const servidor = semDivisao ? 0 : Number(d.valor_ia || 0);
-  const licenca = semDivisao ? 0 : Number(d.valor_licenca_ia || 0);
+  const servidor = semDivisao ? 0 : Number(d.valor_servidor || 0);
+  const licenca = semDivisao ? 0 : Number(d.valor_ia || 0) + Number(d.valor_licenca_ia || 0);
   const total = Number(d.pago_forn || 0) || (imagem + servidor + licenca);
   const receita = Number(d.cobrado || 0);
   return { imagem, ia: servidor + licenca, servidor, licenca, total, receita, lucro: receita - total };
@@ -268,7 +264,7 @@ function renderTorresFinanceiro() {
   const T = DATA.torres || [];
   const soma = (lista) => lista.reduce((a, d) => { const c = custosTorre(d); a.n++; a.imagem += c.imagem; a.ia += c.ia; a.servidor += c.servidor; a.licenca += c.licenca; a.total += c.total; a.receita += c.receita; a.lucro += c.lucro; return a; }, { n: 0, imagem: 0, ia: 0, servidor: 0, licenca: 0, total: 0, receita: 0, lucro: 0 });
   const g = soma(T), grat = soma(T.filter(d => d.gratificada !== false)), pagas = soma(T.filter(d => d.gratificada === false));
-  const porIa = ['Segware', 'Octos'].map(n => [n, soma(T.filter(d => d.forn_ia === n))]).filter(([, s]) => s.n);
+  const porIa = ['Segware', 'Monuv', 'Octos'].map(n => [n, soma(T.filter(d => d.forn_ia === n))]).filter(([, s]) => s.n);
   const porImg = ['Sigma Image', 'Monuv'].map(n => [n, soma(T.filter(d => d.forn_imagem === n))]).filter(([, s]) => s.n);
   const margem = g.receita ? Math.round(g.lucro / g.receita * 100) : null;
   const corL = g.lucro >= 0 ? 'var(--accent)' : 'var(--danger)';
@@ -279,7 +275,7 @@ function renderTorresFinanceiro() {
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
       ${item('Cobrado dos clientes', fmtVal(g.receita), pagas.n + ' torre(s) pagas')}
       ${item('Gasto com imagem', fmtVal(g.imagem), porImg.map(([n, s]) => n + ' ' + fmtVal(s.imagem)).join(' · '))}
-      ${item('Gasto com IA', fmtVal(g.ia), g.servidor || g.licenca ? `Adentro ${fmtVal(g.servidor)} · Licenças ${fmtVal(g.licenca)}` : '')}
+      ${item('Gasto com IA', fmtVal(g.ia), g.servidor || g.licenca ? `Inteligência ${fmtVal(g.licenca)} · Servidor Adentro ${fmtVal(g.servidor)}` : '')}
       ${item('Total fornecedores', fmtVal(g.total), '', 'var(--danger)')}
       ${item('Lucro', (g.lucro < 0 ? '−' : '') + fmtVal(Math.abs(g.lucro)), margem === null ? 'sem receita' : 'margem ' + margem + '%', corL)}
     </div>
@@ -289,7 +285,7 @@ function renderTorresFinanceiro() {
   </div></div>`;
 }
 function fornTorreCell(d) {
-  const cor = { Segware: '#2563eb', Octos: '#7c3aed' };
+  const cor = { Segware: '#2563eb', Octos: '#7c3aed', Monuv: '#0891b2' };
   const p = [];
   if (d.forn_imagem) p.push(`<span class="badge badge-neutral" title="Fornecedor de imagem">${d.forn_imagem}</span>`);
   if (d.forn_ia) p.push(`<span class="badge" title="Fornecedor da IA" style="color:${cor[d.forn_ia]||'#475569'};background:${(cor[d.forn_ia]||'#475569')}1a">IA · ${d.forn_ia}</span>`);
@@ -311,7 +307,8 @@ async function saveTorre() {
     forn_ia: document.getElementById('tm-forn-ia').value || null,
     valor_imagem: document.getElementById('tm-forn-imagem').value ? (parseFloat(document.getElementById('tm-valor-imagem').value) || 0) : null,
     valor_ia: document.getElementById('tm-forn-ia').value ? (parseFloat(document.getElementById('tm-valor-ia').value) || 0) : null,
-    valor_licenca_ia: document.getElementById('tm-forn-ia').value === 'Segware' ? (parseFloat(document.getElementById('tm-valor-licenca').value) || 0) : null,
+    valor_servidor: CUSTO_SERVIDOR[document.getElementById('tm-forn-ia').value] ? (parseFloat(document.getElementById('tm-valor-licenca').value) || 0) : null,
+    valor_licenca_ia: null,
     pago_forn: parseFloat(document.getElementById('tm-pago').value) || 0,
     cobrado: parseFloat(document.getElementById('tm-cobrado').value) || 0,
     responsavel: document.getElementById('tm-responsavel').value,
