@@ -65,7 +65,7 @@ function renderTorresTable() {
     </select>
     <select class="filter-select" data-filter="ia" onchange="renderTorresTable()">
       <option value="">Todas as IAs</option>
-      ${['Segware','Octos','Monuv'].map(x => `<option value="${x}" ${iaF===x?'selected':''}>${x}</option>`).join('')}
+      ${['Segware','Octos'].map(x => `<option value="${x}" ${iaF===x?'selected':''}>${x}</option>`).join('')}
       <option value="sem" ${iaF==='sem'?'selected':''}>Sem IA</option>
     </select>
     <select class="filter-select" data-filter="grat" onchange="renderTorresTable()">
@@ -90,7 +90,7 @@ function renderTorresTable() {
       const ckTip = `App: ${d.chk_usando_app?'✔':'✘'} | Detecção: ${d.chk_deteccao_teste?'✔':'✘'} | Câmeras: ${d.chk_cameras_online?'✔':'✘'} | Treinado: ${d.chk_cliente_treinado?'✔':'✘'}${d.chk_data_verificacao ? ' — verificado em ' + fmtDataBR(d.chk_data_verificacao) : ''}`;
       const ckCell = `<span class="badge ${ck === 4 ? 'badge-success' : ck === 0 ? 'badge-neutral' : 'badge-warning'}" title="${ckTip}" style="cursor:help">${ck}/4</span>`;
       const obsIco = d.observacao ? `<span class="tm-obs-ico" title="${escAttr(d.observacao)}">📝</span>` : '';
-      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null ? 'Sigma Image: ' + fmtVal(d.valor_imagem||0) + ' | IA' + (d.forn_ia==='Segware' ? ' (servidor Adentro)' : '') + ': ' + fmtVal(d.valor_ia||0) + (d.valor_licenca_ia ? ' | Licença Segware: ' + fmtVal(d.valor_licenca_ia) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null ? (d.forn_imagem||'Imagem') + ': ' + fmtVal(d.valor_imagem||0) + ' | IA' + (d.forn_ia==='Segware' ? ' (servidor Adentro)' : '') + ': ' + fmtVal(d.valor_ia||0) + (d.valor_licenca_ia ? ' | Licença Segware: ' + fmtVal(d.valor_licenca_ia) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
@@ -210,16 +210,15 @@ function torreChecklist(d) {
 // Segware: a IA roda no servidor da Adentro (R$ 11.262,02 / 1.500 licenças ≈ R$ 7,50 por licença; 1 licença por câmera)
 const ADENTRO_LICENCA = 7.50;   // servidor Adentro, por licença/câmera
 const SEGWARE_LICENCA = 4.50;   // licença da IA Segware, por câmera
-const MONUV_CAMERA = 17.00;     // Monuv, por câmera visualizada
+const MONUV_CAMERA = 17.00;     // Monuv (fornecedor de imagem), por câmera visualizada
 function iaSegwareAuto() {
   const forn = document.getElementById('tm-forn-ia').value;
   const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
   if (forn === 'Segware') {
     document.getElementById('tm-valor-ia').value = (n * ADENTRO_LICENCA).toFixed(2);
     document.getElementById('tm-valor-licenca').value = (n * SEGWARE_LICENCA).toFixed(2);
-  } else if (forn === 'Monuv') {
-    document.getElementById('tm-valor-ia').value = (n * MONUV_CAMERA).toFixed(2);
   }
+  if (document.getElementById('tm-forn-imagem').value === 'Monuv') document.getElementById('tm-valor-imagem').value = (n * MONUV_CAMERA).toFixed(2);
   somaFornTorre();
 }
 function somaFornTorre() {
@@ -231,15 +230,19 @@ function somaFornTorre() {
   const lic = document.getElementById('tm-valor-licenca');
   document.getElementById('tm-lic-wrap').style.display = seg ? 'grid' : 'none';
   const fornIa = document.getElementById('tm-forn-ia').value;
-  document.getElementById('tm-valor-ia-label').textContent = seg ? 'Servidor Adentro (R$)' : fornIa === 'Monuv' ? 'Monuv (R$)' : 'Valor da IA (R$)';
+  const fornImg = document.getElementById('tm-forn-imagem').value;
+  document.getElementById('tm-valor-ia-label').textContent = seg ? 'Servidor Adentro (R$)' : 'Valor da IA (R$)';
+  const imgLabel = document.getElementById('tm-valor-imagem-label');
+  if (imgLabel) imgLabel.textContent = fornImg === 'Monuv' ? 'Monuv (R$)' : fornImg ? 'Valor Sigma Image (R$)' : 'Valor da imagem (R$)';
   const t = (temImg ? parseFloat(img.value) || 0 : 0) + (temIa ? parseFloat(ia.value) || 0 : 0) + (seg ? parseFloat(lic.value) || 0 : 0);
   document.getElementById('tm-pago').value = t ? t.toFixed(2) : '';
   const hint = document.getElementById('tm-ia-hint');
   if (hint) {
     const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
     const br = v => 'R$ ' + v.toFixed(2).replace('.', ',');
-    hint.textContent = fornIa === 'Segware' ? `Adentro: ${n} câmera(s) × R$ 7,50 = ${br(n * ADENTRO_LICENCA)} · Licença Segware: ${n} × R$ 4,50 = ${br(n * SEGWARE_LICENCA)}`
-      : fornIa === 'Monuv' ? `Monuv: ${n} câmera(s) visualizada(s) × R$ 17,00 = ${br(n * MONUV_CAMERA)}` : '';
+    hint.textContent = fornIa === 'Segware' ? `Adentro: ${n} câmera(s) × R$ 7,50 = ${br(n * ADENTRO_LICENCA)} · Licença Segware: ${n} × R$ 4,50 = ${br(n * SEGWARE_LICENCA)}` : '';
+    const ih = document.getElementById('tm-img-hint');
+    if (ih) ih.textContent = fornImg === 'Monuv' ? `Monuv: ${n} câmera(s) visualizada(s) × R$ 17,00 = ${br(n * MONUV_CAMERA)}` : '';
   }
 }
 // ---- financeiro das torres (valores mensais) ----
@@ -265,27 +268,28 @@ function renderTorresFinanceiro() {
   const T = DATA.torres || [];
   const soma = (lista) => lista.reduce((a, d) => { const c = custosTorre(d); a.n++; a.imagem += c.imagem; a.ia += c.ia; a.servidor += c.servidor; a.licenca += c.licenca; a.total += c.total; a.receita += c.receita; a.lucro += c.lucro; return a; }, { n: 0, imagem: 0, ia: 0, servidor: 0, licenca: 0, total: 0, receita: 0, lucro: 0 });
   const g = soma(T), grat = soma(T.filter(d => d.gratificada !== false)), pagas = soma(T.filter(d => d.gratificada === false));
-  const porIa = ['Segware', 'Octos', 'Monuv'].map(n => [n, soma(T.filter(d => d.forn_ia === n))]).filter(([, s]) => s.n);
+  const porIa = ['Segware', 'Octos'].map(n => [n, soma(T.filter(d => d.forn_ia === n))]).filter(([, s]) => s.n);
+  const porImg = ['Sigma Image', 'Monuv'].map(n => [n, soma(T.filter(d => d.forn_imagem === n))]).filter(([, s]) => s.n);
   const margem = g.receita ? Math.round(g.lucro / g.receita * 100) : null;
   const corL = g.lucro >= 0 ? 'var(--accent)' : 'var(--danger)';
   const item = (l, v, s, cor) => `<div style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card)"><div style="font-size:11.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">${l}</div><div style="font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;color:${cor || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
   const linha = (l, s) => `<tr><td>${l}</td><td style="text-align:right">${s.n}</td><td style="text-align:right">${fmtVal(s.receita)}</td><td style="text-align:right">${fmtVal(s.imagem)}</td><td style="text-align:right">${fmtVal(s.ia)}</td><td style="text-align:right">${fmtVal(s.total)}</td><td style="text-align:right;font-weight:700;color:${s.lucro >= 0 ? 'var(--accent)' : 'var(--danger)'}">${s.lucro < 0 ? '−' : ''}${fmtVal(Math.abs(s.lucro))}</td><td style="text-align:right">${s.receita ? Math.round(s.lucro / s.receita * 100) + '%' : '—'}</td></tr>`;
   box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:12px"><div style="font-weight:700;font-size:15px">Resultado financeiro das torres <span style="font-weight:500;color:var(--text-muted);font-size:12.5px">· valores mensais</span></div><div style="font-size:12px;color:var(--text-muted)">Lucro = cobrado do cliente − fornecedores (Sigma Image + IA)</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:12px"><div style="font-weight:700;font-size:15px">Resultado financeiro das torres <span style="font-weight:500;color:var(--text-muted);font-size:12.5px">· valores mensais</span></div><div style="font-size:12px;color:var(--text-muted)">Lucro = cobrado do cliente − fornecedores (imagem + IA)</div></div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
       ${item('Cobrado dos clientes', fmtVal(g.receita), pagas.n + ' torre(s) pagas')}
-      ${item('Gasto Sigma Image', fmtVal(g.imagem))}
+      ${item('Gasto com imagem', fmtVal(g.imagem), porImg.map(([n, s]) => n + ' ' + fmtVal(s.imagem)).join(' · '))}
       ${item('Gasto com IA', fmtVal(g.ia), g.servidor || g.licenca ? `Adentro ${fmtVal(g.servidor)} · Licenças ${fmtVal(g.licenca)}` : '')}
       ${item('Total fornecedores', fmtVal(g.total), '', 'var(--danger)')}
       ${item('Lucro', (g.lucro < 0 ? '−' : '') + fmtVal(Math.abs(g.lucro)), margem === null ? 'sem receita' : 'margem ' + margem + '%', corL)}
     </div>
-    <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Grupo</th><th style="text-align:right">Torres</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Sigma Image</th><th style="text-align:right">IA</th><th style="text-align:right">Fornecedores</th><th style="text-align:right">Lucro</th><th style="text-align:right">Margem</th></tr></thead><tbody>
-      ${linha('Gratificadas (cortesia)', grat)}${linha('Pagas pelo cliente', pagas)}${porIa.map(([n, s]) => linha('IA ' + n, s)).join('')}
+    <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Grupo</th><th style="text-align:right">Torres</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Imagem</th><th style="text-align:right">IA</th><th style="text-align:right">Fornecedores</th><th style="text-align:right">Lucro</th><th style="text-align:right">Margem</th></tr></thead><tbody>
+      ${linha('Gratificadas (cortesia)', grat)}${linha('Pagas pelo cliente', pagas)}${porImg.map(([n, s]) => linha('Imagem ' + n, s)).join('')}${porIa.map(([n, s]) => linha('IA ' + n, s)).join('')}
     </tbody></table></div>
   </div></div>`;
 }
 function fornTorreCell(d) {
-  const cor = { Segware: '#2563eb', Octos: '#7c3aed', Monuv: '#0891b2' };
+  const cor = { Segware: '#2563eb', Octos: '#7c3aed' };
   const p = [];
   if (d.forn_imagem) p.push(`<span class="badge badge-neutral" title="Fornecedor de imagem">${d.forn_imagem}</span>`);
   if (d.forn_ia) p.push(`<span class="badge" title="Fornecedor da IA" style="color:${cor[d.forn_ia]||'#475569'};background:${(cor[d.forn_ia]||'#475569')}1a">IA · ${d.forn_ia}</span>`);

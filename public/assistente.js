@@ -17,7 +17,7 @@
       ['numero_sinistro', 'Nº sinistro / protocolo'], ['observacoes', 'Observações', 'area'], ['email_origem', 'E-mail de origem']] },
     torre: { nome: 'Nova torre', tabela: 'torres', campos: [
       ['cliente', 'Cliente', 'text', true], ['cidade', 'Cidade'], ['status', 'Status', ['EM AUTORIZAÇÃO', 'AUTORIZADA', 'INSTALADA', 'NÃO AUTORIZADA', 'SEGUNDO PLANO', 'AVALIAR/AGUARDAR']],
-      ['modelo', 'Modelo'], ['cameras', 'Câmeras', 'number'], ['forn_imagem', 'Fornecedor de imagem', [['Sigma Image', 'Sigma Image'], ['', 'Nenhum']]], ['forn_ia', 'Fornecedor da IA', [['', 'Sem IA'], ['Segware', 'Segware'], ['Octos', 'Octos'], ['Monuv', 'Monuv']]], ['pago_forn', 'Pago ao fornecedor', 'number'], ['cobrado', 'Cobrado do cliente', 'number'],
+      ['modelo', 'Modelo'], ['cameras', 'Câmeras', 'number'], ['forn_imagem', 'Fornecedor de imagem', [['Sigma Image', 'Sigma Image'], ['Monuv', 'Monuv'], ['', 'Nenhum']]], ['forn_ia', 'Fornecedor da IA', [['', 'Sem IA'], ['Segware', 'Segware'], ['Octos', 'Octos']]], ['pago_forn', 'Pago ao fornecedor', 'number'], ['cobrado', 'Cobrado do cliente', 'number'],
       ['responsavel', 'Responsável'], ['data_fim_gratificacao', 'Fim da gratificação', 'date'], ['observacao', 'Observação', 'area']] },
     demanda: { nome: 'Nova demanda', tabela: 'dem_tasks', campos: [
       ['titulo', 'Título', 'text', true], ['responsavel', 'Responsável', 'pessoa', true], ['prioridade', 'Prioridade', [['critica', 'Crítica'], ['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa']]],
@@ -143,7 +143,7 @@
       if (!ctx.categorias.includes(d.categoria)) d.categoria = '';
       d.complexidade = d.complexidade || 3; d.prioridade = d.prioridade || 'media';
     }
-    if (P.tipo === 'torre') { if (d.forn_imagem == null) d.forn_imagem = 'Sigma Image'; if (!['Segware', 'Octos', 'Monuv'].includes(d.forn_ia)) d.forn_ia = ''; }
+    if (P.tipo === 'torre') { if (d.forn_ia === 'Monuv' || /monuv/i.test(d.forn_imagem || '')) { d.forn_imagem = 'Monuv'; d.valor_imagem = (Math.max(1, Number(d.cameras) || 0) * 17).toFixed(2); } if (d.forn_imagem == null) d.forn_imagem = 'Sigma Image'; if (!['Segware', 'Octos'].includes(d.forn_ia)) d.forn_ia = ''; }
     if (P.tipo === 'checklist') { const c = acharCondominio(d.condominio, ctx.condominios); d.condominio_texto = d.condominio; d.condominio = c ? String(c.id) : ''; }
     P.faltando = P.faltando.filter(f => d[f] === undefined || d[f] === null || d[f] === '');
     const dup = await duplicado(P.tipo, d);
