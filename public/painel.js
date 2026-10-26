@@ -29,7 +29,7 @@
           titulo: d.cliente, sub: d.cidade, badges: [tag(d.status, stTorre(d.status))],
           kpis: [['Câmeras', d.cameras || 0], ['Total fornecedores', money(d.pago_forn)], ['Cobrado do cliente', money(d.cobrado)]],
           blocos: [
-            { t: 'Dados da torre', campos: [['Cidade', val(d.cidade)], ['Modelo', val(d.modelo)], ['Fornecedor de imagem', val(d.forn_imagem)], ['Valor Sigma Image', money(d.valor_imagem)], ['Fornecedor da IA', val(d.forn_ia || 'Sem IA')], ['Valor da IA', money(d.valor_ia)], ['Responsável', val(d.responsavel)], ['Fim da gratificação', grat]] },
+            { t: 'Dados da torre', campos: [['Cidade', val(d.cidade)], ['Modelo', val(d.modelo)], ['Fornecedor de imagem', val(d.forn_imagem)], ['Valor Sigma Image', money(d.valor_imagem)], ['Fornecedor da IA', val(d.forn_ia || 'Sem IA')], [d.forn_ia === 'Segware' ? 'Servidor Adentro' : 'Valor da IA', money(d.valor_ia)], ...(d.forn_ia === 'Segware' ? [['Licença da IA Segware', money(d.valor_licenca_ia)]] : []), ['Responsável', val(d.responsavel)], ['Fim da gratificação', grat]] },
             { t: `Checklist pós-teste · ${n}/4`, html: `<div class="pn-checks">${[['Cliente usando o app', d.chk_usando_app], ['Teste de detecção', d.chk_deteccao_teste], ['Câmeras online', d.chk_cameras_online], ['Cliente treinado', d.chk_cliente_treinado]].map(([l, b]) => `<div class="pn-check ${b ? 'on' : ''}"><span>${b ? '✓' : '✗'}</span>${l}</div>`).join('')}</div>${d.chk_data_verificacao ? `<div class="pn-muted pn-small">Verificado em ${dt(d.chk_data_verificacao)}</div>` : ''}` },
             d.observacao ? { t: 'Observação', html: `<div class="pn-text">${esc(d.observacao)}</div>` } : null,
           ],
