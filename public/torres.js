@@ -85,7 +85,7 @@ function renderTorresTable() {
       const ckTip = `App: ${d.chk_usando_app?'✔':'✘'} | Detecção: ${d.chk_deteccao_teste?'✔':'✘'} | Câmeras: ${d.chk_cameras_online?'✔':'✘'} | Treinado: ${d.chk_cliente_treinado?'✔':'✘'}${d.chk_data_verificacao ? ' — verificado em ' + fmtDataBR(d.chk_data_verificacao) : ''}`;
       const ckCell = `<span class="badge ${ck === 4 ? 'badge-success' : ck === 0 ? 'badge-neutral' : 'badge-warning'}" title="${ckTip}" style="cursor:help">${ck}/4</span>`;
       const obsIco = d.observacao ? `<span class="tm-obs-ico" title="${escAttr(d.observacao)}">📝</span>` : '';
-      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null ? 'Sigma Image: ' + fmtVal(d.valor_imagem||0) + ' | IA: ' + fmtVal(d.valor_ia||0) : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
@@ -130,7 +130,10 @@ function openTorreModal(editId) {
     document.getElementById('tm-cameras').value = d.cameras || '0';
     document.getElementById('tm-forn-imagem').value = d.forn_imagem == null ? 'Sigma Image' : d.forn_imagem;
     document.getElementById('tm-forn-ia').value = d.forn_ia || '';
-    document.getElementById('tm-pago').value = d.pago_forn || '';
+    const semDivisao = d.valor_imagem == null && d.valor_ia == null;
+    document.getElementById('tm-valor-imagem').value = semDivisao ? (d.pago_forn || '') : (d.valor_imagem ?? '');
+    document.getElementById('tm-valor-ia').value = semDivisao ? '' : (d.valor_ia ?? '');
+    somaFornTorre();
     document.getElementById('tm-cobrado').value = d.cobrado || '';
     document.getElementById('tm-responsavel').value = d.responsavel || '';
     document.getElementById('tm-data-fim').value = d.data_fim_gratificacao || '';
@@ -150,7 +153,9 @@ function openTorreModal(editId) {
     document.getElementById('tm-cameras').value = '0';
     document.getElementById('tm-forn-imagem').value = 'Sigma Image';
     document.getElementById('tm-forn-ia').value = '';
-    document.getElementById('tm-pago').value = '';
+    document.getElementById('tm-valor-imagem').value = '';
+    document.getElementById('tm-valor-ia').value = '';
+    somaFornTorre();
     document.getElementById('tm-cobrado').value = '';
     document.getElementById('tm-responsavel').value = '';
     document.getElementById('tm-data-fim').value = '';
@@ -188,6 +193,14 @@ function updateGratHint() {
 function torreChecklist(d) {
   return [d.chk_usando_app, d.chk_deteccao_teste, d.chk_cameras_online, d.chk_cliente_treinado].filter(Boolean).length;
 }
+function somaFornTorre() {
+  const img = document.getElementById('tm-valor-imagem'), ia = document.getElementById('tm-valor-ia');
+  const temImg = !!document.getElementById('tm-forn-imagem').value, temIa = !!document.getElementById('tm-forn-ia').value;
+  img.disabled = !temImg; ia.disabled = !temIa;
+  img.placeholder = temImg ? '0,00' : 'Sem fornecedor de imagem'; ia.placeholder = temIa ? '0,00' : 'Sem IA';
+  const t = (temImg ? parseFloat(img.value) || 0 : 0) + (temIa ? parseFloat(ia.value) || 0 : 0);
+  document.getElementById('tm-pago').value = t ? t.toFixed(2) : '';
+}
 function fornTorreCell(d) {
   const cor = { Segware: '#2563eb', Octos: '#7c3aed', Monuv: '#0891b2' };
   const p = [];
@@ -209,6 +222,8 @@ async function saveTorre() {
     cameras: parseInt(document.getElementById('tm-cameras').value) || 0,
     forn_imagem: document.getElementById('tm-forn-imagem').value || null,
     forn_ia: document.getElementById('tm-forn-ia').value || null,
+    valor_imagem: document.getElementById('tm-forn-imagem').value ? (parseFloat(document.getElementById('tm-valor-imagem').value) || 0) : null,
+    valor_ia: document.getElementById('tm-forn-ia').value ? (parseFloat(document.getElementById('tm-valor-ia').value) || 0) : null,
     pago_forn: parseFloat(document.getElementById('tm-pago').value) || 0,
     cobrado: parseFloat(document.getElementById('tm-cobrado').value) || 0,
     responsavel: document.getElementById('tm-responsavel').value,
