@@ -193,6 +193,15 @@ function updateGratHint() {
 function torreChecklist(d) {
   return [d.chk_usando_app, d.chk_deteccao_teste, d.chk_cameras_online, d.chk_cliente_treinado].filter(Boolean).length;
 }
+// Segware: a IA roda no servidor da Adentro (R$ 11.262,02 / 1.500 licenças ≈ R$ 7,50 por licença; 1 licença por câmera)
+const ADENTRO_LICENCA = 7.50;
+function iaSegwareAuto() {
+  if (document.getElementById('tm-forn-ia').value === 'Segware') {
+    const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
+    document.getElementById('tm-valor-ia').value = (n * ADENTRO_LICENCA).toFixed(2);
+  }
+  somaFornTorre();
+}
 function somaFornTorre() {
   const img = document.getElementById('tm-valor-imagem'), ia = document.getElementById('tm-valor-ia');
   const temImg = !!document.getElementById('tm-forn-imagem').value, temIa = !!document.getElementById('tm-forn-ia').value;
@@ -200,6 +209,11 @@ function somaFornTorre() {
   img.placeholder = temImg ? '0,00' : 'Sem fornecedor de imagem'; ia.placeholder = temIa ? '0,00' : 'Sem IA';
   const t = (temImg ? parseFloat(img.value) || 0 : 0) + (temIa ? parseFloat(ia.value) || 0 : 0);
   document.getElementById('tm-pago').value = t ? t.toFixed(2) : '';
+  const hint = document.getElementById('tm-ia-hint');
+  if (hint) {
+    const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
+    hint.textContent = document.getElementById('tm-forn-ia').value === 'Segware' ? `Servidor Adentro: ${n} licença(s) × R$ 7,50 = R$ ${(n * ADENTRO_LICENCA).toFixed(2).replace('.', ',')}` : '';
+  }
 }
 function fornTorreCell(d) {
   const cor = { Segware: '#2563eb', Octos: '#7c3aed', Monuv: '#0891b2' };
