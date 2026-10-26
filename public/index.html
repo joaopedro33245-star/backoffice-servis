@@ -538,7 +538,7 @@
         <div class="form-group">
           <label class="form-label">Fornecedor de imagem</label>
           <select class="form-input" id="tm-forn-imagem" onchange="iaSegwareAuto()">
-            <option value="Sigma Image">Sigma Image</option>
+            <option value="Sigma Image">Sigma Image (Segware)</option>
             <option value="Monuv">Monuv</option>
             <option value="">Nenhum</option>
           </select>
@@ -548,26 +548,28 @@
           <select class="form-input" id="tm-forn-ia" onchange="iaSegwareAuto()">
             <option value="">Sem IA</option>
             <option value="Segware">Segware</option>
+            <option value="Monuv">Monuv</option>
             <option value="Octos">Octos</option>
           </select>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="form-group">
-          <label class="form-label" id="tm-valor-imagem-label">Valor Sigma Image (R$)</label>
+          <label class="form-label" id="tm-valor-imagem-label">Visualização (R$)</label>
           <input class="form-input" id="tm-valor-imagem" type="number" step="0.01" placeholder="0,00" oninput="somaFornTorre()">
           <div id="tm-img-hint" style="font-size:11.5px;color:var(--text-muted);margin-top:4px"></div>
         </div>
         <div class="form-group">
-          <label class="form-label" id="tm-valor-ia-label">Valor da IA (R$)</label>
+          <label class="form-label" id="tm-valor-ia-label">Inteligência (R$)</label>
           <input class="form-input" id="tm-valor-ia" type="number" step="0.01" placeholder="0,00" oninput="somaFornTorre()">
           <div id="tm-ia-hint" style="font-size:11.5px;color:var(--text-muted);margin-top:4px"></div>
         </div>
       </div>
       <div id="tm-lic-wrap" style="display:none;grid-template-columns:1fr 1fr;gap:14px">
         <div class="form-group">
-          <label class="form-label">Licença da IA Segware (R$)</label>
+          <label class="form-label">Servidor Adentro (R$)</label>
           <input class="form-input" id="tm-valor-licenca" type="number" step="0.01" placeholder="0,00" oninput="somaFornTorre()">
+          <div id="tm-srv-hint" style="font-size:11.5px;color:var(--text-muted);margin-top:4px"></div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
