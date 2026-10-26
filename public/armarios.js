@@ -114,7 +114,34 @@ function renderArmarios() {
       return `<tr><td>${f}</td><td style="text-align:right">${v.total}</td><td style="text-align:right">${v.ativos}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(v.custo)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(v.valor)}</td><td style="text-align:right;font-variant-numeric:tabular-nums" class="${m>=0?'val-pos':'val-neg'}">${fmtVal(m)}</td></tr>`;
     }).join('')}</tbody></table></div></div>`;
 
+  renderArmFinanceiro();
   renderArmDetail();
+}
+
+// ---- resultado financeiro dos armários (valores mensais) ----
+function renderArmFinanceiro() {
+  let box = document.getElementById('arm-fin');
+  if (!box) { box = document.createElement('div'); box.id = 'arm-fin'; document.getElementById('arm-charts').before(box); }
+  const AD = DATA.armDetail || [];
+  const soma = lista => lista.reduce((a, d) => { const custo = Number(d.custo_forn || 0), rec = Number(d.valor_cli || 0); a.n++; if (d.status === 'Ativo') a.ativos++; a.custo += custo; a.receita += rec; a.lucro += rec - custo; return a; }, { n: 0, ativos: 0, custo: 0, receita: 0, lucro: 0 });
+  const g = soma(AD), grat = soma(AD.filter(d => d.gratificacao === 'Sim')), pagos = soma(AD.filter(d => d.gratificacao !== 'Sim'));
+  const forns = [...new Set(AD.map(d => d.fornecedor || 'Outros'))].sort().map(f => [f, soma(AD.filter(d => (d.fornecedor || 'Outros') === f))]);
+  const pct = s => s.receita ? Math.round(s.lucro / s.receita * 100) + '%' : '—';
+  const din = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
+  const item = (l, v, s, cor) => `<div style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card)"><div style="font-size:11.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">${l}</div><div style="font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;color:${cor || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
+  const linha = (l, s) => `<tr><td>${l}</td><td style="text-align:right">${s.n}</td><td style="text-align:right">${s.ativos}</td><td style="text-align:right">${fmtVal(s.receita)}</td><td style="text-align:right">${fmtVal(s.custo)}</td><td style="text-align:right;font-weight:700;color:${s.lucro >= 0 ? 'var(--accent)' : 'var(--danger)'}">${din(s.lucro)}</td><td style="text-align:right">${pct(s)}</td></tr>`;
+  box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:12px"><div style="font-weight:700;font-size:15px">Resultado financeiro dos armários <span style="font-weight:500;color:var(--text-muted);font-size:12.5px">· valores mensais</span></div><div style="font-size:12px;color:var(--text-muted)">Lucro = valor cobrado do cliente − custo do fornecedor</div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+      ${item('Cobrado dos clientes', fmtVal(g.receita), pagos.n + ' armário(s) pagos')}
+      ${item('Custo fornecedores', fmtVal(g.custo), '', 'var(--danger)')}
+      ${item('Custo dos gratificados', fmtVal(grat.custo), grat.n + ' armário(s) em cortesia')}
+      ${item('Lucro', din(g.lucro), g.receita ? 'margem ' + pct(g) : 'sem receita', g.lucro >= 0 ? 'var(--accent)' : 'var(--danger)')}
+    </div>
+    <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Grupo</th><th style="text-align:right">Armários</th><th style="text-align:right">Ativos</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Custo forn.</th><th style="text-align:right">Lucro</th><th style="text-align:right">Margem</th></tr></thead><tbody>
+      ${linha('Gratificados (cortesia)', grat)}${linha('Pagos pelo cliente', pagos)}${forns.map(([f, s]) => linha('Fornecedor ' + f, s)).join('')}
+    </tbody></table></div>
+  </div></div>`;
 }
 
 let armSearchVal = '';
@@ -160,7 +187,7 @@ function renderArmDetail() {
       <table><thead><tr><th>Condomínio</th><th>Endereço</th><th>Filial</th><th>Fornecedor</th><th style="text-align:center">Portas</th><th>Status</th><th>Grat.</th><th style="text-align:right">Vl. Gestão</th><th style="text-align:right">Vl. Locação</th><th style="text-align:right">Custo Forn.</th><th style="text-align:right">Vl. Cliente</th><th style="text-align:right">Margem</th><th>Obs.</th><th>Ações</th></tr></thead>
       <tbody>${filtered.map(d=>{
         const m = Number(d.margem || (Number(d.valor_cli||0) - Number(d.custo_forn||0)));
-        return `<tr><td>${d.condominio||''}</td><td style="font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(d.endereco||'').replace(/"/g,'&quot;')}">${d.endereco||'—'}</td><td>${d.filial||''}</td><td>${d.fornecedor||''}</td><td style="text-align:center">${d.portas||0}</td><td><span class="badge ${d.status==='Ativo'?'badge-success':'badge-neutral'}">${d.status||''}</span></td><td><span class="badge ${d.gratificacao==='Sim'?'badge-success':'badge-neutral'}">${d.gratificacao||'Não'}</span></td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_gestao||0)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_locacao||0)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_forn||0)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.valor_cli?fmtVal(d.valor_cli):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" class="${m>=0?'val-pos':'val-neg'}">${fmtVal(m)}</td><td style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(d.observacoes||'').replace(/"/g,'&quot;')}">${d.observacoes||'—'}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="editArmDetail(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteArmDetail(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+        return `<tr><td>${d.condominio||''}</td><td style="font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(d.endereco||'').replace(/"/g,'&quot;')}">${d.endereco||'—'}</td><td>${d.filial||''}</td><td>${d.fornecedor||''}</td><td style="text-align:center">${d.portas||0}</td><td><span class="badge ${d.status==='Ativo'?'badge-success':'badge-neutral'}">${d.status||''}</span></td><td><span class="badge ${d.gratificacao==='Sim'?'badge-success':'badge-neutral'}">${d.gratificacao||'Não'}</span></td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_gestao||0)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_locacao||0)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${fmtVal(d.custo_forn||0)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.valor_cli?fmtVal(d.valor_cli):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" class="${m>=0?'val-pos':'val-neg'}">${fmtVal(m)}<div style="font-size:11px;color:var(--text-muted);font-weight:400">${Number(d.valor_cli||0) ? Math.round(m / Number(d.valor_cli) * 100) + '%' : (d.gratificacao === 'Sim' ? 'cortesia' : '—')}</div></td><td style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(d.observacoes||'').replace(/"/g,'&quot;')}">${d.observacoes||'—'}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="editArmDetail(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteArmDetail(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
       }).join('')}</tbody></table>
     </div></div>`;
 }
