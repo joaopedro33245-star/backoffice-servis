@@ -1,14 +1,16 @@
 // ===== TORRES =====
 function renderTorres() {
   const T = DATA.torres;
-  const instaladas = T.filter(d => d.status==='INSTALADA').length;
-  const autorizadas = T.filter(d => d.status==='AUTORIZADA').length;
-  const emAut = T.filter(d => d.status==='EM AUTORIZAÇÃO').length;
+  const somaQtd = lista => lista.reduce((s, d) => s + qtdTorres(d), 0);
+  const instaladas = somaQtd(T.filter(d => d.status==='INSTALADA'));
+  const autorizadas = somaQtd(T.filter(d => d.status==='AUTORIZADA'));
+  const emAut = somaQtd(T.filter(d => d.status==='EM AUTORIZAÇÃO'));
+  const totalTorres = somaQtd(T);
   const totalPago = T.reduce((s,d) => s + Number(d.pago_forn), 0);
   const totalCam = T.reduce((s,d) => s + d.cameras, 0);
 
   document.getElementById('torres-kpis').innerHTML = `
-    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div><div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M4 21V10l8-7 8 7v11"/><path d="M9 21v-6h6v6"/></svg></div><div class="kpi-label">Total Torres</div><div class="kpi-value blue">${T.length}</div></div>
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--blue)"></div><div class="kpi-card-icon" style="background:var(--blue-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M4 21V10l8-7 8 7v11"/><path d="M9 21v-6h6v6"/></svg></div><div class="kpi-label">Total Torres</div><div class="kpi-value blue">${totalTorres}</div>${totalTorres !== T.length ? `<div class="kpi-sub">${T.length} clientes</div>` : ''}</div>
     <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="kpi-label">Instaladas</div><div class="kpi-value accent">${instaladas}</div><div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${totalCam} cameras</span></div></div>
     <div class="kpi-card"><div class="kpi-card-stripe" style="background:#2a78d6"></div><div class="kpi-card-icon" style="background:rgba(42,120,214,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#2a78d6" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="kpi-label">Autorizadas</div><div class="kpi-value blue">${autorizadas}</div><div class="kpi-sub">aguardando instalacao</div></div>
     <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--warning)"></div><div class="kpi-card-icon" style="background:var(--warning-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M12 2l10 18H2z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="16" r="0.5"/></svg></div><div class="kpi-label">Em Autorizacao</div><div class="kpi-value warning">${emAut}</div></div>
@@ -16,7 +18,7 @@ function renderTorres() {
 
   // Charts
   const tSt = {}, tCid = {};
-  T.forEach(d => { tSt[d.status] = (tSt[d.status]||0)+1; tCid[d.cidade] = (tCid[d.cidade]||0)+1; });
+  T.forEach(d => { const q = qtdTorres(d); tSt[d.status] = (tSt[d.status]||0)+q; tCid[d.cidade] = (tCid[d.cidade]||0)+q; });
   document.getElementById('torres-charts').innerHTML = `
     <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Torres por Status</div></div><div class="chart-card-badge">pipeline</div></div><div class="chart-card-body" id="tc-st"></div></div>
     <div class="chart-card"><div class="chart-card-header"><div><div class="chart-card-title">Torres por Cidade</div></div><div class="chart-card-badge">top cidades</div></div><div class="chart-card-body" id="tc-cid"></div></div>`;
@@ -90,7 +92,8 @@ function renderTorresTable() {
       const ckTip = `App: ${d.chk_usando_app?'✔':'✘'} | Detecção: ${d.chk_deteccao_teste?'✔':'✘'} | Câmeras: ${d.chk_cameras_online?'✔':'✘'} | Treinado: ${d.chk_cliente_treinado?'✔':'✘'}${d.chk_data_verificacao ? ' — verificado em ' + fmtDataBR(d.chk_data_verificacao) : ''}`;
       const ckCell = `<span class="badge ${ck === 4 ? 'badge-success' : ck === 0 ? 'badge-neutral' : 'badge-warning'}" title="${ckTip}" style="cursor:help">${ck}/4</span>`;
       const obsIco = d.observacao ? `<span class="tm-obs-ico" title="${escAttr(d.observacao)}">📝</span>` : '';
-      return `<tr><td>${d.cliente}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null||d.valor_servidor!=null ? 'Visualização ' + (d.forn_imagem||'') + ': ' + fmtVal(d.valor_imagem||0) + ' | Inteligência ' + (d.forn_ia||'') + ': ' + fmtVal(Number(d.valor_ia||0) + Number(d.valor_licenca_ia||0)) + (d.valor_servidor ? ' | Servidor Adentro: ' + fmtVal(d.valor_servidor) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+      const qtdBadge = qtdTorres(d) > 1 ? ` <span class="badge badge-blue" title="Este cliente tem ${qtdTorres(d)} torres">${qtdTorres(d)} torres</span>` : '';
+      return `<tr><td>${d.cliente}${qtdBadge}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null||d.valor_servidor!=null ? 'Visualização ' + (d.forn_imagem||'') + ': ' + fmtVal(d.valor_imagem||0) + ' | Inteligência ' + (d.forn_ia||'') + ': ' + fmtVal(Number(d.valor_ia||0) + Number(d.valor_licenca_ia||0)) + (d.valor_servidor ? ' | Servidor Adentro: ' + fmtVal(d.valor_servidor) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
@@ -133,6 +136,7 @@ function openTorreModal(editId) {
     document.getElementById('tm-status').value = d.status || 'EM AUTORIZAÇÃO';
     document.getElementById('tm-modelo').value = d.modelo || 'CORTESIA 6 MESES';
     document.getElementById('tm-cameras').value = d.cameras || '0';
+    document.getElementById('tm-qtd-torres').value = qtdTorres(d);
     document.getElementById('tm-forn-imagem').value = d.forn_imagem == null ? 'Sigma Image' : d.forn_imagem;
     document.getElementById('tm-forn-ia').value = d.forn_ia || '';
     const semDivisao = d.valor_imagem == null && d.valor_ia == null;
@@ -158,6 +162,7 @@ function openTorreModal(editId) {
     document.getElementById('tm-status').value = 'EM AUTORIZAÇÃO';
     document.getElementById('tm-modelo').value = 'CORTESIA 6 MESES';
     document.getElementById('tm-cameras').value = '0';
+    document.getElementById('tm-qtd-torres').value = '1';
     document.getElementById('tm-forn-imagem').value = 'Sigma Image';
     document.getElementById('tm-forn-ia').value = '';
     document.getElementById('tm-valor-imagem').value = '';
@@ -262,7 +267,7 @@ function renderTorresFinanceiro() {
   let box = document.getElementById('torres-fin');
   if (!box) { box = document.createElement('div'); box.id = 'torres-fin'; document.getElementById('torres-charts').before(box); }
   const T = DATA.torres || [];
-  const soma = (lista) => lista.reduce((a, d) => { const c = custosTorre(d); a.n++; a.imagem += c.imagem; a.ia += c.ia; a.servidor += c.servidor; a.licenca += c.licenca; a.total += c.total; a.receita += c.receita; a.lucro += c.lucro; return a; }, { n: 0, imagem: 0, ia: 0, servidor: 0, licenca: 0, total: 0, receita: 0, lucro: 0 });
+  const soma = (lista) => lista.reduce((a, d) => { const c = custosTorre(d); a.n += qtdTorres(d); a.imagem += c.imagem; a.ia += c.ia; a.servidor += c.servidor; a.licenca += c.licenca; a.total += c.total; a.receita += c.receita; a.lucro += c.lucro; return a; }, { n: 0, imagem: 0, ia: 0, servidor: 0, licenca: 0, total: 0, receita: 0, lucro: 0 });
   const g = soma(T), grat = soma(T.filter(d => d.gratificada !== false)), pagas = soma(T.filter(d => d.gratificada === false));
   const porIa = ['Segware', 'Monuv', 'Octos'].map(n => [n, soma(T.filter(d => d.forn_ia === n))]).filter(([, s]) => s.n);
   const porImg = ['Sigma Image', 'Monuv'].map(n => [n, soma(T.filter(d => d.forn_imagem === n))]).filter(([, s]) => s.n);
@@ -284,6 +289,7 @@ function renderTorresFinanceiro() {
     </tbody></table></div>
   </div></div>`;
 }
+function qtdTorres(d) { return Math.max(1, parseInt(d.qtd_torres) || 1); }
 function fornTorreCell(d) {
   const cor = { Segware: '#2563eb', Octos: '#7c3aed', Monuv: '#0891b2' };
   const p = [];
@@ -303,6 +309,7 @@ async function saveTorre() {
     status: document.getElementById('tm-status').value,
     modelo: document.getElementById('tm-modelo').value,
     cameras: parseInt(document.getElementById('tm-cameras').value) || 0,
+    qtd_torres: Math.max(1, parseInt(document.getElementById('tm-qtd-torres').value) || 1),
     forn_imagem: document.getElementById('tm-forn-imagem').value || null,
     forn_ia: document.getElementById('tm-forn-ia').value || null,
     valor_imagem: document.getElementById('tm-forn-imagem').value ? (parseFloat(document.getElementById('tm-valor-imagem').value) || 0) : null,
