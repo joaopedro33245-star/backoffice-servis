@@ -146,6 +146,7 @@ function renderArmFinanceiro() {
 
 let armSearchVal = '';
 function renderArmDetail() {
+  const _ae = document.activeElement, _foco = _ae && _ae.closest && _ae.closest('#arm-filters') && _ae.dataset.filter ? { f: _ae.dataset.filter, s: _ae.selectionStart } : null;
   const AD = DATA.armDetail;
   const fEl = document.querySelector('#arm-filters [data-filter="filial"]');
   const sEl = document.querySelector('#arm-filters [data-filter="status"]');
@@ -168,7 +169,7 @@ function renderArmDetail() {
   const allFiliais = [...new Set(AD.map(d => d.filial).filter(Boolean))].sort();
 
   document.getElementById('arm-filters').innerHTML = `
-    <input class="form-input" style="max-width:240px;padding:7px 12px;font-size:12px" placeholder="Buscar condominio..." value="${armSearchVal}" oninput="armSearchVal=this.value;renderArmDetail()">
+    <input class="form-input" data-filter="search" style="max-width:240px;padding:7px 12px;font-size:12px" placeholder="Buscar condominio..." value="${String(armSearchVal).replace(/"/g, '&quot;')}" oninput="armSearchVal=this.value;renderArmDetail()">
     <select class="filter-select" data-filter="filial" onchange="renderArmDetail()">
       <option value="">Todas as Filiais</option>
       ${allFiliais.map(f=>`<option value="${f}" ${filial===f?'selected':''}>${f}</option>`).join('')}
@@ -180,6 +181,7 @@ function renderArmDetail() {
     </select>
     <div style="flex:1"></div>
     <div style="font-size:12px;color:var(--text-muted)">${filtered.length} armários — ${tabLabel}</div>`;
+  if (_foco) { const _el = document.querySelector('#arm-filters [data-filter="' + _foco.f + '"]'); if (_el) { _el.focus(); try { if (_foco.s != null) _el.setSelectionRange(_foco.s, _foco.s); } catch (e) {} } }
 
   document.getElementById('arm-detail-card').innerHTML = `
     <div class="card-header"><div class="card-title">Detalhamento de Armários — ${tabLabel}</div></div>

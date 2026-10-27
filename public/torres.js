@@ -30,6 +30,7 @@ function renderTorres() {
 }
 
 function renderTorresTable() {
+  const _ae = document.activeElement, _foco = _ae && _ae.closest && _ae.closest('#torres-filters') && _ae.dataset.filter ? { f: _ae.dataset.filter, s: _ae.selectionStart } : null;
   const T = DATA.torres;
   const stEl = document.querySelector('#torres-filters [data-filter="status"]');
   const srEl = document.querySelector('#torres-filters [data-filter="search"]');
@@ -51,7 +52,7 @@ function renderTorresTable() {
     if (gr === 'chkpend' && !(d.status === 'INSTALADA' && torreChecklist(d) < 4)) return false;
     if (iaF === 'sem' && d.forn_ia) return false;
     if (iaF && iaF !== 'sem' && d.forn_ia !== iaF) return false;
-    if (search && !d.cliente.toLowerCase().includes(search)) return false;
+    if (search && !nzBusca(d.cliente).includes(nzBusca(search))) return false;
     return true;
   });
 
@@ -79,7 +80,8 @@ function renderTorresTable() {
       <option value="gratificadas" ${gr==='gratificadas'?'selected':''}>Só gratificadas</option>
       <option value="pagas" ${gr==='pagas'?'selected':''}>Só pagas pelo cliente</option>
     </select>
-    <input class="filter-input" data-filter="search" placeholder="Buscar cliente..." oninput="renderTorresTable()" style="width:200px" value="${search}">`;
+    <input class="filter-input" data-filter="search" placeholder="Buscar cliente..." oninput="renderTorresTable()" style="width:200px" value="${escAttr(srEl ? srEl.value : '')}">`;
+  if (_foco) { const _el = document.querySelector('#torres-filters [data-filter="' + _foco.f + '"]'); if (_el) { _el.focus(); try { if (_foco.s != null) _el.setSelectionRange(_foco.s, _foco.s); } catch (e) {} } }
 
   document.getElementById('torres-table-wrap').innerHTML = `
     <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th>Fornecedores</th><th style="text-align:right">Câmeras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Margem</th><th>Fim Gratif.</th><th style="text-align:center">Checklist</th><th>Responsável</th><th>Ações</th></tr></thead>
@@ -289,6 +291,7 @@ function renderTorresFinanceiro() {
     </tbody></table></div>
   </div></div>`;
 }
+function nzBusca(t) { return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
 function qtdTorres(d) { return Math.max(1, parseInt(d.qtd_torres) || 1); }
 function fornTorreCell(d) {
   const cor = { Segware: '#2563eb', Octos: '#7c3aed', Monuv: '#0891b2' };
