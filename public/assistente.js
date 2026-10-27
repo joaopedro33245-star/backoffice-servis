@@ -59,6 +59,7 @@
     css.textContent = `
     #as-fab{position:fixed;right:18px;bottom:18px;z-index:120;display:flex;align-items:center;gap:8px;height:46px;padding:0 18px 0 14px;border:0;border-radius:999px;background:var(--navy,#0f1e3d);color:#fff;font:600 14px Inter,system-ui,sans-serif;box-shadow:0 8px 24px rgba(15,30,61,.3);cursor:pointer}
     #as-fab:hover{filter:brightness(1.15)} #as-fab svg{width:20px;height:20px}
+    body:has(#pn.on) #as-fab, body:has(.modal-overlay.open) #as-fab, body:has(#drawer:not([hidden])) #as-fab, body:has(#modal-scrim.on) #as-fab{display:none}
     #as-win{position:fixed;right:18px;bottom:76px;z-index:121;width:440px;max-width:calc(100vw - 24px);max-height:calc(100vh - 100px);display:none;flex-direction:column;background:var(--bg-card,#fff);color:var(--text-primary,var(--tx,#0f172a));border:1px solid var(--border,var(--line,#e3e8ef));border-radius:16px;box-shadow:0 20px 50px rgba(15,30,61,.28);font:14px/1.45 Inter,system-ui,sans-serif;overflow:hidden}
     #as-win.on{display:flex}
     .as-h{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--navy,#0f1e3d);color:#fff}
