@@ -101,7 +101,7 @@
   function telaInicial(msg) {
     st.prop = null;
     $('as-b').innerHTML = `${msg || ''}<textarea id="as-txt" placeholder="Ex.: cole o e-mail da seguradora, ou escreva &quot;abre uma demanda pra Renata conferir o boleto da Zurich até sexta&quot;"></textarea>
-      <p class="as-dica">Funciona para pedido de seguro, nova torre, demanda, checklist de portaria e relatório diário (ex.: &quot;registra que conferi os e-mails da Zurich&quot;). Você confere tudo antes de gravar. CPF e senhas são descartados.</p>
+      <p class="as-dica">Funciona para pedido de seguro, nova torre, demanda, checklist de portaria e relatório diário (ex.: &quot;registra que conferi os e-mails da Zurich&quot;). Você confere tudo antes de gravar. CPF e senhas são descartados. Para falar: botão 🎤 (Chrome/Edge) ou Windows + H.</p>
       <div class="as-row">${VOZ ? '<button class="as-btn" id="as-mic" onclick="Assistente.falar()" title="Falar em vez de digitar"><span class="as-mic-ic">🎤</span> <span id="as-mic-t">Falar</span></button>' : ''}<button class="as-btn pri" id="as-go" onclick="Assistente.interpretar()">Interpretar</button></div>`;
   }
 
@@ -109,26 +109,48 @@
   const VOZ = window.SpeechRecognition || window.webkitSpeechRecognition;
   let rec = null;
   function pararVoz() { if (rec) { try { rec.stop(); } catch (e) {} } }
+  const ERROS_VOZ = {
+    'not-allowed': 'O microfone está bloqueado para este site. Clique no cadeado ao lado do endereço → Microfone → Permitir, e recarregue a página.',
+    'service-not-allowed': 'O navegador não liberou o serviço de voz. Use o Google Chrome ou o Microsoft Edge (Brave/Opera não funcionam).',
+    'audio-capture': 'Nenhum microfone encontrado. Confira se o fone/microfone está conectado e escolhido como padrão no Windows.',
+    'network': 'O serviço de reconhecimento de voz não respondeu (esse navegador ou a rede bloqueia). Use o Chrome/Edge ou o ditado do Windows: tecla Windows + H.',
+    'no-speech': 'Não ouvi nada. Fale mais perto do microfone ou confira se o microfone certo está selecionado no Windows.',
+    'language-not-supported': 'O idioma português não está disponível neste navegador. Use o Chrome ou o Edge.'
+  };
+  function vozStatus(txt, tipo) {
+    let el = $('as-voz-st');
+    if (!el) { const row = $('as-mic') && $('as-mic').closest('.as-row'); if (!row) return; row.insertAdjacentHTML('beforebegin', '<div id="as-voz-st" class="as-msg" style="margin:8px 0 0"></div>'); el = $('as-voz-st'); }
+    if (!txt) { el.remove(); return; }
+    el.className = 'as-msg ' + (tipo || 'info'); el.style.margin = '8px 0 0'; el.textContent = txt;
+  }
   function falar() {
-    if (!VOZ) { alert('Este navegador não aceita ditado por voz. Use o Google Chrome ou o Microsoft Edge.'); return; }
+    if (!VOZ) { alert('Este navegador não aceita ditado por voz. Use o Google Chrome ou o Microsoft Edge — ou o ditado do Windows: clique na caixa de texto e aperte Windows + H.'); return; }
     if (rec) { pararVoz(); return; }
     const ta = $('as-txt'); if (!ta) return;
     const base = ta.value ? ta.value.replace(/\s*$/, ' ') : '';
-    let finalTxt = '';
-    rec = new VOZ(); rec.lang = 'pt-BR'; rec.continuous = true; rec.interimResults = true;
+    let finalTxt = '', parcial = '', ouviu = false, erro = null;
+    rec = new VOZ(); rec.lang = 'pt-BR'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 1;
     const btn = $('as-mic'), t = $('as-mic-t');
     if (btn) btn.classList.add('gravando'); if (t) t.textContent = 'Parar';
+    vozStatus('Aguardando o microfone...', 'info');
+    rec.onstart = () => vozStatus('🎙️ Ouvindo... pode falar. Clique em "Parar" quando terminar.', 'info');
+    rec.onspeechstart = () => { ouviu = true; vozStatus('🎙️ Ouvindo você...', 'info'); };
     rec.onresult = ev => {
-      let parcial = '';
+      ouviu = true; parcial = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const r = ev.results[i];
         if (r.isFinal) finalTxt += r[0].transcript.trim() + ' '; else parcial += r[0].transcript;
       }
-      if ($('as-txt')) $('as-txt').value = base + finalTxt + parcial;
+      const el = $('as-txt'); if (el) { el.value = base + finalTxt + parcial; el.scrollTop = el.scrollHeight; }
     };
-    rec.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') alert('Libere o microfone para este site (ícone de cadeado ao lado do endereço).'); };
-    rec.onend = () => { rec = null; const b = $('as-mic'), tt = $('as-mic-t'); if (b) b.classList.remove('gravando'); if (tt) tt.textContent = 'Falar'; if ($('as-txt')) $('as-txt').value = (base + finalTxt).trim(); };
-    try { rec.start(); } catch (e) { rec = null; }
+    rec.onerror = ev => { erro = ev.error; if (ev.error !== 'aborted') vozStatus(ERROS_VOZ[ev.error] || ('Erro no ditado: ' + ev.error + '. Tente o ditado do Windows: Windows + H.'), 'bad'); };
+    rec.onend = () => {
+      rec = null; const b = $('as-mic'), tt = $('as-mic-t'); if (b) b.classList.remove('gravando'); if (tt) tt.textContent = 'Falar';
+      const texto = (base + finalTxt + parcial).trim();
+      if ($('as-txt')) $('as-txt').value = texto;
+      if (!erro) { if (texto !== base.trim()) vozStatus(''); else vozStatus(ouviu ? 'Não consegui entender. Tente falar de novo, um pouco mais devagar.' : 'Não ouvi nada. Confira o microfone selecionado no Windows ou use Windows + H.', 'warn'); }
+    };
+    try { rec.start(); } catch (e) { rec = null; if (btn) btn.classList.remove('gravando'); if (t) t.textContent = 'Falar'; vozStatus('Não foi possível iniciar o ditado: ' + e.message, 'bad'); }
   }
   function alternar(v) {
     montar(); st.aberto = v === undefined ? !st.aberto : v;
