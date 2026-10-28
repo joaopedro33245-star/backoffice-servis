@@ -73,6 +73,8 @@
     .as-btn{height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--border,var(--line,#e3e8ef));background:var(--bg-card,#fff);color:inherit;font:600 13px Inter,system-ui,sans-serif;cursor:pointer}
     .as-btn.pri{background:var(--primary,var(--blue,#2563eb));border-color:var(--primary,var(--blue,#2563eb));color:#fff}
     .as-btn:disabled{opacity:.55;cursor:wait}
+    .as-btn.gravando{background:#dc2626;border-color:#dc2626;color:#fff;animation:as-pulse 1.2s infinite}
+    @keyframes as-pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.45)}50%{box-shadow:0 0 0 6px rgba(220,38,38,0)}}
     .as-msg{border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px}
     .as-msg.info{background:var(--primary-50,var(--blue-50,#eff4ff));color:var(--primary,var(--blue,#2563eb))}
     .as-msg.ok{background:var(--accent-dim,var(--ok-50,#e9f8ee));color:var(--accent,var(--ok,#16a34a))}
@@ -100,16 +102,44 @@
     st.prop = null;
     $('as-b').innerHTML = `${msg || ''}<textarea id="as-txt" placeholder="Ex.: cole o e-mail da seguradora, ou escreva &quot;abre uma demanda pra Renata conferir o boleto da Zurich até sexta&quot;"></textarea>
       <p class="as-dica">Funciona para pedido de seguro, nova torre, demanda, checklist de portaria e relatório diário (ex.: &quot;registra que conferi os e-mails da Zurich&quot;). Você confere tudo antes de gravar. CPF e senhas são descartados.</p>
-      <div class="as-row"><button class="as-btn pri" id="as-go" onclick="Assistente.interpretar()">Interpretar</button></div>`;
+      <div class="as-row">${VOZ ? '<button class="as-btn" id="as-mic" onclick="Assistente.falar()" title="Falar em vez de digitar"><span class="as-mic-ic">🎤</span> <span id="as-mic-t">Falar</span></button>' : ''}<button class="as-btn pri" id="as-go" onclick="Assistente.interpretar()">Interpretar</button></div>`;
+  }
+
+  // ---------- ditado por voz (Chrome / Edge) ----------
+  const VOZ = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null;
+  function pararVoz() { if (rec) { try { rec.stop(); } catch (e) {} } }
+  function falar() {
+    if (!VOZ) { alert('Este navegador não aceita ditado por voz. Use o Google Chrome ou o Microsoft Edge.'); return; }
+    if (rec) { pararVoz(); return; }
+    const ta = $('as-txt'); if (!ta) return;
+    const base = ta.value ? ta.value.replace(/\s*$/, ' ') : '';
+    let finalTxt = '';
+    rec = new VOZ(); rec.lang = 'pt-BR'; rec.continuous = true; rec.interimResults = true;
+    const btn = $('as-mic'), t = $('as-mic-t');
+    if (btn) btn.classList.add('gravando'); if (t) t.textContent = 'Parar';
+    rec.onresult = ev => {
+      let parcial = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const r = ev.results[i];
+        if (r.isFinal) finalTxt += r[0].transcript.trim() + ' '; else parcial += r[0].transcript;
+      }
+      if ($('as-txt')) $('as-txt').value = base + finalTxt + parcial;
+    };
+    rec.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') alert('Libere o microfone para este site (ícone de cadeado ao lado do endereço).'); };
+    rec.onend = () => { rec = null; const b = $('as-mic'), tt = $('as-mic-t'); if (b) b.classList.remove('gravando'); if (tt) tt.textContent = 'Falar'; if ($('as-txt')) $('as-txt').value = (base + finalTxt).trim(); };
+    try { rec.start(); } catch (e) { rec = null; }
   }
   function alternar(v) {
     montar(); st.aberto = v === undefined ? !st.aberto : v;
+    if (!st.aberto) pararVoz();
     $('as-win').classList.toggle('on', st.aberto);
     if (st.aberto && $('as-txt')) setTimeout(() => $('as-txt').focus(), 50);
   }
 
   // ---------- 1. interpretar ----------
   async function interpretar() {
+    pararVoz();
     const txt = ($('as-txt') || {}).value || '';
     if (txt.trim().length < 5) return;
     const btn = $('as-go'); btn.disabled = true; btn.textContent = 'Lendo o texto...';
@@ -211,6 +241,6 @@
   async function ir(sec, ent, id) { alternar(false); await showSection(sec); setTimeout(() => { if (window.Painel) Painel.abrir(ent, id); }, 600); }
   function voltar() { const t = st.prop ? st.prop.original : ''; telaInicial(); $('as-txt').value = t; }
 
-  window.Assistente = { alternar, interpretar, gravar, voltar, ir };
+  window.Assistente = { alternar, interpretar, gravar, voltar, ir, falar };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montar); else montar();
 })();

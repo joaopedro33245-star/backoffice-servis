@@ -318,3 +318,43 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   body { background: #fff; }
   .card { box-shadow: none; break-inside: avoid; }
 }
+
+/* ---------- modo escuro ---------- */
+html[data-theme="dark"] {
+  --bg: #0b1220; --card: #131c2e; --line: #26324a; --line-2: #1c2639;
+  --tx: #e5eaf3; --tx-2: #a9b4c7; --tx-3: #7d8aa3;
+  --blue: #3b82f6; --blue-h: #2563eb; --blue-50: #142443; --blue-100: #1b2f57;
+  --ok: #22c55e; --ok-50: #10291b; --warn: #f59e0b; --warn-50: #2c2210; --bad: #ef4444; --bad-50: #331718;
+  --violet: #a78bfa; --violet-50: #241a3d;
+  --sh: 0 1px 2px rgba(0,0,0,.35); --sh-2: 0 10px 30px rgba(0,0,0,.5);
+  --navy: #0a1426; --navy-2: #13213d; --navy-3: #1c2f55;
+  /* usados pelo botão Assistente */
+  --bg-card: #131c2e; --bg-input: #0f1727; --border: #26324a; --text-primary: #e5eaf3; --text-secondary: #a9b4c7; --text-muted: #7d8aa3;
+  color-scheme: dark;
+}
+html[data-theme="dark"] .top { background: rgba(11,18,32,.92); }
+html[data-theme="dark"] .top-search input, html[data-theme="dark"] .me-chip, html[data-theme="dark"] .btn,
+html[data-theme="dark"] .kpi, html[data-theme="dark"] .attn-box, html[data-theme="dark"] .inp, html[data-theme="dark"] .sel,
+html[data-theme="dark"] .seg, html[data-theme="dark"] .kcol-h .n, html[data-theme="dark"] .kcard, html[data-theme="dark"] .person,
+html[data-theme="dark"] .cal, html[data-theme="dark"] .drawer, html[data-theme="dark"] .modal, html[data-theme="dark"] .ta,
+html[data-theme="dark"] .who-list button { background: var(--card); }
+html[data-theme="dark"] .btn:hover { background: #1a2540; border-color: #34425f; }
+html[data-theme="dark"] .btn-primary { background: var(--blue); border-color: var(--blue); }
+html[data-theme="dark"] .btn-primary:hover { background: var(--blue-h); }
+html[data-theme="dark"] .btn-light { background: rgba(255,255,255,.12); }
+html[data-theme="dark"] .kcol { background: #0f1828; }
+html[data-theme="dark"] .person-n div, html[data-theme="dark"] .now.stale, html[data-theme="dark"] .tl .txt, html[data-theme="dark"] .cal-dow,
+html[data-theme="dark"] .blk, html[data-theme="dark"] .note, html[data-theme="dark"] .dr-actions, html[data-theme="dark"] .cal-d.out,
+html[data-theme="dark"] .cal-d:hover { background: var(--line-2); }
+html[data-theme="dark"] .tag-stale { background: #1e293b; color: #94a3b8; }
+html[data-theme="dark"] .tag-demo { background: #3a2e0b; color: #fcd34d; }
+html[data-theme="dark"] .av-stack .av { border-color: var(--card); }
+html[data-theme="dark"] .tbl tr:hover td { background: #182237; }
+html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.85); }
+html[data-theme="dark"] .top-title h1, html[data-theme="dark"] .card-h h3, html[data-theme="dark"] .kcol-h, html[data-theme="dark"] .dr-h h2,
+html[data-theme="dark"] .sec-t, html[data-theme="dark"] .modal-h h3 { color: var(--tx); }
+html[data-theme="dark"] .kpi-v { color: var(--k, var(--tx)); }
+html[data-theme="dark"] .kpi[style*="#0f1e3d"] { --k: var(--tx); }
+.theme-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 8px; background: var(--card); cursor: pointer; flex-shrink: 0; }
+.theme-btn svg { width: 18px; height: 18px; }
+.theme-btn .sol { display: none; } html[data-theme="dark"] .theme-btn .sol { display: block; } html[data-theme="dark"] .theme-btn .lua { display: none; }
