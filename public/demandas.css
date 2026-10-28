@@ -351,6 +351,9 @@ html[data-theme="dark"] .tag-demo { background: #3a2e0b; color: #fcd34d; }
 html[data-theme="dark"] .av-stack .av { border-color: var(--card); }
 html[data-theme="dark"] .tbl tr:hover td { background: #182237; }
 html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.85); }
+html[data-theme="dark"] .top-title h1, html[data-theme="dark"] .card-h h3, html[data-theme="dark"] .kcol-h, html[data-theme="dark"] .dr-h h2,
+html[data-theme="dark"] .sec-t, html[data-theme="dark"] .modal-h h3 { color: var(--tx); }
+html[data-theme="dark"] .kpi-v { color: var(--k, var(--tx)); }
 .theme-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 8px; background: var(--card); cursor: pointer; flex-shrink: 0; }
 .theme-btn svg { width: 18px; height: 18px; }
 .theme-btn .sol { display: none; } html[data-theme="dark"] .theme-btn .sol { display: block; } html[data-theme="dark"] .theme-btn .lua { display: none; }
