@@ -70,20 +70,13 @@
       </div>
       <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border)"><button class="btn btn-outline" onclick="Cftv.fechar()">Cancelar</button><button class="btn btn-accent" id="cftv-salvar" onclick="Cftv.salvar()">Salvar</button></div>
     </div></div>
-    <div class="modal-overlay" id="cftv-mail"><div class="modal" style="max-width:720px">
+    <div class="modal-overlay" id="cftv-mail"><div class="modal" style="max-width:760px">
       <div class="modal-header"><h3>Cobrança de pendências por e-mail</h3><button class="modal-close" onclick="Cftv.fecharMail()">&times;</button></div>
-      <div class="modal-body">
-        <div class="form-group"><label class="form-label">Para (separe vários e-mails com vírgula)</label><input class="form-input" id="cftv-mail-para" placeholder="tecnico@empresa.com.br"></div>
-        <div class="form-group"><label class="form-label">Cópia (CC)</label><input class="form-input" id="cftv-mail-cc" placeholder="opcional"></div>
-        <div class="form-group"><label class="form-label">Assunto</label><input class="form-input" id="cftv-mail-assunto"></div>
-        <div class="form-group"><label class="form-label">Mensagem (pode editar antes de enviar)</label><textarea class="form-input" id="cftv-mail-corpo" rows="14" style="resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:12px"></textarea></div>
-        <div id="cftv-mail-aviso" style="font-size:12px;color:var(--text-muted)"></div>
+      <div class="modal-body" style="max-height:70vh;overflow:auto">
+        <div id="cftv-mail-aviso" style="font-size:12px;color:var(--text-muted);margin-bottom:12px"></div>
+        <div id="cftv-mail-grupos"></div>
       </div>
-      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:14px 20px;border-top:1px solid var(--border)">
-        <button class="btn btn-outline" onclick="Cftv.copiar()">Copiar texto</button>
-        <button class="btn btn-outline" onclick="Cftv.enviar('gmail')">Abrir no Gmail</button>
-        <button class="btn btn-accent" onclick="Cftv.enviar('mailto')">Abrir no e-mail (Outlook)</button>
-      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border)"><button class="btn btn-outline" onclick="Cftv.fecharMail()">Fechar</button></div>
     </div></div>`);
     // abre/atualiza a aba junto com a navegação do Backoffice
     if (typeof window.showSection === 'function' && !window.showSection.__cftv) {
@@ -189,54 +182,68 @@
   }
   function toast(m, bad) { if (typeof showToast === 'function') showToast(m, bad); else alert(m); }
 
-  // ---------- cobrança em lote ----------
-  let lote = [];
+  // ---------- cobrança em lote (Zimbra, igual aos Fornecedores) ----------
+  const DESTINOS = {
+    'Servis Ceará': ['luizmagalhaes@serviseletronica.com.br', 'pedro.netto@serviseletronica.com.br', 'auriceliocosta@serviseletronica.com.br', 'danyelmendes@serviseletronica.com.br', 'rennanmendes@serviseletronica.com.br'],
+    'Secopi Piauí': ['tecnicasecopi@serviseletronica.com.br', 'luizmagalhaes@serviseletronica.com.br', 'artefiosecopi@serviseletronica.com.br', 'franciscojesus@serviseletronica.com.br'],
+    'Servis Maranhão': ['luizmagalhaes@serviseletronica.com.br', 'kleytonsilva@serviseletronica.com.br']
+  };
+  const ZIMBRA = 'https://webmail.servisgr.com.br/';
+  const paraDe = f => lsGet('cftv_para_' + f, '') || (DESTINOS[f] || []).join(';');
+  let grupos = [];
+  function textoGrupo(f, itens) {
+    const linhas = itens.map((p, i) => {
+      const d = dias(p.detectado_em);
+      return `${i + 1}. ${p.conta ? p.conta + ' - ' : ''}${p.cliente}\n   Problema: ${p.problema}${p.cameras ? ' (' + p.cameras + ')' : ''}\n   Pendente desde ${fmtD(p.detectado_em)} (${d} dia${d === 1 ? '' : 's'})${p.qtd_cobrancas ? ` · já cobrado ${p.qtd_cobrancas}x` : ''}${p.detalhe ? `\n   Obs.: ${p.detalhe.replace(/\s+/g, ' ')}` : ''}`;
+    }).join('\n\n');
+    return {
+      assunto: `[Backoffice] Pendências de CFTV ${f} — ${fmtD(hoje())} (${itens.length} cliente${itens.length > 1 ? 's' : ''})`,
+      corpo: `Prezados, bom dia.\n\nSegue a relação de clientes da ${f} com pendência de CFTV (${itens.length} no total). Pedimos verificação e retorno com a previsão de atendimento de cada um:\n\n${linhas}\n\nFavor responder este e-mail informando o andamento.\n\n---\nEnviado via Backoffice Servis`
+    };
+  }
   function cobrar() {
-    lote = ST.sel.size ? ST.lista.filter(p => ST.sel.has(p.id) && aberta(p)) : filtrados().filter(aberta);
+    const lote = ST.sel.size ? ST.lista.filter(p => ST.sel.has(p.id) && aberta(p)) : filtrados().filter(aberta);
     if (!lote.length) { toast('Não há pendências em aberto para cobrar.', true); return; }
-    const porFilial = {};
-    lote.forEach(p => { (porFilial[p.filial || 'Sem filial'] = porFilial[p.filial || 'Sem filial'] || []).push(p); });
-    let n = 0;
-    const linhas = Object.keys(porFilial).sort().map(f => `■ ${f.toUpperCase()}\n` + porFilial[f].map(p => {
-      n++; const d = dias(p.detectado_em);
-      return `${n}. ${p.conta ? p.conta + ' - ' : ''}${p.cliente}\n   Problema: ${p.problema}${p.cameras ? ' (' + p.cameras + ')' : ''}\n   Pendente desde ${fmtD(p.detectado_em)} (${d} dia${d === 1 ? '' : 's'})${p.qtd_cobrancas ? ` · já cobrado ${p.qtd_cobrancas}x` : ''}${p.detalhe ? `\n   Obs.: ${p.detalhe.replace(/\s+/g, ' ')}` : ''}`;
-    }).join('\n\n')).join('\n\n');
-    const corpo = `Prezados, bom dia.\n\nSegue a relação de clientes com pendência de CFTV (${lote.length} no total). Pedimos verificação e retorno com a previsão de atendimento de cada um:\n\n${linhas}\n\nFavor responder este e-mail informando o andamento.\n\nAtenciosamente,\nBackoffice - Servis Eletrônica`;
-    $('cftv-mail-para').value = lsGet('cftv_mail_para', ''); $('cftv-mail-cc').value = lsGet('cftv_mail_cc', '');
-    $('cftv-mail-assunto').value = `Pendências de CFTV — ${fmtD(hoje())} (${lote.length} cliente${lote.length > 1 ? 's' : ''})`;
-    $('cftv-mail-corpo').value = corpo;
-    $('cftv-mail-aviso').textContent = `${lote.length} pendência(s) ${ST.sel.size ? 'selecionada(s)' : 'em aberto (com os filtros atuais)'}. Depois de abrir o e-mail, elas serão marcadas como "Cobrado" com a data de hoje.`;
+    const por = {};
+    lote.forEach(p => { const f = p.filial || 'Sem filial'; (por[f] = por[f] || []).push(p); });
+    grupos = Object.keys(por).sort().map(f => Object.assign({ filial: f, itens: por[f], enviado: false }, textoGrupo(f, por[f])));
+    $('cftv-mail-aviso').innerHTML = `${lote.length} pendência(s) ${ST.sel.size ? 'selecionada(s)' : 'em aberto (com os filtros atuais)'}, em <b>${grupos.length} e-mail(s)</b> — um por filial, já com os responsáveis de cada uma. "Abrir no Zimbra" abre o e-mail pronto; é só clicar em Enviar lá.`;
+    renderGrupos();
     $('cftv-mail').classList.add('open');
   }
+  function renderGrupos() {
+    $('cftv-mail-grupos').innerHTML = grupos.map((g, i) => `<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px${g.enviado ? ';opacity:.6' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px"><b>${esc(g.filial)} · ${g.itens.length} cliente(s)</b>${g.enviado ? '<span class="badge" style="color:#1abf8f;background:#1abf8f1f">Cobrado</span>' : ''}</div>
+      <div class="form-group"><label class="form-label">Para</label><input class="form-input" id="cftv-g-para-${i}" value="${esc(paraDe(g.filial))}" placeholder="${DESTINOS[g.filial] ? '' : 'Sem lista cadastrada para esta filial — digite os e-mails (separados por ;)'}"></div>
+      <div class="form-group"><label class="form-label">Assunto</label><input class="form-input" id="cftv-g-assunto-${i}" value="${esc(g.assunto)}"></div>
+      <details><summary style="cursor:pointer;font-size:12px;color:var(--text-muted)">Ver / editar mensagem</summary><textarea class="form-input" id="cftv-g-corpo-${i}" rows="10" style="margin-top:8px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:12px">${esc(g.corpo)}</textarea></details>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px"><button class="btn btn-outline btn-sm" onclick="Cftv.copiar(${i})">Copiar texto</button><button class="btn btn-accent btn-sm" onclick="Cftv.enviar(${i})">Abrir no Zimbra</button></div>
+    </div>`).join('');
+  }
   function fecharMail() { $('cftv-mail').classList.remove('open'); }
-  async function copiar() {
-    const t = `Assunto: ${$('cftv-mail-assunto').value}\n\n${$('cftv-mail-corpo').value}`;
-    try { await navigator.clipboard.writeText(t); toast('Texto copiado. Cole no seu e-mail.'); }
-    catch (e) { $('cftv-mail-corpo').select(); document.execCommand('copy'); toast('Texto copiado.'); }
-    perguntarRegistro();
+  function dadosGrupo(i) { return { para: $('cftv-g-para-' + i).value.trim().replace(/\s*[,;]\s*/g, ';'), assunto: $('cftv-g-assunto-' + i).value, corpo: $('cftv-g-corpo-' + i).value }; }
+  async function copiar(i) {
+    const d = dadosGrupo(i), t = `Para: ${d.para}\nAssunto: ${d.assunto}\n\n${d.corpo}`;
+    try { await navigator.clipboard.writeText(t); toast('Texto copiado. Cole no seu e-mail.'); } catch (e) { toast('Não foi possível copiar.', true); }
   }
-  function enviar(modo) {
-    const para = $('cftv-mail-para').value.trim(), cc = $('cftv-mail-cc').value.trim();
-    lsSet('cftv_mail_para', para); lsSet('cftv_mail_cc', cc);
-    const assunto = $('cftv-mail-assunto').value, corpo = $('cftv-mail-corpo').value;
-    if (modo === 'gmail') {
-      window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(para)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`, '_blank');
-    } else {
-      const url = `mailto:${encodeURIComponent(para).replace(/%2C/g, ',').replace(/%40/g, '@')}?${cc ? 'cc=' + encodeURIComponent(cc) + '&' : ''}subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
-      if (url.length > 1900) { navigator.clipboard && navigator.clipboard.writeText(corpo).catch(() => {}); toast('A lista é grande: o texto também foi copiado. Se o e-mail abrir cortado, apague o corpo e cole (Ctrl+V).'); }
-      location.href = url;
-    }
-    perguntarRegistro();
+  function enviar(i) {
+    const g = grupos[i], d = dadosGrupo(i);
+    if (!d.para) { toast('Preencha o campo Para.', true); return; }
+    if (d.para !== (DESTINOS[g.filial] || []).join(';')) lsSet('cftv_para_' + g.filial, d.para);
+    window.open(`${ZIMBRA}?view=compose&to=${encodeURIComponent(d.para)}&subject=${encodeURIComponent(d.assunto)}&body=${encodeURIComponent(d.corpo)}`, '_blank');
+    toast('Zimbra aberto! Verifique e envie o e-mail.');
+    setTimeout(() => registrar(i), 1000);
   }
-  function perguntarRegistro() {
-    setTimeout(async () => {
-      if (!lote.length || !confirm(`Marcar as ${lote.length} pendência(s) como "Cobrado" (hoje)?`)) return;
-      const agora = new Date().toISOString();
-      const res = await Promise.all(lote.map(p => sb.from('cftv_pendencias').update({ status: p.status === 'Pendente' ? 'Cobrado' : p.status, qtd_cobrancas: (p.qtd_cobrancas || 0) + 1, ultima_cobranca: agora, updated_at: agora }).eq('id', p.id)));
-      const err = res.find(r => r.error);
-      if (err) toast('Erro ao registrar cobrança: ' + err.error.message, true); else toast(`${lote.length} pendência(s) marcadas como cobradas.`);
-      lote = []; ST.sel.clear(); fecharMail(); carregar();
-    }, 800);
+  async function registrar(i) {
+    const g = grupos[i];
+    if (!g || g.enviado || !confirm(`Enviou o e-mail da ${g.filial}? Marcar as ${g.itens.length} pendência(s) como "Cobrado" (hoje)?`)) return;
+    const agora = new Date().toISOString();
+    const res = await Promise.all(g.itens.map(p => sb.from('cftv_pendencias').update({ status: p.status === 'Pendente' ? 'Cobrado' : p.status, qtd_cobrancas: (p.qtd_cobrancas || 0) + 1, ultima_cobranca: agora, updated_at: agora }).eq('id', p.id)));
+    const err = res.find(r => r.error);
+    if (err) { toast('Erro ao registrar cobrança: ' + err.error.message, true); return; }
+    toast(`${g.itens.length} pendência(s) da ${g.filial} marcadas como cobradas.`);
+    g.enviado = true; g.itens.forEach(p => ST.sel.delete(p.id)); renderGrupos(); carregar();
+    if (grupos.every(x => x.enviado)) fecharMail();
   }
 
   window.Cftv = { abrir, fechar, salvar, resolver, excluir, cobrar, fecharMail, copiar, enviar, filtro, marcar, marcarTodos, carregar };
