@@ -101,14 +101,18 @@
   function telaInicial(msg) {
     st.prop = null;
     $('as-b').innerHTML = `${msg || ''}<textarea id="as-txt" placeholder="Ex.: cole o e-mail da seguradora, ou escreva &quot;abre uma demanda pra Renata conferir o boleto da Zurich até sexta&quot;"></textarea>
-      <p class="as-dica">Funciona para pedido de seguro, nova torre, demanda, checklist de portaria e relatório diário (ex.: &quot;registra que conferi os e-mails da Zurich&quot;). Você confere tudo antes de gravar. CPF e senhas são descartados. Para falar: botão 🎤 (Chrome/Edge) ou Windows + H.</p>
-      <div class="as-row">${VOZ ? '<button class="as-btn" id="as-mic" onclick="Assistente.falar()" title="Falar em vez de digitar"><span class="as-mic-ic">🎤</span> <span id="as-mic-t">Falar</span></button>' : ''}<button class="as-btn pri" id="as-go" onclick="Assistente.interpretar()">Interpretar</button></div>`;
+      <p class="as-dica">Funciona para pedido de seguro, nova torre, demanda, checklist de portaria e relatório diário (ex.: &quot;registra que conferi os e-mails da Zurich&quot;). Você confere tudo antes de gravar. CPF e senhas são descartados. Para falar: botão 🎤 ou Windows + H.</p>
+      <div class="as-row">${(VOZ || GRAVA) ? '<button class="as-btn" id="as-mic" onclick="Assistente.falar()" title="Falar em vez de digitar"><span class="as-mic-ic">🎤</span> <span id="as-mic-t">Falar</span></button>' : ''}<button class="as-btn pri" id="as-go" onclick="Assistente.interpretar()">Interpretar</button></div>`;
   }
 
   // ---------- ditado por voz (Chrome / Edge) ----------
   const VOZ = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let rec = null;
-  function pararVoz() { if (rec) { try { rec.stop(); } catch (e) {} } }
+  const GRAVA = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  // Opera / Opera GX / Brave têm o objeto de voz, mas o serviço não funciona: nesses, grava o áudio e o Gemini transcreve
+  const SEM_SERVICO = /\bOPR\/|OPX\/|Opera/.test(navigator.userAgent) || !!navigator.brave;
+  const modoGravar = () => !VOZ || SEM_SERVICO || (() => { try { return localStorage.getItem('as_voz_modo') === 'gravar'; } catch (e) { return false; } })();
+  let rec = null, grav = null;
+  function pararVoz() { if (rec) { try { rec.stop(); } catch (e) {} } if (grav && grav.mr.state === 'recording') grav.mr.stop(); }
   const ERROS_VOZ = {
     'not-allowed': 'O microfone está bloqueado para este site. Clique no cadeado ao lado do endereço → Microfone → Permitir, e recarregue a página.',
     'service-not-allowed': 'O navegador não liberou o serviço de voz. Use o Google Chrome ou o Microsoft Edge (Brave/Opera não funcionam).',
@@ -123,7 +127,54 @@
     if (!txt) { el.remove(); return; }
     el.className = 'as-msg ' + (tipo || 'info'); el.style.margin = '8px 0 0'; el.textContent = txt;
   }
+  // ---- modo gravação: grava, converte para WAV 16 kHz e manda para o Gemini transcrever ----
+  function wav16k(buf) {
+    const n = buf.length, out = new DataView(new ArrayBuffer(44 + n * 2)); let o = 0;
+    const str = t => { for (let i = 0; i < t.length; i++) out.setUint8(o++, t.charCodeAt(i)); }, u32 = v => { out.setUint32(o, v, true); o += 4; }, u16 = v => { out.setUint16(o, v, true); o += 2; };
+    str('RIFF'); u32(36 + n * 2); str('WAVE'); str('fmt '); u32(16); u16(1); u16(1); u32(16000); u32(32000); u16(2); u16(16); str('data'); u32(n * 2);
+    for (let i = 0; i < n; i++) { const x = Math.max(-1, Math.min(1, buf[i])); out.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7fff, true); o += 2; }
+    return new Uint8Array(out.buffer);
+  }
+  function b64(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+  async function transcrever(blob) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const dec = await ctx.decodeAudioData(await blob.arrayBuffer()); ctx.close && ctx.close();
+    const off = new OfflineAudioContext(1, Math.ceil(dec.duration * 16000), 16000);
+    const src = off.createBufferSource(); src.buffer = dec; src.connect(off.destination); src.start();
+    const res = await off.startRendering();
+    const { data, error } = await sb.functions.invoke('assistente', { body: { audio: b64(wav16k(res.getChannelData(0))), mime: 'audio/wav' } });
+    if (error) { let m = error.message; try { const j = await error.context.json(); if (j && j.erro) m = j.erro; } catch (e) {} throw new Error(m); }
+    if (data && data.erro) throw new Error(data.erro);
+    return (data && data.texto || '').trim();
+  }
+  async function gravarAudio() {
+    if (grav) { pararVoz(); return; }
+    const ta = $('as-txt'); if (!ta) return;
+    const btn = $('as-mic'), t = $('as-mic-t');
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+    catch (e) { vozStatus(e && e.name === 'NotFoundError' ? ERROS_VOZ['audio-capture'] : ERROS_VOZ['not-allowed'], 'bad'); return; }
+    const partes = [], mr = new MediaRecorder(stream);
+    grav = { mr, timer: setTimeout(() => pararVoz(), 120000) };
+    mr.ondataavailable = e => { if (e.data && e.data.size) partes.push(e.data); };
+    mr.onstop = async () => {
+      clearTimeout(grav.timer); stream.getTracks().forEach(tr => tr.stop()); grav = null;
+      if (btn) { btn.classList.remove('gravando'); btn.disabled = true; } if (t) t.textContent = 'Transcrevendo...';
+      vozStatus('⏳ Transformando sua fala em texto...', 'info');
+      try {
+        const txt = await transcrever(new Blob(partes, { type: mr.mimeType || 'audio/webm' }));
+        const el = $('as-txt');
+        if (txt && el) { el.value = (el.value ? el.value.replace(/\s*$/, ' ') : '') + txt; vozStatus(''); }
+        else vozStatus('Não ouvi nenhuma fala na gravação. Confira o microfone selecionado no Windows.', 'warn');
+      } catch (e) { vozStatus('Não consegui transcrever: ' + e.message, 'bad'); }
+      const b = $('as-mic'), tt = $('as-mic-t'); if (b) b.disabled = false; if (tt) tt.textContent = 'Falar';
+    };
+    mr.start();
+    if (btn) btn.classList.add('gravando'); if (t) t.textContent = 'Parar';
+    vozStatus('🎙️ Gravando... fale e clique em "Parar" quando terminar (até 2 min).', 'info');
+  }
   function falar() {
+    if (modoGravar()) { if (GRAVA) gravarAudio(); else alert('Este navegador não permite gravar áudio. Use o ditado do Windows: clique na caixa de texto e aperte Windows + H.'); return; }
     if (!VOZ) { alert('Este navegador não aceita ditado por voz. Use o Google Chrome ou o Microsoft Edge — ou o ditado do Windows: clique na caixa de texto e aperte Windows + H.'); return; }
     if (rec) { pararVoz(); return; }
     const ta = $('as-txt'); if (!ta) return;
@@ -143,12 +194,12 @@
       }
       const el = $('as-txt'); if (el) { el.value = base + finalTxt + parcial; el.scrollTop = el.scrollHeight; }
     };
-    rec.onerror = ev => { erro = ev.error; if (ev.error !== 'aborted') vozStatus(ERROS_VOZ[ev.error] || ('Erro no ditado: ' + ev.error + '. Tente o ditado do Windows: Windows + H.'), 'bad'); };
+    rec.onerror = ev => { erro = ev.error; if (/network|service-not-allowed|language-not-supported/.test(ev.error)) { try { localStorage.setItem('as_voz_modo', 'gravar'); } catch (e) {} vozStatus('O reconhecimento deste navegador falhou. Clique em 🎤 Falar de novo: agora vou gravar o áudio e transcrever pelo Gemini.', 'warn'); return; } if (ev.error !== 'aborted') vozStatus(ERROS_VOZ[ev.error] || ('Erro no ditado: ' + ev.error + '. Tente o ditado do Windows: Windows + H.'), 'bad'); };
     rec.onend = () => {
       rec = null; const b = $('as-mic'), tt = $('as-mic-t'); if (b) b.classList.remove('gravando'); if (tt) tt.textContent = 'Falar';
       const texto = (base + finalTxt + parcial).trim();
       if ($('as-txt')) $('as-txt').value = texto;
-      if (!erro) { if (texto !== base.trim()) vozStatus(''); else vozStatus(ouviu ? 'Não consegui entender. Tente falar de novo, um pouco mais devagar.' : 'Não ouvi nada. Confira o microfone selecionado no Windows ou use Windows + H.', 'warn'); }
+      if (!erro) { if (texto !== base.trim()) vozStatus(''); else if (ouviu) { try { localStorage.setItem('as_voz_modo', 'gravar'); } catch (e) {} vozStatus('O navegador ouviu mas não transcreveu. Clique em 🎤 Falar de novo: agora vou gravar o áudio e transcrever pelo Gemini.', 'warn'); } else vozStatus( 'Não ouvi nada. Confira o microfone selecionado no Windows ou use Windows + H.', 'warn'); }
     };
     try { rec.start(); } catch (e) { rec = null; if (btn) btn.classList.remove('gravando'); if (t) t.textContent = 'Falar'; vozStatus('Não foi possível iniciar o ditado: ' + e.message, 'bad'); }
   }
