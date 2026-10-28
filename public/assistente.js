@@ -110,7 +110,8 @@
   const GRAVA = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
   // Opera / Opera GX / Brave têm o objeto de voz, mas o serviço não funciona: nesses, grava o áudio e o Gemini transcreve
   const SEM_SERVICO = /\bOPR\/|OPX\/|Opera/.test(navigator.userAgent) || !!navigator.brave;
-  const modoGravar = () => !VOZ || SEM_SERVICO || (() => { try { return localStorage.getItem('as_voz_modo') === 'gravar'; } catch (e) { return false; } })();
+  // padrão: grava e transcreve pelo Gemini (o reconhecimento do Edge/Opera não é confiável). Só usa o do navegador se não der para gravar.
+  const modoGravar = () => GRAVA || !VOZ || SEM_SERVICO;
   let rec = null, grav = null;
   function pararVoz() { if (rec) { try { rec.stop(); } catch (e) {} } if (grav && grav.mr.state === 'recording') grav.mr.stop(); }
   const ERROS_VOZ = {
