@@ -721,7 +721,7 @@
       toast('Lendo ' + f.name + '...');
       await carregarXLSX();
       const buf = await f.arrayBuffer();
-      const wb = XLSX.read(buf, { type: 'array', cellDates: true, raw: false, codepage: 65001 });
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true, raw: /\.(csv|txt)$/i.test(f.name), codepage: 65001 });
       let melhor = null;
       for (const nome of wb.SheetNames) {
         const rows = XLSX.utils.sheet_to_json(wb.Sheets[nome], { header: 1, raw: true, defval: '' });
