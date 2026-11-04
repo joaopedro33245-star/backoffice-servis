@@ -52,7 +52,7 @@ function renderTorresTable() {
     if (gr === 'chkpend' && !(d.status === 'INSTALADA' && torreChecklist(d) < 4)) return false;
     if (iaF === 'sem' && d.forn_ia) return false;
     if (iaF && iaF !== 'sem' && d.forn_ia !== iaF) return false;
-    if (search && !nzBusca(d.cliente).includes(nzBusca(search))) return false;
+    if (search && !nzBusca([d.cliente, d.nome_fantasia, d.codigo_cliente, d.chave_sigma].filter(Boolean).join(' ')).includes(nzBusca(search))) return false;
     return true;
   });
 
@@ -80,7 +80,7 @@ function renderTorresTable() {
       <option value="gratificadas" ${gr==='gratificadas'?'selected':''}>Só gratificadas</option>
       <option value="pagas" ${gr==='pagas'?'selected':''}>Só pagas pelo cliente</option>
     </select>
-    <input class="filter-input" data-filter="search" placeholder="Buscar cliente..." oninput="renderTorresTable()" style="width:200px" value="${escAttr(srEl ? srEl.value : '')}">`;
+    <input class="filter-input" data-filter="search" placeholder="Buscar cliente, código ou chave..." oninput="renderTorresTable()" style="width:200px" value="${escAttr(srEl ? srEl.value : '')}">`;
   if (_foco) { const _el = document.querySelector('#torres-filters [data-filter="' + _foco.f + '"]'); if (_el) { _el.focus(); try { if (_foco.s != null) _el.setSelectionRange(_foco.s, _foco.s); } catch (e) {} } }
 
   document.getElementById('torres-table-wrap').innerHTML = `
@@ -95,7 +95,7 @@ function renderTorresTable() {
       const ckCell = `<span class="badge ${ck === 4 ? 'badge-success' : ck === 0 ? 'badge-neutral' : 'badge-warning'}" title="${ckTip}" style="cursor:help">${ck}/4</span>`;
       const obsIco = d.observacao ? `<span class="tm-obs-ico" title="${escAttr(d.observacao)}">📝</span>` : '';
       const qtdBadge = qtdTorres(d) > 1 ? ` <span class="badge badge-blue" title="Este cliente tem ${qtdTorres(d)} torres">${qtdTorres(d)} torres</span>` : '';
-      return `<tr><td>${d.cliente}${qtdBadge}${obsIco}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null||d.valor_servidor!=null ? 'Visualização ' + (d.forn_imagem||'') + ': ' + fmtVal(d.valor_imagem||0) + ' | Inteligência ' + (d.forn_ia||'') + ': ' + fmtVal(Number(d.valor_ia||0) + Number(d.valor_licenca_ia||0)) + (d.valor_servidor ? ' | Servidor Adentro: ' + fmtVal(d.valor_servidor) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+      return `<tr><td>${d.cliente}${qtdBadge}${obsIco}${torreIdent(d)}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null||d.valor_servidor!=null ? 'Visualização ' + (d.forn_imagem||'') + ': ' + fmtVal(d.valor_imagem||0) + ' | Inteligência ' + (d.forn_ia||'') + ': ' + fmtVal(Number(d.valor_ia||0) + Number(d.valor_licenca_ia||0)) + (d.valor_servidor ? ' | Servidor Adentro: ' + fmtVal(d.valor_servidor) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
@@ -134,6 +134,9 @@ function openTorreModal(editId) {
     document.getElementById('torre-modal-title').textContent = 'Editar Torre';
     document.getElementById('torre-edit-id').value = d.id;
     document.getElementById('tm-cliente').value = d.cliente || '';
+    document.getElementById('tm-fantasia').value = d.nome_fantasia || '';
+    document.getElementById('tm-codigo').value = d.codigo_cliente || '';
+    document.getElementById('tm-chave-sigma').value = d.chave_sigma || '';
     document.getElementById('tm-cidade').value = d.cidade || 'FORTALEZA';
     document.getElementById('tm-status').value = d.status || 'EM AUTORIZAÇÃO';
     document.getElementById('tm-modelo').value = d.modelo || 'CORTESIA 6 MESES';
@@ -160,6 +163,9 @@ function openTorreModal(editId) {
     document.getElementById('torre-modal-title').textContent = 'Nova Torre';
     document.getElementById('torre-edit-id').value = '';
     document.getElementById('tm-cliente').value = '';
+    document.getElementById('tm-fantasia').value = '';
+    document.getElementById('tm-codigo').value = '';
+    document.getElementById('tm-chave-sigma').value = '';
     document.getElementById('tm-cidade').value = 'FORTALEZA';
     document.getElementById('tm-status').value = 'EM AUTORIZAÇÃO';
     document.getElementById('tm-modelo').value = 'CORTESIA 6 MESES';
@@ -292,6 +298,14 @@ function renderTorresFinanceiro() {
   </div></div>`;
 }
 function nzBusca(t) { return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+function torreIdent(d) {
+  const e = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const p = [];
+  if (d.nome_fantasia) p.push(e(d.nome_fantasia));
+  if (d.codigo_cliente) p.push('Cód. ' + e(d.codigo_cliente));
+  if (d.chave_sigma) p.push('Chave ' + e(d.chave_sigma));
+  return p.length ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${p.join(' · ')}</div>` : '';
+}
 function qtdTorres(d) { return Math.max(1, parseInt(d.qtd_torres) || 1); }
 function fornTorreCell(d) {
   const cor = { Segware: '#2563eb', Octos: '#7c3aed', Monuv: '#0891b2' };
@@ -308,6 +322,9 @@ async function saveTorre() {
   if (!cliente) { showToast('Preencha o nome do cliente', true); return; }
   const obj = {
     cliente,
+    nome_fantasia: document.getElementById('tm-fantasia').value.trim() || null,
+    codigo_cliente: document.getElementById('tm-codigo').value.trim() || null,
+    chave_sigma: document.getElementById('tm-chave-sigma').value.trim() || null,
     cidade: document.getElementById('tm-cidade').value.toUpperCase(),
     status: document.getElementById('tm-status').value,
     modelo: document.getElementById('tm-modelo').value,
