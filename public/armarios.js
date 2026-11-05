@@ -123,24 +123,51 @@ function renderArmFinanceiro() {
   let box = document.getElementById('arm-fin');
   if (!box) { box = document.createElement('div'); box.id = 'arm-fin'; document.getElementById('arm-charts').before(box); }
   const AD = DATA.armDetail || [];
-  const soma = lista => lista.reduce((a, d) => { const custo = Number(d.custo_forn || 0), rec = Number(d.valor_cli || 0); a.n++; if (d.status === 'Ativo') a.ativos++; a.custo += custo; a.receita += rec; a.lucro += rec - custo; return a; }, { n: 0, ativos: 0, custo: 0, receita: 0, lucro: 0 });
-  const g = soma(AD), grat = soma(AD.filter(d => d.gratificacao === 'Sim')), pagos = soma(AD.filter(d => d.gratificacao !== 'Sim'));
-  const forns = [...new Set(AD.map(d => d.fornecedor || 'Outros'))].sort().map(f => [f, soma(AD.filter(d => (d.fornecedor || 'Outros') === f))]);
-  const pct = s => s.receita ? Math.round(s.lucro / s.receita * 100) + '%' : '—';
-  const din = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
-  const item = (l, v, s, cor) => `<div style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card)"><div style="font-size:11.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">${l}</div><div style="font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;color:${cor || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
-  const linha = (l, s) => `<tr><td>${l}</td><td style="text-align:right">${s.n}</td><td style="text-align:right">${s.ativos}</td><td style="text-align:right">${fmtVal(s.receita)}</td><td style="text-align:right">${fmtVal(s.custo)}</td><td style="text-align:right;font-weight:700;color:${s.lucro >= 0 ? 'var(--accent)' : 'var(--danger)'}">${din(s.lucro)}</td><td style="text-align:right">${pct(s)}</td></tr>`;
+  const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
+  const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
+  const cor = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
+  const resumo = lista => {
+    const r = { n: lista.length, ativos: 0, custo: 0, receita: 0, lucro: 0, forn: {} };
+    lista.forEach(d => {
+      const c = Number(d.custo_forn || 0), rec = Number(d.valor_cli || 0), f = d.fornecedor || 'Outros';
+      if (d.status === 'Ativo') r.ativos++;
+      r.custo += c; r.receita += rec; r.lucro += rec - c;
+      const x = r.forn[f] = r.forn[f] || { v: 0, n: 0, gestao: 0, locacao: 0 };
+      x.v += c; x.n++; x.gestao += Number(d.custo_gestao || 0); x.locacao += Number(d.custo_locacao || 0);
+    });
+    return r;
+  };
+  const g = resumo(AD), pagos = resumo(AD.filter(d => d.gratificacao !== 'Sim')), grat = resumo(AD.filter(d => d.gratificacao === 'Sim'));
+  const num = (l, v, s, c) => `<div style="padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-soft)"><div style="font-size:12px;font-weight:600;color:var(--text-muted)">${l}</div><div style="font-size:22px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;color:${c || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
+  const barras = r => {
+    const itens = Object.entries(r.forn).filter(([, x]) => x.v || x.n).sort((a, b) => b[1].v - a[1].v);
+    if (!itens.length) return '<div style="color:var(--text-muted);font-size:13px">Nenhum armário neste grupo.</div>';
+    const max = Math.max(1, ...itens.map(([, x]) => x.v));
+    return itens.map(([l, x]) => {
+      const det = [x.n + ' armário(s)', x.gestao ? 'gestão ' + fmtVal(x.gestao) : '', x.locacao ? 'locação ' + fmtVal(x.locacao) : ''].filter(Boolean).join(' · ');
+      return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:var(--text-secondary)">${l}</span><span style="font-variant-numeric:tabular-nums">${fmtVal(x.v)} <span style="color:var(--text-muted)">· ${pct(x.v, r.custo)}</span></span></div><div style="height:6px;border-radius:3px;background:var(--bg-soft)"><div style="height:6px;border-radius:3px;background:var(--primary);width:${Math.max(2, x.v / max * 100)}%"></div></div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">${det}</div></div>`;
+    }).join('');
+  };
+  const bloco = (titulo, sub, cTit, r, gratif) => `<div style="border:1px solid var(--border);border-left:4px solid ${cTit};border-radius:12px;padding:16px 18px;background:var(--bg-card)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px"><div style="font-weight:800;font-size:15px">${titulo}</div><div style="font-size:12.5px;color:var(--text-muted)">${r.n} armário(s) · ${r.ativos} ativo(s)</div></div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin:2px 0 12px">${sub}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+        ${num('Receita', fmtVal(r.receita), gratif ? 'cortesia — cliente não paga' : 'o que os clientes pagam')}
+        ${num('Custo com fornecedores', fmtVal(r.custo), 'por mês', 'var(--danger)')}
+        ${gratif ? num('Investimento do mês', R(r.lucro), 'custo da cortesia', cor(r.lucro)) : num('Lucro', R(r.lucro), r.receita ? 'margem de ' + pct(r.lucro, r.receita) : 'sem receita', cor(r.lucro))}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:16px 0 8px">Custo por fornecedor</div>
+      ${barras(r)}
+    </div>`;
   box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:12px"><div style="font-weight:700;font-size:15px">Resultado financeiro dos armários <span style="font-weight:500;color:var(--text-muted);font-size:12.5px">· valores mensais</span></div><div style="font-size:12px;color:var(--text-muted)">Lucro = valor cobrado do cliente − custo do fornecedor</div></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
-      ${item('Cobrado dos clientes', fmtVal(g.receita), pagos.n + ' armário(s) pagos')}
-      ${item('Custo fornecedores', fmtVal(g.custo), '', 'var(--danger)')}
-      ${item('Custo dos gratificados', fmtVal(grat.custo), grat.n + ' armário(s) em cortesia')}
-      ${item('Lucro', din(g.lucro), g.receita ? 'margem ' + pct(g) : 'sem receita', g.lucro >= 0 ? 'var(--accent)' : 'var(--danger)')}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+      <div><div style="font-weight:700;font-size:16px">Resultado financeiro dos armários</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">Valores por mês, separados entre armários pagos e gratificados.</div></div>
+      <div style="font-size:13px;color:var(--text-secondary)">Resultado geral: <b style="font-size:16px;color:${cor(g.lucro)};font-variant-numeric:tabular-nums">${R(g.lucro)}</b> <span style="color:var(--text-muted)">(lucro dos pagos ${R(pagos.lucro)} − cortesia ${fmtVal(Math.abs(grat.lucro))})</span></div>
     </div>
-    <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Grupo</th><th style="text-align:right">Armários</th><th style="text-align:right">Ativos</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Custo forn.</th><th style="text-align:right">Lucro</th><th style="text-align:right">Margem</th></tr></thead><tbody>
-      ${linha('Gratificados (cortesia)', grat)}${linha('Pagos pelo cliente', pagos)}${forns.map(([f, s]) => linha('Fornecedor ' + f, s)).join('')}
-    </tbody></table></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;margin-top:14px">
+      ${bloco('Armários pagos', 'Não gratificados — o cliente paga a mensalidade', 'var(--accent)', pagos, false)}
+      ${bloco('Armários gratificados', 'Cortesia — não geram receita, a empresa arca com o custo', 'var(--warning)', grat, true)}
+    </div>
   </div></div>`;
 }
 
