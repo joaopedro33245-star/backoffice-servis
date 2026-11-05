@@ -1,56 +1,26 @@
-// ===== DESLOCAMENTO DE VTR: o Dashboard VTR dentro da Gestão de Monitoramento =====
+// ===== DESLOCAMENTO DE VTR: abre o Dashboard VTR em outra página (igual às Demandas) =====
 (function () {
   'use strict';
   const URL_VTR = 'https://dashboard-vtr-q5hx.vercel.app/';
   const tema = () => document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-  const urlEmbed = () => URL_VTR + '?embed=1&tema=' + tema();
+  const abrir = () => { location.href = URL_VTR + '?origem=backoffice&tema=' + tema(); };
   const $ = id => document.getElementById(id);
   const ico = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="7" width="15" height="10" rx="2"/><path d="M16 10h4l3 3v4h-7"/><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/></svg>';
   let tentativas = 0;
 
   function montar() {
-    if ($('sec-vtr')) return;
+    if (document.querySelector('.nav-item[data-section="vtr"]')) return;
     const itens = document.querySelector('.nav-group[data-group="monitoramento"] .nav-group-items');
     if (!itens) { if (tentativas++ < 20) setTimeout(montar, 300); return; } // espera a Gestão do Alarme criar o grupo
-    if (typeof titles === 'object') titles.vtr = ['Deslocamento de VTR', 'Dashboard VTR — deslocamentos, rotas, Base Ativa e saúde dos clientes'];
-    itens.insertAdjacentHTML('beforeend', `<div class="nav-item" data-section="vtr" onclick="showSection('vtr')">${ico}<span>Deslocamento VTR</span></div>`);
-    const sec = `<div class="section" id="sec-vtr">
-      <div class="card" style="overflow:hidden">
-        <div class="card-header" style="flex-wrap:wrap;gap:8px">
-          <div><div class="card-title">Dashboard de deslocamento das VTRs</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">Na primeira vez, entre com o seu e-mail e senha do Dashboard VTR.</div></div>
-          <div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="Vtr.recarregar()">↻ Recarregar</button><a class="btn btn-outline btn-sm" href="${URL_VTR}" target="_blank" rel="noopener">Abrir em nova aba ↗</a></div>
-        </div>
-        <div id="vtr-wrap" style="position:relative;height:calc(100vh - 170px);min-height:560px;background:var(--bg-body)">
-          <div id="vtr-load" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px">Carregando o Dashboard VTR...</div>
-        </div>
-      </div>
-    </div>`;
-    const cfg = $('sec-config');
-    if (cfg) cfg.insertAdjacentHTML('beforebegin', sec); else document.querySelector('.content').insertAdjacentHTML('beforeend', sec);
+    itens.insertAdjacentHTML('beforeend', `<div class="nav-item" data-section="vtr" onclick="Vtr.abrir()" title="Abre o Dashboard VTR">${ico}<span>Deslocamento VTR</span></div>`);
     if (typeof window.showSection === 'function' && !window.showSection.__vtr) {
       const orig = window.showSection;
-      window.showSection = function (id) { const r = orig.apply(this, arguments); if (id === 'vtr') carregar(); return r; };
+      window.showSection = function (id) { if (id === 'vtr') { abrir(); return Promise.resolve(); } return orig.apply(this, arguments); };
       window.showSection.__vtr = true;
     }
-    if (location.hash === '#vtr' && typeof showSection === 'function') setTimeout(() => showSection('vtr', true), 300);
+    if (location.hash === '#vtr') abrir();
   }
 
-  // só carrega o painel quando a aba é aberta (não pesa o resto do Backoffice)
-  function carregar() {
-    const wrap = $('vtr-wrap');
-    if (!wrap || $('vtr-frame')) return;
-    const f = document.createElement('iframe');
-    f.id = 'vtr-frame'; f.src = urlEmbed(); f.title = 'Dashboard VTR';
-    f.setAttribute('allow', 'clipboard-write; fullscreen');
-    f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent';
-    f.onload = () => { const l = $('vtr-load'); if (l) l.remove(); };
-    wrap.appendChild(f);
-  }
-  function recarregar() { const f = $('vtr-frame'); if (f) f.src = urlEmbed(); else carregar(); }
-  // acompanha o modo claro/escuro do Backoffice
-  new MutationObserver(() => { const f = $('vtr-frame'); if (f && f.contentWindow) f.contentWindow.postMessage({ vtrTema: tema() }, 'https://dashboard-vtr-q5hx.vercel.app'); })
-    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
-  window.Vtr = { carregar, recarregar };
+  window.Vtr = { abrir };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montar); else montar();
 })();
