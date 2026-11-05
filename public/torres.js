@@ -274,7 +274,11 @@ function margemCell(d) {
 function renderTorresFinanceiro() {
   let box = document.getElementById('torres-fin');
   if (!box) { box = document.createElement('div'); box.id = 'torres-fin'; document.getElementById('torres-charts').before(box); }
-  const T = DATA.torres || [];
+  const _TODOS = DATA.torres || [];
+  const _filiais = [...new Set(_TODOS.map(d => d.filial || 'Sem filial'))].sort();
+  window.TOR_FIN_FILIAL_L = _filiais;
+  if (window.TOR_FIN_FILIAL && !_filiais.includes(window.TOR_FIN_FILIAL)) window.TOR_FIN_FILIAL = '';
+  const T = window.TOR_FIN_FILIAL ? _TODOS.filter(d => (d.filial || 'Sem filial') === window.TOR_FIN_FILIAL) : _TODOS;
   const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
   const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
   const cor = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
@@ -310,15 +314,25 @@ function renderTorresFinanceiro() {
       <div style="font-weight:700;font-size:13px;margin:16px 0 8px">Custo por fornecedor</div>
       ${barras(r)}
     </div>`;
+
+  const _ehPago = d => d.gratificada === false;
+  const _tdN = 'padding:9px 10px;text-align:right;font-variant-numeric:tabular-nums';
+  const _linhaF = (nome, lista, idx) => { const p = resumo(lista.filter(_ehPago)), q = resumo(lista.filter(d => !_ehPago(d))), res = p.lucro + q.lucro; const sel = idx !== null && window.TOR_FIN_FILIAL === nome;
+    return `<tr style="${idx === null ? 'font-weight:800;border-top:2px solid var(--border)' : 'cursor:pointer'}${sel ? ';background:var(--row-hover)' : ''}" ${idx === null ? '' : `onclick="window.TOR_FIN_FILIAL=window.TOR_FIN_FILIAL===window.TOR_FIN_FILIAL_L[${idx}]?'':window.TOR_FIN_FILIAL_L[${idx}];renderTorresFinanceiro()" title="Clique para ver só esta filial"`}><td style="padding:9px 10px">${nome}</td><td style="${_tdN}">${p.n}</td><td style="${_tdN}">${fmtVal(p.receita)}</td><td style="${_tdN}">${fmtVal(p.total)}</td><td style="${_tdN};font-weight:700;color:${cor(p.lucro)}">${R(p.lucro)}</td><td style="${_tdN};color:var(--text-muted)">${p.receita ? pct(p.lucro, p.receita) : '—'}</td><td style="${_tdN};border-left:1px solid var(--border)">${q.n}</td><td style="${_tdN};color:var(--danger)">${fmtVal(q.total)}</td><td style="${_tdN};border-left:1px solid var(--border);font-weight:800;color:${cor(res)}">${R(res)}</td></tr>`; };
+  const _comparativo = `<div style="font-weight:700;font-size:14px;margin:20px 0 4px">Comparativo por filial</div><div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Clique numa filial para ver os blocos acima só dela.</div>
+    <div class="table-wrap"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--text-muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.3px"><th style="padding:8px 10px;text-align:left">Filial</th><th style="padding:8px 10px;text-align:right">Pagas</th><th style="padding:8px 10px;text-align:right">Receita</th><th style="padding:8px 10px;text-align:right">Custo</th><th style="padding:8px 10px;text-align:right">Lucro</th><th style="padding:8px 10px;text-align:right">Margem</th><th style="padding:8px 10px;text-align:right;border-left:1px solid var(--border)">Gratif.</th><th style="padding:8px 10px;text-align:right">Custo cortesia</th><th style="padding:8px 10px;text-align:right;border-left:1px solid var(--border)">Resultado</th></tr></thead><tbody>
+    ${_filiais.map((f, i) => _linhaF(f, _TODOS.filter(d => (d.filial || 'Sem filial') === f), i)).join('')}${_linhaF('Total', _TODOS, null)}</tbody></table></div>`;
+  const _chips = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">${['', ..._filiais].map((f, i) => `<button class="btn btn-sm ${(window.TOR_FIN_FILIAL || '') === f ? 'btn-accent' : 'btn-outline'}" onclick="window.TOR_FIN_FILIAL=${i ? `window.TOR_FIN_FILIAL_L[${i - 1}]` : "''"};renderTorresFinanceiro()">${f || 'Todas as filiais'}</button>`).join('')}</div>`;
   box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
     <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
-      <div><div style="font-weight:700;font-size:16px">Resultado financeiro das torres</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">Valores por mês, separados entre torres pagas e gratificadas.</div></div>
+      <div><div style="font-weight:700;font-size:16px">Resultado financeiro das torres${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''}</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">Valores por mês, separados entre torres pagas e gratificadas.</div>${_chips}</div>
       <div style="font-size:13px;color:var(--text-secondary)">Resultado geral: <b style="font-size:16px;color:${cor(g.lucro)};font-variant-numeric:tabular-nums">${R(g.lucro)}</b> <span style="color:var(--text-muted)">(lucro das pagas ${R(pagas.lucro)} − cortesia ${fmtVal(Math.abs(grat.lucro))})</span></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;margin-top:14px">
       ${bloco('Torres pagas', 'Não gratificadas — o cliente paga a mensalidade', 'var(--accent)', pagas, false)}
       ${bloco('Torres gratificadas', 'Cortesia — não geram receita, a empresa arca com o custo', 'var(--warning)', grat, true)}
     </div>
+    ${_comparativo}
   </div></div>`;
 }
 function nzBusca(t) { return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
