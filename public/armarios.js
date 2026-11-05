@@ -254,7 +254,7 @@ function exportArmExcel() {
 function openArmModal() {
   document.getElementById('arm-modal').classList.add('open');
   document.getElementById('arm-condominio').value = '';
-  document.getElementById('arm-filial').value = 'FORTALEZA';
+  document.getElementById('arm-filial').value = 'Servis Ceará';
   document.getElementById('arm-fornecedor').value = '';
   document.getElementById('arm-portas').value = '0';
   document.getElementById('arm-status').value = 'Ativo';
@@ -281,7 +281,7 @@ function editArmDetail(id) {
   document.getElementById('arm-modal').classList.add('open');
   document.querySelector('#arm-modal h3').textContent = 'Editar Armario';
   document.getElementById('arm-condominio').value = d.condominio || '';
-  document.getElementById('arm-filial').value = d.filial || 'FORTALEZA';
+  document.getElementById('arm-filial').value = ({ FORTALEZA: 'Servis Ceará', MANAUS: 'Servis Amazonas', 'MARANHÃO': 'Servis Maranhão', TERESINA: 'Secopi Piauí' })[d.filial] || d.filial || 'Servis Ceará';
   document.getElementById('arm-fornecedor').value = d.fornecedor || '';
   document.getElementById('arm-portas').value = d.portas || 0;
   document.getElementById('arm-status').value = d.status || 'Ativo';
