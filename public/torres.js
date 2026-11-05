@@ -14,7 +14,7 @@ function renderTorres() {
     <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="kpi-label">Instaladas</div><div class="kpi-value accent">${instaladas}</div><div class="kpi-sub"><span class="kpi-tag kpi-tag-up">${totalCam} cameras</span></div></div>
     <div class="kpi-card"><div class="kpi-card-stripe" style="background:#2a78d6"></div><div class="kpi-card-icon" style="background:rgba(42,120,214,0.12)"><svg viewBox="0 0 24 24" fill="none" stroke="#2a78d6" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="kpi-label">Autorizadas</div><div class="kpi-value blue">${autorizadas}</div><div class="kpi-sub">aguardando instalacao</div></div>
     <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--warning)"></div><div class="kpi-card-icon" style="background:var(--warning-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M12 2l10 18H2z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="16" r="0.5"/></svg></div><div class="kpi-label">Em Autorizacao</div><div class="kpi-value warning">${emAut}</div></div>
-    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--danger)"></div><div class="kpi-card-icon" style="background:var(--danger-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Pago ao Fornecedor</div><div class="kpi-value danger">${fmtVal(totalPago)}</div></div>`;
+    <div class="kpi-card"><div class="kpi-card-stripe" style="background:var(--accent)"></div><div class="kpi-card-icon" style="background:var(--accent-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="kpi-label">Resultado mensal</div><div class="kpi-value ${(() => { const l = T.reduce((a, d) => a + custosTorre(d).lucro, 0); return l >= 0 ? 'accent' : 'danger'; })()}">${(() => { const l = T.reduce((a, d) => a + custosTorre(d).lucro, 0); return (l < 0 ? '−' : '') + fmtVal(Math.abs(l)); })()}</div><div class="kpi-sub">receita − fornecedores</div></div>`;
 
   // Charts
   const tSt = {}, tCid = {};
@@ -275,26 +275,45 @@ function renderTorresFinanceiro() {
   let box = document.getElementById('torres-fin');
   if (!box) { box = document.createElement('div'); box.id = 'torres-fin'; document.getElementById('torres-charts').before(box); }
   const T = DATA.torres || [];
-  const soma = (lista) => lista.reduce((a, d) => { const c = custosTorre(d); a.n += qtdTorres(d); a.imagem += c.imagem; a.ia += c.ia; a.servidor += c.servidor; a.licenca += c.licenca; a.total += c.total; a.receita += c.receita; a.lucro += c.lucro; return a; }, { n: 0, imagem: 0, ia: 0, servidor: 0, licenca: 0, total: 0, receita: 0, lucro: 0 });
+  const soma = (lista) => lista.reduce((a, d) => { const c = custosTorre(d); a.n += qtdTorres(d); a.total += c.total; a.receita += c.receita; a.lucro += c.lucro; return a; }, { n: 0, total: 0, receita: 0, lucro: 0 });
   const g = soma(T), grat = soma(T.filter(d => d.gratificada !== false)), pagas = soma(T.filter(d => d.gratificada === false));
-  const porIa = ['Segware', 'Monuv', 'Octos'].map(n => [n, soma(T.filter(d => d.forn_ia === n))]).filter(([, s]) => s.n);
-  const porImg = ['Sigma Image', 'Monuv'].map(n => [n, soma(T.filter(d => d.forn_imagem === n))]).filter(([, s]) => s.n);
-  const margem = g.receita ? Math.round(g.lucro / g.receita * 100) : null;
-  const corL = g.lucro >= 0 ? 'var(--accent)' : 'var(--danger)';
-  const item = (l, v, s, cor) => `<div style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card)"><div style="font-size:11.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">${l}</div><div style="font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;color:${cor || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
-  const linha = (l, s) => `<tr><td>${l}</td><td style="text-align:right">${s.n}</td><td style="text-align:right">${fmtVal(s.receita)}</td><td style="text-align:right">${fmtVal(s.imagem)}</td><td style="text-align:right">${fmtVal(s.ia)}</td><td style="text-align:right">${fmtVal(s.total)}</td><td style="text-align:right;font-weight:700;color:${s.lucro >= 0 ? 'var(--accent)' : 'var(--danger)'}">${s.lucro < 0 ? '−' : ''}${fmtVal(Math.abs(s.lucro))}</td><td style="text-align:right">${s.receita ? Math.round(s.lucro / s.receita * 100) + '%' : '—'}</td></tr>`;
+  const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
+  const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
+  const cor = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
+  // custo por fornecedor (cada real aparece uma vez só)
+  const custo = {};
+  const add = (k, v) => { if (v) custo[k] = (custo[k] || 0) + v; };
+  T.forEach(d => {
+    const c = custosTorre(d);
+    add('Imagem · ' + (d.forn_imagem || 'outros'), c.imagem);
+    add('Inteligência · ' + (d.forn_ia || 'outros'), c.licenca);
+    add('Servidor Adentro (IA Segware)', c.servidor);
+    add('Ajustes manuais', c.total - c.imagem - c.ia);
+  });
+  const itens = Object.entries(custo).filter(([, v]) => Math.abs(v) >= 0.01).sort((a, b) => b[1] - a[1]);
+  const maxC = Math.max(1, ...itens.map(([, v]) => v));
+  const big = (l, v, s, c) => `<div style="padding:16px 18px;border:1px solid var(--border);border-radius:12px;background:var(--bg-card)"><div style="font-size:12px;font-weight:600;color:var(--text-muted)">${l}</div><div style="font-size:26px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;color:${c || 'var(--text-primary)'}">${v}</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">${s}</div></div>`;
+  const conta = (titulo, sub, linhas, fim) => `<div style="border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--bg-card)">
+      <div style="font-weight:700;font-size:14px">${titulo}</div><div style="font-size:12px;color:var(--text-muted);margin:2px 0 12px">${sub}</div>
+      ${linhas.map(([l, v, c]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px"><span style="color:var(--text-secondary)">${l}</span><span style="font-variant-numeric:tabular-nums;${c ? 'color:' + c : ''}">${v}</span></div>`).join('')}
+      <div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:6px;border-top:1px solid var(--border);font-weight:700;font-size:15px"><span>${fim[0]}</span><span style="font-variant-numeric:tabular-nums;color:${fim[2]}">${fim[1]}</span></div>
+    </div>`;
   box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:12px"><div style="font-weight:700;font-size:15px">Resultado financeiro das torres <span style="font-weight:500;color:var(--text-muted);font-size:12.5px">· valores mensais</span></div><div style="font-size:12px;color:var(--text-muted)">Lucro = cobrado do cliente − fornecedores (imagem + IA)</div></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
-      ${item('Cobrado dos clientes', fmtVal(g.receita), pagas.n + ' torre(s) pagas')}
-      ${item('Gasto com imagem', fmtVal(g.imagem), porImg.map(([n, s]) => n + ' ' + fmtVal(s.imagem)).join(' · '))}
-      ${item('Gasto com IA', fmtVal(g.ia), g.servidor || g.licenca ? `Inteligência ${fmtVal(g.licenca)} · Servidor Adentro ${fmtVal(g.servidor)}` : '')}
-      ${item('Total fornecedores', fmtVal(g.total), '', 'var(--danger)')}
-      ${item('Lucro', (g.lucro < 0 ? '−' : '') + fmtVal(Math.abs(g.lucro)), margem === null ? 'sem receita' : 'margem ' + margem + '%', corL)}
+    <div style="font-weight:700;font-size:16px">Resultado financeiro das torres</div>
+    <div style="font-size:12.5px;color:var(--text-muted);margin:2px 0 14px">Valores por mês. Resultado = o que os clientes pagam − o que pagamos aos fornecedores.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      ${big('Receita (clientes pagam)', fmtVal(g.receita), `${pagas.n} torre(s) pagas pelo cliente`)}
+      ${big('Custo (pagamos aos fornecedores)', fmtVal(g.total), `todas as ${g.n} torres`, 'var(--danger)')}
+      ${big('Resultado do mês', R(g.lucro), g.receita ? `margem de ${pct(g.lucro, g.receita)} sobre a receita` : 'sem receita', cor(g.lucro))}
     </div>
-    <div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Grupo</th><th style="text-align:right">Torres</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Imagem</th><th style="text-align:right">IA</th><th style="text-align:right">Fornecedores</th><th style="text-align:right">Lucro</th><th style="text-align:right">Margem</th></tr></thead><tbody>
-      ${linha('Gratificadas (cortesia)', grat)}${linha('Pagas pelo cliente', pagas)}${porImg.map(([n, s]) => linha('Imagem ' + n, s)).join('')}${porIa.map(([n, s]) => linha('IA ' + n, s)).join('')}
-    </tbody></table></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px">
+      ${conta('Torres pagas pelo cliente', `${pagas.n} torre(s)`, [['Receita', fmtVal(pagas.receita)], ['Custo com fornecedores', '− ' + fmtVal(pagas.total), 'var(--danger)']], ['Lucro', R(pagas.lucro) + (pagas.receita ? ` <span style="font-size:12px;font-weight:600">(${pct(pagas.lucro, pagas.receita)})</span>` : ''), cor(pagas.lucro)])}
+      ${conta('Torres de cortesia', `${grat.n} torre(s) gratificadas — não geram receita`, [['Receita', fmtVal(grat.receita)], ['Custo com fornecedores', '− ' + fmtVal(grat.total), 'var(--danger)']], ['Investimento do mês', R(grat.lucro), cor(grat.lucro)])}
+      <div style="border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--bg-card)">
+        <div style="font-weight:700;font-size:14px">Para onde vai o custo</div><div style="font-size:12px;color:var(--text-muted);margin:2px 0 12px">${fmtVal(g.total)} por mês, por fornecedor</div>
+        ${itens.map(([l, v]) => `<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:var(--text-secondary)">${l}</span><span style="font-variant-numeric:tabular-nums">${fmtVal(v)} <span style="color:var(--text-muted)">· ${pct(v, g.total)}</span></span></div><div style="height:6px;border-radius:3px;background:var(--bg-soft)"><div style="height:6px;border-radius:3px;background:var(--primary);width:${Math.max(2, v / maxC * 100)}%"></div></div></div>`).join('') || '<div style="color:var(--text-muted);font-size:13px">Sem custos cadastrados.</div>'}
+      </div>
+    </div>
   </div></div>`;
 }
 function nzBusca(t) { return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
