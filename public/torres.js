@@ -275,44 +275,49 @@ function renderTorresFinanceiro() {
   let box = document.getElementById('torres-fin');
   if (!box) { box = document.createElement('div'); box.id = 'torres-fin'; document.getElementById('torres-charts').before(box); }
   const T = DATA.torres || [];
-  const soma = (lista) => lista.reduce((a, d) => { const c = custosTorre(d); a.n += qtdTorres(d); a.total += c.total; a.receita += c.receita; a.lucro += c.lucro; return a; }, { n: 0, total: 0, receita: 0, lucro: 0 });
-  const g = soma(T), grat = soma(T.filter(d => d.gratificada !== false)), pagas = soma(T.filter(d => d.gratificada === false));
   const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
   const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
   const cor = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
-  // custo por fornecedor (cada real aparece uma vez só)
-  const custo = {};
-  const add = (k, v) => { if (v) custo[k] = (custo[k] || 0) + v; };
-  T.forEach(d => {
-    const c = custosTorre(d);
-    add('Imagem · ' + (d.forn_imagem || 'outros'), c.imagem);
-    add('Inteligência · ' + (d.forn_ia || 'outros'), c.licenca);
-    add('Servidor Adentro (IA Segware)', c.servidor);
-    add('Ajustes manuais', c.total - c.imagem - c.ia);
-  });
-  const itens = Object.entries(custo).filter(([, v]) => Math.abs(v) >= 0.01).sort((a, b) => b[1] - a[1]);
-  const maxC = Math.max(1, ...itens.map(([, v]) => v));
-  const big = (l, v, s, c) => `<div style="padding:16px 18px;border:1px solid var(--border);border-radius:12px;background:var(--bg-card)"><div style="font-size:12px;font-weight:600;color:var(--text-muted)">${l}</div><div style="font-size:26px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;color:${c || 'var(--text-primary)'}">${v}</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">${s}</div></div>`;
-  const conta = (titulo, sub, linhas, fim) => `<div style="border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--bg-card)">
-      <div style="font-weight:700;font-size:14px">${titulo}</div><div style="font-size:12px;color:var(--text-muted);margin:2px 0 12px">${sub}</div>
-      ${linhas.map(([l, v, c]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px"><span style="color:var(--text-secondary)">${l}</span><span style="font-variant-numeric:tabular-nums;${c ? 'color:' + c : ''}">${v}</span></div>`).join('')}
-      <div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:6px;border-top:1px solid var(--border);font-weight:700;font-size:15px"><span>${fim[0]}</span><span style="font-variant-numeric:tabular-nums;color:${fim[2]}">${fim[1]}</span></div>
+  const resumo = lista => {
+    const r = { n: 0, clientes: lista.length, total: 0, receita: 0, lucro: 0, custo: {} };
+    const add = (k, v) => { if (Math.abs(v) >= 0.005) r.custo[k] = (r.custo[k] || 0) + v; };
+    lista.forEach(d => {
+      const c = custosTorre(d);
+      r.n += qtdTorres(d); r.total += c.total; r.receita += c.receita; r.lucro += c.lucro;
+      add('Imagem · ' + (d.forn_imagem || 'outros'), c.imagem);
+      add('Inteligência · ' + (d.forn_ia || 'outros'), c.licenca);
+      add('Servidor Adentro (IA Segware)', c.servidor);
+      add('Ajustes manuais', c.total - c.imagem - c.ia);
+    });
+    return r;
+  };
+  const g = resumo(T), pagas = resumo(T.filter(d => d.gratificada === false)), grat = resumo(T.filter(d => d.gratificada !== false));
+  const num = (l, v, s, c) => `<div style="padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-soft)"><div style="font-size:12px;font-weight:600;color:var(--text-muted)">${l}</div><div style="font-size:22px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;color:${c || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
+  const barras = r => {
+    const itens = Object.entries(r.custo).sort((a, b) => b[1] - a[1]);
+    if (!itens.length) return '<div style="color:var(--text-muted);font-size:13px">Sem custos cadastrados.</div>';
+    const max = Math.max(1, ...itens.map(([, v]) => v));
+    return itens.map(([l, v]) => `<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:var(--text-secondary)">${l}</span><span style="font-variant-numeric:tabular-nums">${fmtVal(v)} <span style="color:var(--text-muted)">· ${pct(v, r.total)}</span></span></div><div style="height:6px;border-radius:3px;background:var(--bg-soft)"><div style="height:6px;border-radius:3px;background:var(--primary);width:${Math.max(2, v / max * 100)}%"></div></div></div>`).join('');
+  };
+  const bloco = (titulo, sub, cTit, r, gratif) => `<div style="border:1px solid var(--border);border-left:4px solid ${cTit};border-radius:12px;padding:16px 18px;background:var(--bg-card)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px"><div style="font-weight:800;font-size:15px">${titulo}</div><div style="font-size:12.5px;color:var(--text-muted)">${r.n} torre(s) · ${r.clientes} cliente(s)</div></div>
+      <div style="font-size:12.5px;color:var(--text-muted);margin:2px 0 12px">${sub}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+        ${num('Receita', fmtVal(r.receita), gratif ? 'cortesia — cliente não paga' : 'o que os clientes pagam')}
+        ${num('Custo com fornecedores', fmtVal(r.total), 'por mês', 'var(--danger)')}
+        ${gratif ? num('Investimento do mês', R(r.lucro), 'custo da cortesia', cor(r.lucro)) : num('Lucro', R(r.lucro), r.receita ? 'margem de ' + pct(r.lucro, r.receita) : 'sem receita', cor(r.lucro))}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:16px 0 8px">Custo por fornecedor</div>
+      ${barras(r)}
     </div>`;
   box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
-    <div style="font-weight:700;font-size:16px">Resultado financeiro das torres</div>
-    <div style="font-size:12.5px;color:var(--text-muted);margin:2px 0 14px">Valores por mês. Resultado = o que os clientes pagam − o que pagamos aos fornecedores.</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-      ${big('Receita (clientes pagam)', fmtVal(g.receita), `${pagas.n} torre(s) pagas pelo cliente`)}
-      ${big('Custo (pagamos aos fornecedores)', fmtVal(g.total), `todas as ${g.n} torres`, 'var(--danger)')}
-      ${big('Resultado do mês', R(g.lucro), g.receita ? `margem de ${pct(g.lucro, g.receita)} sobre a receita` : 'sem receita', cor(g.lucro))}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+      <div><div style="font-weight:700;font-size:16px">Resultado financeiro das torres</div><div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">Valores por mês, separados entre torres pagas e gratificadas.</div></div>
+      <div style="font-size:13px;color:var(--text-secondary)">Resultado geral: <b style="font-size:16px;color:${cor(g.lucro)};font-variant-numeric:tabular-nums">${R(g.lucro)}</b> <span style="color:var(--text-muted)">(lucro das pagas ${R(pagas.lucro)} − cortesia ${fmtVal(Math.abs(grat.lucro))})</span></div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:12px">
-      ${conta('Torres pagas pelo cliente', `${pagas.n} torre(s)`, [['Receita', fmtVal(pagas.receita)], ['Custo com fornecedores', '− ' + fmtVal(pagas.total), 'var(--danger)']], ['Lucro', R(pagas.lucro) + (pagas.receita ? ` <span style="font-size:12px;font-weight:600">(${pct(pagas.lucro, pagas.receita)})</span>` : ''), cor(pagas.lucro)])}
-      ${conta('Torres de cortesia', `${grat.n} torre(s) gratificadas — não geram receita`, [['Receita', fmtVal(grat.receita)], ['Custo com fornecedores', '− ' + fmtVal(grat.total), 'var(--danger)']], ['Investimento do mês', R(grat.lucro), cor(grat.lucro)])}
-      <div style="border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--bg-card)">
-        <div style="font-weight:700;font-size:14px">Para onde vai o custo</div><div style="font-size:12px;color:var(--text-muted);margin:2px 0 12px">${fmtVal(g.total)} por mês, por fornecedor</div>
-        ${itens.map(([l, v]) => `<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:var(--text-secondary)">${l}</span><span style="font-variant-numeric:tabular-nums">${fmtVal(v)} <span style="color:var(--text-muted)">· ${pct(v, g.total)}</span></span></div><div style="height:6px;border-radius:3px;background:var(--bg-soft)"><div style="height:6px;border-radius:3px;background:var(--primary);width:${Math.max(2, v / maxC * 100)}%"></div></div></div>`).join('') || '<div style="color:var(--text-muted);font-size:13px">Sem custos cadastrados.</div>'}
-      </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;margin-top:14px">
+      ${bloco('Torres pagas', 'Não gratificadas — o cliente paga a mensalidade', 'var(--accent)', pagas, false)}
+      ${bloco('Torres gratificadas', 'Cortesia — não geram receita, a empresa arca com o custo', 'var(--warning)', grat, true)}
     </div>
   </div></div>`;
 }
