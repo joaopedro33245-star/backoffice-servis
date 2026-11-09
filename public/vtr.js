@@ -1,4 +1,4 @@
-// ===== DESLOCAMENTO DE VTR: abre o Dashboard VTR em outra página (igual às Demandas) =====
+// ===== MONITORAMENTO: abre o painel de Monitoramento em outra página (igual às Demandas) =====
 (function () {
   'use strict';
   const URL_VTR = 'https://dashboard-vtr-q5hx.vercel.app/';
@@ -12,7 +12,7 @@
     if (document.querySelector('.nav-item[data-section="vtr"]')) return;
     const itens = document.querySelector('.nav-group[data-group="monitoramento"] .nav-group-items');
     if (!itens) { if (tentativas++ < 20) setTimeout(montar, 300); return; } // espera a Gestão do Alarme criar o grupo
-    itens.insertAdjacentHTML('beforeend', `<div class="nav-item" data-section="vtr" onclick="Vtr.abrir()" title="Abre o Dashboard VTR">${ico}<span>Deslocamento VTR</span></div>`);
+    itens.insertAdjacentHTML('beforeend', `<div class="nav-item" data-section="vtr" onclick="Vtr.abrir()" title="Abre o painel de Monitoramento">${ico}<span>Monitoramento</span></div>`);
     if (typeof window.showSection === 'function' && !window.showSection.__vtr) {
       const orig = window.showSection;
       window.showSection = function (id) { if (id === 'vtr') { abrir(); return Promise.resolve(); } return orig.apply(this, arguments); };
