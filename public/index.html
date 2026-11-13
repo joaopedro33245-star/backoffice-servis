@@ -320,21 +320,47 @@
 
     <!-- ===== SEGUROS ===== -->
     <div class="section" id="sec-seguros">
-      <div class="kpi-grid-dash kpi-grid-4" id="seg-kpis"></div>
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Solicitações de Seguro</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <select class="form-input" id="seg-filter-status" onchange="renderSeguros()" style="width:auto;font-size:12px">
-              <option value="">Todos</option><option value="Pendente">Pendente</option><option value="Em análise">Em analise</option><option value="Aprovado">Aprovado</option><option value="Negado">Negado</option><option value="Concluído">Concluido</option>
-            </select>
-            <button class="btn btn-accent" onclick="openSeguroModal()">+ Nova Solicitação</button>
-            <button class="btn btn-outline" onclick="exportSegurosCSV()">CSV</button>
+      <div class="seg-subtabs" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn btn-accent" id="seg-subtab-seguros" onclick="switchSegSub('seguros')">Seguros</button>
+        <button class="btn btn-outline" id="seg-subtab-vigilantes" onclick="switchSegSub('vigilantes')">Vigilantes — Carneiro Security</button>
+      </div>
+
+      <div id="seg-sub-seguros">
+        <div class="kpi-grid-dash kpi-grid-4" id="seg-kpis"></div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Solicitações de Seguro</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="form-input" id="seg-filter-status" onchange="renderSeguros()" style="width:auto;font-size:12px">
+                <option value="">Todos</option><option value="Pendente">Pendente</option><option value="Em análise">Em analise</option><option value="Aprovado">Aprovado</option><option value="Negado">Negado</option><option value="Concluído">Concluido</option>
+              </select>
+              <button class="btn btn-accent" onclick="openSeguroModal()">+ Nova Solicitação</button>
+              <button class="btn btn-outline" onclick="exportSegurosCSV()">CSV</button>
+            </div>
           </div>
+          <div class="table-wrap table-scroll"><table class="table" id="seg-table"><thead><tr>
+            <th>Cliente</th><th>Conta</th><th>Tipo</th><th>Data</th><th>Seguradora</th><th>Sinistro</th><th>Valor</th><th>Status</th><th>Ações</th>
+          </tr></thead><tbody id="seg-tbody"></tbody></table></div>
         </div>
-        <div class="table-wrap table-scroll"><table class="table" id="seg-table"><thead><tr>
-          <th>Cliente</th><th>Conta</th><th>Tipo</th><th>Data</th><th>Seguradora</th><th>Sinistro</th><th>Valor</th><th>Status</th><th>Ações</th>
-        </tr></thead><tbody id="seg-tbody"></tbody></table></div>
+      </div>
+
+      <div id="seg-sub-vigilantes" style="display:none">
+        <div class="kpi-grid-dash kpi-grid-4" id="vig-kpis"></div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Solicitações de Vigilante · Carneiro Security <span style="font-weight:400;color:var(--muted);font-size:12px">— R$250 por vigilante / plantão de 12h</span></div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="form-input" id="vig-filter-status" onchange="renderVigilantes()" style="width:auto;font-size:12px">
+                <option value="">Todos</option><option value="Solicitado">Solicitado</option><option value="Confirmado">Confirmado</option><option value="Em andamento">Em andamento</option><option value="Concluído">Concluído</option><option value="Cancelado">Cancelado</option>
+              </select>
+              <button class="btn btn-accent" onclick="openVigilanteModal()">+ Nova Solicitação</button>
+              <button class="btn btn-outline" onclick="exportVigilantesCSV()">CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap table-scroll"><table class="table" id="vig-table"><thead><tr>
+            <th>Cliente / Local</th><th>Conta</th><th>Data</th><th>Vigilantes</th><th>Plantões (12h)</th><th>Valor unit.</th><th>Valor total</th><th>Status</th><th>Ações</th>
+          </tr></thead><tbody id="vig-tbody"></tbody></table></div>
+        </div>
       </div>
     </div>
 
@@ -1111,6 +1137,71 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="vig-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="vig-modal-title">Nova Solicitação de Vigilante</h3>
+      <button class="modal-close" onclick="closeVigilanteModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Cliente / Local</label>
+          <input class="form-input" id="vig-cliente" placeholder="Nome do cliente ou local">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Conta</label>
+          <input class="form-input" id="vig-conta" placeholder="Número da conta (opcional)">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input class="form-input" id="vig-data" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nº de vigilantes</label>
+          <input class="form-input" id="vig-vigilantes" type="number" min="0" step="1" value="1" oninput="vigRecalc()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Plantões (12h)</label>
+          <input class="form-input" id="vig-plantoes" type="number" min="0" step="1" value="1" oninput="vigRecalc()">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Valor por vigilante/plantão (R$)</label>
+          <input class="form-input" id="vig-unit" type="number" step="0.01" value="250" oninput="vigRecalc()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="vig-status">
+            <option value="Solicitado">Solicitado</option>
+            <option value="Confirmado">Confirmado</option>
+            <option value="Em andamento">Em andamento</option>
+            <option value="Concluído">Concluído</option>
+            <option value="Cancelado">Cancelado</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="background:var(--surface-2,rgba(127,127,127,.08));border-radius:8px;padding:10px 12px">
+        <label class="form-label" style="margin:0">Valor total</label>
+        <div style="font-size:20px;font-weight:700" id="vig-total">R$ 0,00</div>
+        <div style="font-size:11px;color:var(--muted)">vigilantes × plantões × valor por plantão</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observações</label>
+        <input class="form-input" id="vig-obs" placeholder="Observações">
+      </div>
+      <input type="hidden" id="vig-edit-id" value="">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeVigilanteModal()">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveVigilante()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script src="core.js"></script>
 <script src="dashboard.js"></script>
 <script src="fornecedores.js"></script>
@@ -1120,6 +1211,7 @@
 <script src="demandas.js"></script>
 <script src="checklist.js"></script>
 <script src="seguros.js"></script>
+<script src="vigilantes.js"></script>
 <script src="painel.js"></script>
 <script src="visual.js"></script>
 <script src="colar.js"></script>
