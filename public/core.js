@@ -67,6 +67,7 @@ const TABLE_KEYS = {
   armarios_resumo:'armResumo', armarios_detail:'armDetail', boletos:'boletos', clientes_ia_detail:'iaDetail',
   fornecedores_historico:'fornHistorico', demandas_equipe:'demandas', dem_tasks:'demTasks', condominios_portaria:'condominios',
   checklist_portaria:'checklists', solicitacoes_seguro:'seguros', cidades_filial:'cidadesFilial',
+  solicitacoes_vigilante:'vigilantes',
 };
 // o que cada aba precisa para montar a tela
 const SECTION_TABLES = {
@@ -77,13 +78,13 @@ const SECTION_TABLES = {
   armarios:     ['armarios_resumo','armarios_detail'],
   demandas:     ['demandas_equipe'],
   checklist:    ['checklist_portaria','condominios_portaria'],
-  seguros:      ['solicitacoes_seguro'],
+  seguros:      ['solicitacoes_seguro','solicitacoes_vigilante'],
   config:       [],
 };
 const SECTION_RENDER = {
   dashboard: () => renderDashboard(), fornecedores: () => renderFornSection(), torres: () => renderTorres(),
   clientes: () => renderIA(), armarios: () => renderArmarios(), demandas: () => renderDemandas(),
-  checklist: () => renderChecklist(), seguros: () => renderSeguros(), config: () => {},
+  checklist: () => renderChecklist(), seguros: () => { renderSeguros(); renderVigilantes(); }, config: () => {},
 };
 const loadedTables = new Set();   // tabelas já em memória
 const dirtySections = new Set(Object.keys(SECTION_TABLES)); // abas que precisam ser redesenhadas
@@ -517,7 +518,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ===== TEMPO REAL (Supabase Realtime) =====
-const RT_TABLES = ['dem_tasks','fornecedores','torres','clientes_ia_filial','clientes_ia_provedor','armarios_resumo','armarios_detail','boletos','clientes_ia_detail','fornecedores_historico','demandas_equipe','condominios_portaria','checklist_portaria','solicitacoes_seguro','cidades_filial'];
+const RT_TABLES = ['dem_tasks','fornecedores','torres','clientes_ia_filial','clientes_ia_provedor','armarios_resumo','armarios_detail','boletos','clientes_ia_detail','fornecedores_historico','demandas_equipe','condominios_portaria','checklist_portaria','solicitacoes_seguro','solicitacoes_vigilante','cidades_filial'];
 let rtChannel = null, rtTimer = null, rtBusy = false;
 function startRealtime() {
   if (!sb || typeof sb.channel !== 'function') return;
