@@ -88,11 +88,28 @@ function renderTorresDetalhe() {
   const semData = T.filter(d => !d.data_instalacao).length; if (semData) alertas.push(`${semData} torre(s) sem data de instalação`);
   const alertasHtml = alertas.length ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">${alertas.map(a => `<div style="display:flex;gap:8px;align-items:center;font-size:13px;padding:8px 10px;border:1px solid var(--warning);border-radius:8px;background:var(--warning-dim)"><span>⚠️</span><span>${a}</span></div>`).join('')}</div>` : '<div style="color:var(--text-muted);font-size:13px">Nenhum alerta. 🎉</div>';
 
+  // ---- Instalações por mês (seção 6) ----
+  const porMes = {}; T.forEach(d => { if (d.data_instalacao) { const m = d.data_instalacao.slice(0, 7); porMes[m] = (porMes[m] || 0) + qtdTorres(d); } });
+  const mesesOrd = Object.keys(porMes).sort();
+  const semDataN = T.filter(d => !d.data_instalacao).length;
+  const instalHtml = mesesOrd.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px">${mesesOrd.map(m => { const [y, mm] = m.split('-'); return `<span class="badge badge-neutral">${mm}/${y}: ${porMes[m]}</span>`; }).join('')}</div>${semDataN ? `<div style="font-size:12px;color:var(--text-muted);margin-top:6px">${semDataN} torre(s) ainda sem data de instalação.</div>` : ''}` : '<div style="color:var(--text-muted);font-size:13px">Nenhuma torre com data de instalação cadastrada ainda. Preencha no cadastro da torre.</div>';
+
+  // ---- Comparativos (seção 9.5) ----
+  const barCmp = itens => { const max = Math.max(1, ...itens.map(i => Math.abs(i.v))); return itens.map(i => `<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px"><span style="color:var(--text-secondary)">${i.l}</span><span style="font-variant-numeric:tabular-nums;font-weight:600;color:${i.c || 'var(--text-primary)'}">${i.t}</span></div><div style="height:7px;border-radius:4px;background:var(--bg-soft)"><div style="height:7px;border-radius:4px;background:${i.bg || 'var(--primary)'};width:${Math.max(3, Math.abs(i.v) / max * 100)}%"></div></div></div>`).join(''); };
+  const lucro2 = soma(cam2, d => custosTorre(d).lucro), lucro3 = soma(cam3, d => custosTorre(d).lucro);
+  const custoCob = soma(cobradas, d => custosTorre(d).total), custoGra = soma(gratis, d => custosTorre(d).total);
+  const comparativoHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+    <div><div style="font-weight:700;font-size:13px;margin-bottom:8px">Lucro por câmeras</div>${barCmp([{ l: '2 câmeras', v: lucro2, t: R(lucro2), c: corV(lucro2), bg: 'var(--accent)' }, { l: '3+ câmeras', v: lucro3, t: R(lucro3), c: corV(lucro3), bg: 'var(--blue)' }])}</div>
+    <div><div style="font-weight:700;font-size:13px;margin-bottom:8px">Custo mensal · cobradas × gratificadas</div>${barCmp([{ l: 'Cobradas', v: custoCob, t: fmtVal(custoCob), bg: 'var(--accent)' }, { l: 'Gratificadas', v: custoGra, t: fmtVal(custoGra), bg: 'var(--warning)' }])}</div>
+  </div>`;
+
   const secTitle = t => `<div style="font-weight:700;font-size:15px;margin:18px 0 6px">${t}</div>`;
   box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
-    <div style="font-weight:700;font-size:16px">Visão geral das torres${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div style="font-weight:700;font-size:16px">Visão geral das torres${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''}</div><button class="btn btn-outline btn-sm" onclick="exportTorresCSV()" title="Exportar todas as torres com custos e resultado">⬇ Exportar CSV</button></div>
     <div style="margin-top:12px">${cardsHtml}</div>
     ${secTitle('Por quantidade de câmeras')}${camHtml}
+    ${secTitle('Comparativos')}${comparativoHtml}
+    ${secTitle('Instalações por mês')}${instalHtml}
     ${secTitle('Alertas gerenciais')}${alertasHtml}
     ${secTitle('Resultado por cliente (do pior para o melhor)')}${cliHtml}
   </div></div>`;
@@ -100,6 +117,26 @@ function renderTorresDetalhe() {
 const _tdN2 = 'padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums';
 const _thN2 = 'padding:8px 10px;text-align:right';
 function pctTxt(a, b) { return b ? Math.round(a / b * 100) + '% do total' : '—'; }
+function exportTorresCSV() {
+  const T = DATA.torres || [];
+  if (!T.length) { showToast('Sem torres para exportar', true); return; }
+  const BOM = '﻿';
+  const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const cab = ['Cliente', 'Nome fantasia', 'Codigo', 'Filial', 'Cidade', 'Status', 'Modelo', 'Cameras', 'Qtd torres', 'Modalidade', 'Linha no contrato', 'Data instalacao', 'Forn. imagem', 'Forn. IA', 'Usa servidor imagem', 'Custo imagem', 'Custo IA', 'Custo servidores', 'Custo total', 'Cobrado', 'Resultado', 'Situacao'];
+  let csv = BOM + cab.join(';') + '\n';
+  T.forEach(d => {
+    const c = custosTorre(d);
+    csv += [d.cliente, d.nome_fantasia, d.codigo_cliente, d.filial, d.cidade, d.status, d.modelo, d.cameras, qtdTorres(d),
+      d.gratificada === false ? 'Cobrada' : 'Gratificada',
+      d.linha_contrato === true ? 'Sim' : d.linha_contrato === false ? 'Nao' : '',
+      d.data_instalacao || '', d.forn_imagem || '', d.forn_ia || '', d.usa_servidor_imagem ? 'Sim' : 'Nao',
+      c.imagem.toFixed(2), c.ia.toFixed(2), (c.servidor + c.servidorImg).toFixed(2), c.total.toFixed(2), c.receita.toFixed(2), c.lucro.toFixed(2), classifTorre(c)
+    ].map(esc).join(';') + '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'torres_rentabilidade.csv'; a.click();
+}
 
 function renderTorresTable() {
   const _ae = document.activeElement, _foco = _ae && _ae.closest && _ae.closest('#torres-filters') && _ae.dataset.filter ? { f: _ae.dataset.filter, s: _ae.selectionStart } : null;
@@ -122,6 +159,8 @@ function renderTorresTable() {
     if (gr === 'gratificadas' && d.gratificada === false) return false;
     if (gr === 'pagas' && d.gratificada !== false) return false;
     if (gr === 'chkpend' && !(d.status === 'INSTALADA' && torreChecklist(d) < 4)) return false;
+    if (gr === 'semlinha' && d.linha_contrato === true) return false;
+    if (gr === 'seminstal' && d.data_instalacao) return false;
     if (iaF === 'sem' && d.forn_ia) return false;
     if (iaF && iaF !== 'sem' && d.forn_ia !== iaF) return false;
     if (search && !nzBusca([d.cliente, d.nome_fantasia, d.codigo_cliente, d.chave_sigma].filter(Boolean).join(' ')).includes(nzBusca(search))) return false;
@@ -149,6 +188,8 @@ function renderTorresTable() {
       <option value="vencidas" ${gr==='vencidas'?'selected':''}>Gratificação vencida</option>
       <option value="semdata" ${gr==='semdata'?'selected':''}>Sem data de término</option>
       <option value="chkpend" ${gr==='chkpend'?'selected':''}>Instaladas c/ checklist pendente</option>
+      <option value="semlinha" ${gr==='semlinha'?'selected':''}>Sem linha no contrato</option>
+      <option value="seminstal" ${gr==='seminstal'?'selected':''}>Sem data de instalação</option>
       <option value="gratificadas" ${gr==='gratificadas'?'selected':''}>Só gratificadas</option>
       <option value="pagas" ${gr==='pagas'?'selected':''}>Só pagas pelo cliente</option>
     </select>
@@ -231,6 +272,9 @@ function openTorreModal(editId) {
     document.getElementById('tm-chk-cameras').checked = !!d.chk_cameras_online;
     document.getElementById('tm-chk-treinado').checked = !!d.chk_cliente_treinado;
     document.getElementById('tm-chk-data').value = d.chk_data_verificacao || '';
+    document.getElementById('tm-data-instalacao').value = d.data_instalacao || '';
+    document.getElementById('tm-linha-contrato').value = d.linha_contrato === true ? 'sim' : d.linha_contrato === false ? 'nao' : '';
+    document.getElementById('tm-usa-srv-img').value = d.usa_servidor_imagem ? 'sim' : 'nao';
   } else {
     document.getElementById('torre-modal-title').textContent = 'Nova Torre';
     document.getElementById('torre-edit-id').value = '';
@@ -256,6 +300,9 @@ function openTorreModal(editId) {
     document.getElementById('tm-obs').value = '';
     ['tm-chk-app','tm-chk-deteccao','tm-chk-cameras','tm-chk-treinado'].forEach(id => document.getElementById(id).checked = false);
     document.getElementById('tm-chk-data').value = '';
+    document.getElementById('tm-data-instalacao').value = '';
+    document.getElementById('tm-linha-contrato').value = '';
+    document.getElementById('tm-usa-srv-img').value = 'nao';
   }
   gratTipoChange();
   updateGratHint();
@@ -462,6 +509,10 @@ async function saveTorre() {
     chk_cameras_online: document.getElementById('tm-chk-cameras').checked,
     chk_cliente_treinado: document.getElementById('tm-chk-treinado').checked,
     chk_data_verificacao: document.getElementById('tm-chk-data').value || null,
+    data_instalacao: document.getElementById('tm-data-instalacao').value || null,
+    linha_contrato: (() => { const v = document.getElementById('tm-linha-contrato').value; return v === 'sim' ? true : v === 'nao' ? false : null; })(),
+    usa_servidor_imagem: document.getElementById('tm-usa-srv-img').value === 'sim',
+    valor_servidor_imagem: document.getElementById('tm-usa-srv-img').value === 'sim' ? (parseInt(document.getElementById('tm-cameras').value) || 0) * CUSTO_SERVIDOR_IMAGEM : null,
   };
   const filial = filialDaCidade(obj.cidade);
   if (!filial) { showToast('Cidade "' + obj.cidade + '" não cadastrada. Use "+ Cidade" no dashboard.', true); return; }
