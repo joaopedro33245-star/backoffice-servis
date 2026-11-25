@@ -26,8 +26,80 @@ function renderTorres() {
   hBar('tc-cid', Object.entries(tCid).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([l,v])=>({l,v,t:v+''})), ['#2a78d6','#1abf8f','#eb6834','#eda100','#e87ba4']);
 
   renderTorresFinanceiro();
+  renderTorresDetalhe();
   renderTorresTable();
 }
+
+// ===== Visão geral + câmeras + resultado por cliente (fases 1) =====
+function torreSemLinha(d) { return d.linha_contrato !== true; }
+function classifTorre(c) { return !c.receita && c.total ? 'DEFICITÁRIA' : c.lucro > 0.005 ? 'RENTÁVEL' : c.lucro < -0.005 ? 'DEFICITÁRIA' : 'EQUILÍBRIO'; }
+function renderTorresDetalhe() {
+  let box = document.getElementById('torres-detalhe');
+  if (!box) { box = document.createElement('div'); box.id = 'torres-detalhe'; const fin = document.getElementById('torres-fin'); (fin || document.getElementById('torres-charts')).after(box); }
+  const T = (DATA.torres || []).filter(d => window.TOR_FIN_FILIAL ? (d.filial || 'Sem filial') === window.TOR_FIN_FILIAL : true);
+  const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
+  const corV = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
+  const nCam = d => Number(d.cameras || 0);
+  const soma = (lista, fn) => lista.reduce((s, d) => s + fn(d), 0);
+  const cobradas = T.filter(d => d.gratificada === false);
+  const gratis = T.filter(d => d.gratificada !== false);
+  const semLinha = T.filter(torreSemLinha);
+  const cam2 = T.filter(d => nCam(d) === 2), cam3 = T.filter(d => nCam(d) >= 3);
+  const faturamento = soma(T, d => custosTorre(d).receita);
+  const custoTotal = soma(T, d => custosTorre(d).total);
+  const custoServidores = soma(T, d => custosTorre(d).servidor + custosTorre(d).servidorImg);
+  const lucro = faturamento - custoTotal;
+
+  // ---- Cards de visão geral (seção 7) ----
+  const mini = (lbl, val, sub, cor) => `<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--bg-card)"><div style="font-size:11.5px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px">${lbl}</div><div style="font-size:20px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;color:${cor || 'var(--text-primary)'}">${val}</div>${sub ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px">${sub}</div>` : ''}</div>`;
+  const cardsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+    ${mini('Total torres', soma(T, qtdTorres), T.length + ' clientes')}
+    ${mini('Cobradas', cobradas.length, pctTxt(cobradas.length, T.length), 'var(--accent)')}
+    ${mini('Gratificadas', gratis.length, pctTxt(gratis.length, T.length), 'var(--warning)')}
+    ${mini('Sem linha no contrato', semLinha.length, 'regularizar', semLinha.length ? 'var(--danger)' : 'var(--text-muted)')}
+    ${mini('Torres 2 câmeras', cam2.length, '', 'var(--blue)')}
+    ${mini('Torres 3+ câmeras', cam3.length, '', 'var(--blue)')}
+    ${mini('Faturamento/mês', fmtVal(faturamento), 'torres cobradas')}
+    ${mini('Custo/mês', fmtVal(custoTotal), 'fornecedores + servidores', 'var(--danger)')}
+    ${mini('Custo servidores', fmtVal(custoServidores), 'IA + imagem')}
+    ${mini('Lucro líquido/mês', R(lucro), faturamento ? Math.round(lucro / faturamento * 100) + '% de margem' : 'sem receita', corV(lucro))}
+  </div>`;
+
+  // ---- Por quantidade de câmeras (seção 4) ----
+  const linhaCam = (lbl, lista) => { const rec = soma(lista, d => custosTorre(d).receita); const cia = soma(lista, d => custosTorre(d).ia); const csrv = soma(lista, d => custosTorre(d).servidor + custosTorre(d).servidorImg); const ct = soma(lista, d => custosTorre(d).total); const luc = rec - ct;
+    return `<tr><td style="padding:8px 10px;font-weight:600">${lbl}</td><td style="${_tdN2}">${soma(lista, qtdTorres)}</td><td style="${_tdN2}">${lista.filter(d => d.gratificada !== false).length}</td><td style="${_tdN2}">${lista.filter(d => d.gratificada === false).length}</td><td style="${_tdN2}">${fmtVal(rec)}</td><td style="${_tdN2}">${fmtVal(cia)}</td><td style="${_tdN2}">${fmtVal(csrv)}</td><td style="${_tdN2};font-weight:700;color:${corV(luc)}">${R(luc)}</td><td style="${_tdN2};color:var(--text-muted)">${rec ? Math.round(luc / rec * 100) + '%' : '—'}</td></tr>`; };
+  const camHtml = `<div class="table-wrap" style="margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px"><th style="padding:8px 10px;text-align:left">Categoria</th><th style="${_thN2}">Torres</th><th style="${_thN2}">Gratif.</th><th style="${_thN2}">Cobradas</th><th style="${_thN2}">Receita</th><th style="${_thN2}">Custo IA</th><th style="${_thN2}">Servidores</th><th style="${_thN2}">Lucro</th><th style="${_thN2}">Margem</th></tr></thead><tbody>
+    ${linhaCam('2 câmeras', cam2)}${linhaCam('3+ câmeras', cam3)}${(() => { const outras = T.filter(d => nCam(d) < 2); return outras.length ? linhaCam('Outras', outras) : ''; })()}</tbody></table></div>`;
+
+  // ---- Resultado por cliente (seção 9) ----
+  const ordenadas = T.slice().sort((a, b) => custosTorre(a).lucro - custosTorre(b).lucro);
+  const badge = cl => { const cor = cl === 'RENTÁVEL' ? 'badge-success' : cl === 'DEFICITÁRIA' ? 'badge-danger' : 'badge-warning'; return `<span class="badge ${cor}">${cl}</span>`; };
+  const linhaCli = d => { const c = custosTorre(d); const cl = classifTorre(c); return `<tr><td style="padding:8px 10px">${d.cliente || '—'}${d.filial ? `<div style="font-size:11px;color:var(--text-muted)">${d.filial}</div>` : ''}</td><td style="${_tdN2}">${nCam(d) || '—'}</td><td style="${_tdN2}">${c.receita ? fmtVal(c.receita) : '—'}</td><td style="${_tdN2}">${fmtVal(c.ia)}</td><td style="${_tdN2}">${fmtVal(c.servidor + c.servidorImg)}</td><td style="${_tdN2};color:var(--danger)">${fmtVal(c.total)}</td><td style="${_tdN2};font-weight:700;color:${corV(c.lucro)}">${R(c.lucro)}</td><td style="text-align:center">${badge(cl)}</td></tr>`; };
+  const rentaveis = T.filter(d => classifTorre(custosTorre(d)) === 'RENTÁVEL').length;
+  const deficit = T.filter(d => classifTorre(custosTorre(d)) === 'DEFICITÁRIA').length;
+  const cliHtml = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 10px"><span class="badge badge-success">${rentaveis} rentáveis</span><span class="badge badge-danger">${deficit} deficitárias</span></div>
+    <div class="table-wrap"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px"><th style="padding:8px 10px;text-align:left">Cliente</th><th style="${_thN2}">Câm.</th><th style="${_thN2}">Faturamento</th><th style="${_thN2}">Custo IA</th><th style="${_thN2}">Servidores</th><th style="${_thN2}">Custo total</th><th style="${_thN2}">Resultado</th><th style="${_thN2.replace('right','center')}">Situação</th></tr></thead><tbody>${ordenadas.map(linhaCli).join('')}</tbody></table></div>`;
+
+  // ---- Alertas gerenciais (seção 9.6) ----
+  const alertas = [];
+  if (semLinha.length) alertas.push(`${semLinha.length} torre(s) sem linha de serviço no contrato`);
+  const gratCaro = gratis.filter(d => custosTorre(d).total >= 50).length; if (gratCaro) alertas.push(`${gratCaro} gratificada(s) com custo mensal acima de R$ 50`);
+  const recMenor = cobradas.filter(d => { const c = custosTorre(d); return c.receita && c.receita < c.total; }).length; if (recMenor) alertas.push(`${recMenor} cobrada(s) onde a mensalidade não cobre o custo`);
+  const semData = T.filter(d => !d.data_instalacao).length; if (semData) alertas.push(`${semData} torre(s) sem data de instalação`);
+  const alertasHtml = alertas.length ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">${alertas.map(a => `<div style="display:flex;gap:8px;align-items:center;font-size:13px;padding:8px 10px;border:1px solid var(--warning);border-radius:8px;background:var(--warning-dim)"><span>⚠️</span><span>${a}</span></div>`).join('')}</div>` : '<div style="color:var(--text-muted);font-size:13px">Nenhum alerta. 🎉</div>';
+
+  const secTitle = t => `<div style="font-weight:700;font-size:15px;margin:18px 0 6px">${t}</div>`;
+  box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
+    <div style="font-weight:700;font-size:16px">Visão geral das torres${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''}</div>
+    <div style="margin-top:12px">${cardsHtml}</div>
+    ${secTitle('Por quantidade de câmeras')}${camHtml}
+    ${secTitle('Alertas gerenciais')}${alertasHtml}
+    ${secTitle('Resultado por cliente (do pior para o melhor)')}${cliHtml}
+  </div></div>`;
+}
+const _tdN2 = 'padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums';
+const _thN2 = 'padding:8px 10px;text-align:right';
+function pctTxt(a, b) { return b ? Math.round(a / b * 100) + '% do total' : '—'; }
 
 function renderTorresTable() {
   const _ae = document.activeElement, _foco = _ae && _ae.closest && _ae.closest('#torres-filters') && _ae.dataset.filter ? { f: _ae.dataset.filter, s: _ae.selectionStart } : null;
@@ -226,6 +298,8 @@ function torreChecklist(d) {
 const CUSTO_VISUALIZACAO = { 'Sigma Image': 6.50, 'Monuv': 17.00 };
 const CUSTO_INTELIGENCIA = { 'Segware': 4.50, 'Monuv': 48.00 };
 const CUSTO_SERVIDOR = { 'Segware': 7.50 };
+// Servidor de imagens (gravação): R$ 540,00/mês para 80 câmeras = R$ 6,75 por câmera.
+const CUSTO_SERVIDOR_IMAGEM = 6.75;
 function iaSegwareAuto() {
   const n = Math.max(1, parseInt(document.getElementById('tm-cameras').value) || 0);
   const img = document.getElementById('tm-forn-imagem').value, ia = document.getElementById('tm-forn-ia').value;
@@ -260,9 +334,12 @@ function custosTorre(d) {
   const imagem = semDivisao ? Number(d.pago_forn || 0) : Number(d.valor_imagem || 0);
   const servidor = semDivisao ? 0 : Number(d.valor_servidor || 0);
   const licenca = semDivisao ? 0 : Number(d.valor_ia || 0) + Number(d.valor_licenca_ia || 0);
-  const total = Number(d.pago_forn || 0) || (imagem + servidor + licenca);
+  // custo do servidor de imagens (gravação) — só para torres marcadas como usuárias desse servidor
+  const servidorImg = d.usa_servidor_imagem ? (Number(d.valor_servidor_imagem || 0) || Number(d.cameras || 0) * CUSTO_SERVIDOR_IMAGEM) : 0;
+  const base = Number(d.pago_forn || 0) || (imagem + servidor + licenca);
+  const total = base + servidorImg;
   const receita = Number(d.cobrado || 0);
-  return { imagem, ia: servidor + licenca, servidor, licenca, total, receita, lucro: receita - total };
+  return { imagem, ia: servidor + licenca, servidor, servidorImg, licenca, total, receita, lucro: receita - total };
 }
 function margemCell(d) {
   const c = custosTorre(d);
