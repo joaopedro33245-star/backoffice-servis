@@ -52,6 +52,7 @@ function renderTorresDetalhe() {
 
   // ---- Resumo executivo (diretoria): 3 números grandes + contexto enxuto ----
   const deficitN = T.filter(d => classifTorre(custosTorre(d)) === 'DEFICITÁRIA').length;
+  const portariaN = T.filter(d => d.tipo_operacao === 'portaria').length, monitN = T.filter(d => d.tipo_operacao === 'monitoramento').length;
   const big = (l, v, s, c) => `<div style="border:1px solid var(--border);border-radius:14px;padding:18px 20px;background:var(--bg-card)"><div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">${l}</div><div style="font-size:30px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;color:${c || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
   const hero = (l, v, s, c) => `<div style="border:2px solid ${c};border-radius:14px;padding:18px 20px;background:var(--bg-card)"><div style="font-size:12px;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.4px">${l}</div><div style="font-size:34px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums;color:${c}">${v}</div>${s ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
   const cardsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
@@ -59,12 +60,15 @@ function renderTorresDetalhe() {
       ${big('Custo / mês', fmtVal(custoTotal), 'fornecedores + servidores', 'var(--danger)')}
       ${hero('Lucro líquido / mês', R(lucro), faturamento ? 'margem de ' + Math.round(lucro / faturamento * 100) + '%' : 'sem receita', corV(lucro))}
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
-      <span class="badge badge-neutral">${soma(T, qtdTorres)} torres · ${T.length} clientes</span>
-      <span class="badge badge-blue">${cobradas.length} cobradas</span>
-      <span class="badge badge-warning">${gratis.length} gratificadas</span>
-      <span class="badge ${deficitN ? 'badge-danger' : 'badge-success'}">${deficitN} deficitárias</span>
-      <span class="badge ${semLinha.length ? 'badge-danger' : 'badge-neutral'}">${semLinha.length} sem linha no contrato</span>
+    <div style="font-size:11.5px;color:var(--text-muted);margin-top:14px">Clique para filtrar a tabela abaixo:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+      <span class="badge badge-neutral" style="cursor:pointer" onclick="torresQuickFilter('grat','')" title="Ver todas">${soma(T, qtdTorres)} torres · ${T.length} clientes</span>
+      <span class="badge badge-blue" style="cursor:pointer" onclick="torresQuickFilter('grat','pagas')">${cobradas.length} cobradas</span>
+      <span class="badge badge-warning" style="cursor:pointer" onclick="torresQuickFilter('grat','gratificadas')">${gratis.length} gratificadas</span>
+      <span class="badge ${deficitN ? 'badge-danger' : 'badge-success'}" style="cursor:pointer" onclick="torresQuickFilter('grat','deficit')">${deficitN} deficitárias</span>
+      <span class="badge ${semLinha.length ? 'badge-danger' : 'badge-neutral'}" style="cursor:pointer" onclick="torresQuickFilter('grat','semlinha')">${semLinha.length} sem linha no contrato</span>
+      <span class="badge badge-neutral" style="cursor:pointer;border-left:3px solid var(--blue)" onclick="torresQuickFilter('tipo','portaria')">🏢 ${portariaN} portaria</span>
+      <span class="badge badge-neutral" style="cursor:pointer;border-left:3px solid var(--accent)" onclick="torresQuickFilter('tipo','monitoramento')">📹 ${monitN} monitoramento</span>
     </div>`;
 
   // ---- Por quantidade de câmeras (seção 4) ----
@@ -119,6 +123,12 @@ function renderTorresDetalhe() {
 const _tdN2 = 'padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums';
 const _thN2 = 'padding:8px 10px;text-align:right';
 function pctTxt(a, b) { return b ? Math.round(a / b * 100) + '% do total' : '—'; }
+function torresQuickFilter(dim, valor) {
+  const el = document.querySelector('#torres-filters [data-filter="' + dim + '"]');
+  if (el) { el.value = valor; renderTorresTable(); }
+  const tbl = document.getElementById('torres-table-wrap');
+  if (tbl) tbl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 function exportTorresCSV() {
   const T = DATA.torres || [];
   if (!T.length) { showToast('Sem torres para exportar', true); return; }
@@ -147,6 +157,8 @@ function renderTorresTable() {
   const srEl = document.querySelector('#torres-filters [data-filter="search"]');
   const grEl = document.querySelector('#torres-filters [data-filter="grat"]');
   const iaEl = document.querySelector('#torres-filters [data-filter="ia"]');
+  const tpEl = document.querySelector('#torres-filters [data-filter="tipo"]');
+  const tp = tpEl ? tpEl.value : '';
   const iaF = iaEl ? iaEl.value : '';
   const st = stEl ? stEl.value : '';
   const search = srEl ? srEl.value.toLowerCase() : '';
@@ -163,6 +175,8 @@ function renderTorresTable() {
     if (gr === 'chkpend' && !(d.status === 'INSTALADA' && torreChecklist(d) < 4)) return false;
     if (gr === 'semlinha' && d.linha_contrato === true) return false;
     if (gr === 'seminstal' && d.data_instalacao) return false;
+    if (gr === 'deficit' && classifTorre(custosTorre(d)) !== 'DEFICITÁRIA') return false;
+    if (tp && (d.tipo_operacao || '') !== tp) return false;
     if (iaF === 'sem' && d.forn_ia) return false;
     if (iaF && iaF !== 'sem' && d.forn_ia !== iaF) return false;
     if (search && !nzBusca([d.cliente, d.nome_fantasia, d.codigo_cliente, d.chave_sigma].filter(Boolean).join(' ')).includes(nzBusca(search))) return false;
@@ -184,6 +198,11 @@ function renderTorresTable() {
       ${['Segware','Monuv','Octos'].map(x => `<option value="${x}" ${iaF===x?'selected':''}>${x}</option>`).join('')}
       <option value="sem" ${iaF==='sem'?'selected':''}>Sem IA</option>
     </select>
+    <select class="filter-select" data-filter="tipo" onchange="renderTorresTable()">
+      <option value="">Portaria + Monitoramento</option>
+      <option value="portaria" ${tp==='portaria'?'selected':''}>Só Portaria</option>
+      <option value="monitoramento" ${tp==='monitoramento'?'selected':''}>Só Monitoramento</option>
+    </select>
     <select class="filter-select" data-filter="grat" onchange="renderTorresTable()">
       <option value="">Gratificação / Checklist</option>
       <option value="vencendo" ${gr==='vencendo'?'selected':''}>Vencendo em 30 dias</option>
@@ -192,6 +211,7 @@ function renderTorresTable() {
       <option value="chkpend" ${gr==='chkpend'?'selected':''}>Instaladas c/ checklist pendente</option>
       <option value="semlinha" ${gr==='semlinha'?'selected':''}>Sem linha no contrato</option>
       <option value="seminstal" ${gr==='seminstal'?'selected':''}>Sem data de instalação</option>
+      <option value="deficit" ${gr==='deficit'?'selected':''}>Só deficitárias</option>
       <option value="gratificadas" ${gr==='gratificadas'?'selected':''}>Só gratificadas</option>
       <option value="pagas" ${gr==='pagas'?'selected':''}>Só pagas pelo cliente</option>
     </select>
@@ -277,6 +297,7 @@ function openTorreModal(editId) {
     document.getElementById('tm-data-instalacao').value = d.data_instalacao || '';
     document.getElementById('tm-linha-contrato').value = d.linha_contrato === true ? 'sim' : d.linha_contrato === false ? 'nao' : '';
     document.getElementById('tm-usa-srv-img').value = d.usa_servidor_imagem ? 'sim' : 'nao';
+    document.getElementById('tm-tipo-operacao').value = d.tipo_operacao || 'monitoramento';
   } else {
     document.getElementById('torre-modal-title').textContent = 'Nova Torre';
     document.getElementById('torre-edit-id').value = '';
@@ -305,6 +326,7 @@ function openTorreModal(editId) {
     document.getElementById('tm-data-instalacao').value = '';
     document.getElementById('tm-linha-contrato').value = '';
     document.getElementById('tm-usa-srv-img').value = 'nao';
+    document.getElementById('tm-tipo-operacao').value = 'monitoramento';
   }
   gratTipoChange();
   updateGratHint();
@@ -515,6 +537,7 @@ async function saveTorre() {
     linha_contrato: (() => { const v = document.getElementById('tm-linha-contrato').value; return v === 'sim' ? true : v === 'nao' ? false : null; })(),
     usa_servidor_imagem: document.getElementById('tm-usa-srv-img').value === 'sim',
     valor_servidor_imagem: document.getElementById('tm-usa-srv-img').value === 'sim' ? (parseInt(document.getElementById('tm-cameras').value) || 0) * CUSTO_SERVIDOR_IMAGEM : null,
+    tipo_operacao: document.getElementById('tm-tipo-operacao').value || null,
   };
   const filial = filialDaCidade(obj.cidade);
   if (!filial) { showToast('Cidade "' + obj.cidade + '" não cadastrada. Use "+ Cidade" no dashboard.', true); return; }
