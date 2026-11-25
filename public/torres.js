@@ -50,20 +50,22 @@ function renderTorresDetalhe() {
   const custoServidores = soma(T, d => custosTorre(d).servidor + custosTorre(d).servidorImg);
   const lucro = faturamento - custoTotal;
 
-  // ---- Cards de visão geral (seção 7) ----
-  const mini = (lbl, val, sub, cor) => `<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--bg-card)"><div style="font-size:11.5px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px">${lbl}</div><div style="font-size:20px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;color:${cor || 'var(--text-primary)'}">${val}</div>${sub ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:1px">${sub}</div>` : ''}</div>`;
-  const cardsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-    ${mini('Total torres', soma(T, qtdTorres), T.length + ' clientes')}
-    ${mini('Cobradas', cobradas.length, pctTxt(cobradas.length, T.length), 'var(--accent)')}
-    ${mini('Gratificadas', gratis.length, pctTxt(gratis.length, T.length), 'var(--warning)')}
-    ${mini('Sem linha no contrato', semLinha.length, 'regularizar', semLinha.length ? 'var(--danger)' : 'var(--text-muted)')}
-    ${mini('Torres 2 câmeras', cam2.length, '', 'var(--blue)')}
-    ${mini('Torres 3+ câmeras', cam3.length, '', 'var(--blue)')}
-    ${mini('Faturamento/mês', fmtVal(faturamento), 'torres cobradas')}
-    ${mini('Custo/mês', fmtVal(custoTotal), 'fornecedores + servidores', 'var(--danger)')}
-    ${mini('Custo servidores', fmtVal(custoServidores), 'IA + imagem')}
-    ${mini('Lucro líquido/mês', R(lucro), faturamento ? Math.round(lucro / faturamento * 100) + '% de margem' : 'sem receita', corV(lucro))}
-  </div>`;
+  // ---- Resumo executivo (diretoria): 3 números grandes + contexto enxuto ----
+  const deficitN = T.filter(d => classifTorre(custosTorre(d)) === 'DEFICITÁRIA').length;
+  const big = (l, v, s, c) => `<div style="border:1px solid var(--border);border-radius:14px;padding:18px 20px;background:var(--bg-card)"><div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">${l}</div><div style="font-size:30px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;color:${c || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
+  const hero = (l, v, s, c) => `<div style="border:2px solid ${c};border-radius:14px;padding:18px 20px;background:var(--bg-card)"><div style="font-size:12px;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.4px">${l}</div><div style="font-size:34px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums;color:${c}">${v}</div>${s ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
+  const cardsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      ${big('Faturamento / mês', fmtVal(faturamento), 'o que os clientes pagam')}
+      ${big('Custo / mês', fmtVal(custoTotal), 'fornecedores + servidores', 'var(--danger)')}
+      ${hero('Lucro líquido / mês', R(lucro), faturamento ? 'margem de ' + Math.round(lucro / faturamento * 100) + '%' : 'sem receita', corV(lucro))}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+      <span class="badge badge-neutral">${soma(T, qtdTorres)} torres · ${T.length} clientes</span>
+      <span class="badge badge-blue">${cobradas.length} cobradas</span>
+      <span class="badge badge-warning">${gratis.length} gratificadas</span>
+      <span class="badge ${deficitN ? 'badge-danger' : 'badge-success'}">${deficitN} deficitárias</span>
+      <span class="badge ${semLinha.length ? 'badge-danger' : 'badge-neutral'}">${semLinha.length} sem linha no contrato</span>
+    </div>`;
 
   // ---- Por quantidade de câmeras (seção 4) ----
   const linhaCam = (lbl, lista) => { const rec = soma(lista, d => custosTorre(d).receita); const cia = soma(lista, d => custosTorre(d).ia); const csrv = soma(lista, d => custosTorre(d).servidor + custosTorre(d).servidorImg); const ct = soma(lista, d => custosTorre(d).total); const luc = rec - ct;
@@ -105,7 +107,7 @@ function renderTorresDetalhe() {
 
   const secTitle = t => `<div style="font-weight:700;font-size:15px;margin:18px 0 6px">${t}</div>`;
   box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div style="font-weight:700;font-size:16px">Visão geral das torres${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''}</div><button class="btn btn-outline btn-sm" onclick="exportTorresCSV()" title="Exportar todas as torres com custos e resultado">⬇ Exportar CSV</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div style="font-weight:700;font-size:16px">Resultado da operação de Torres${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''}</div><button class="btn btn-outline btn-sm" onclick="exportTorresCSV()" title="Exportar todas as torres com custos e resultado">⬇ Exportar CSV</button></div>
     <div style="margin-top:12px">${cardsHtml}</div>
     ${secTitle('Por quantidade de câmeras')}${camHtml}
     ${secTitle('Comparativos')}${comparativoHtml}
