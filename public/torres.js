@@ -32,7 +32,7 @@ function renderTorres() {
 
 // ===== Visão geral + câmeras + resultado por cliente (fases 1) =====
 function torreSemLinha(d) { return d.linha_contrato !== true; }
-function classifTorre(c) { return !c.receita && c.total ? 'DEFICITÁRIA' : c.lucro > 0.005 ? 'RENTÁVEL' : c.lucro < -0.005 ? 'DEFICITÁRIA' : 'EQUILÍBRIO'; }
+function classifTorre(c, d) { if (d && d.gratificada !== false) return 'CORTESIA'; if (!c.receita) return c.total ? 'DEFICITÁRIA' : 'EQUILÍBRIO'; return c.lucro > 0.005 ? 'RENTÁVEL' : c.lucro < -0.005 ? 'DEFICITÁRIA' : 'EQUILÍBRIO'; }
 function renderTorresDetalhe() {
   let box = document.getElementById('torres-detalhe');
   if (!box) { box = document.createElement('div'); box.id = 'torres-detalhe'; const fin = document.getElementById('torres-fin'); (fin || document.getElementById('torres-charts')).after(box); }
@@ -51,7 +51,6 @@ function renderTorresDetalhe() {
   const lucro = faturamento - custoTotal;
 
   // ---- Resumo executivo (diretoria): 3 números grandes + contexto enxuto ----
-  const deficitN = T.filter(d => classifTorre(custosTorre(d)) === 'DEFICITÁRIA').length;
   const portariaN = T.filter(d => d.tipo_operacao === 'portaria').length, monitN = T.filter(d => d.tipo_operacao === 'monitoramento').length;
   const big = (l, v, s, c) => `<div style="border:1px solid var(--border);border-radius:14px;padding:18px 20px;background:var(--bg-card)"><div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">${l}</div><div style="font-size:30px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;color:${c || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
   const hero = (l, v, s, c) => `<div style="border:2px solid ${c};border-radius:14px;padding:18px 20px;background:var(--bg-card)"><div style="font-size:12px;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.4px">${l}</div><div style="font-size:34px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums;color:${c}">${v}</div>${s ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
@@ -65,7 +64,6 @@ function renderTorresDetalhe() {
       <span class="badge badge-neutral" style="cursor:pointer" onclick="torresQuickFilter('grat','')" title="Ver todas">${soma(T, qtdTorres)} torres · ${T.length} clientes</span>
       <span class="badge badge-blue" style="cursor:pointer" onclick="torresQuickFilter('grat','pagas')">${cobradas.length} cobradas</span>
       <span class="badge badge-warning" style="cursor:pointer" onclick="torresQuickFilter('grat','gratificadas')">${gratis.length} gratificadas</span>
-      <span class="badge ${deficitN ? 'badge-danger' : 'badge-success'}" style="cursor:pointer" onclick="torresQuickFilter('grat','deficit')">${deficitN} deficitárias</span>
       <span class="badge ${semLinha.length ? 'badge-danger' : 'badge-neutral'}" style="cursor:pointer" onclick="torresQuickFilter('grat','semlinha')">${semLinha.length} sem linha no contrato</span>
       <span class="badge badge-neutral" style="cursor:pointer;border-left:3px solid var(--blue)" onclick="torresQuickFilter('tipo','portaria')">🏢 ${portariaN} portaria</span>
       <span class="badge badge-neutral" style="cursor:pointer;border-left:3px solid var(--accent)" onclick="torresQuickFilter('tipo','monitoramento')">📹 ${monitN} monitoramento</span>
@@ -80,9 +78,9 @@ function renderTorresDetalhe() {
   // ---- Resultado por cliente (seção 9) ----
   const ordenadas = T.slice().sort((a, b) => custosTorre(a).lucro - custosTorre(b).lucro);
   const badge = cl => { const cor = cl === 'RENTÁVEL' ? 'badge-success' : cl === 'DEFICITÁRIA' ? 'badge-danger' : 'badge-warning'; return `<span class="badge ${cor}">${cl}</span>`; };
-  const linhaCli = d => { const c = custosTorre(d); const cl = classifTorre(c); return `<tr><td style="padding:8px 10px">${d.cliente || '—'}${d.filial ? `<div style="font-size:11px;color:var(--text-muted)">${d.filial}</div>` : ''}</td><td style="${_tdN2}">${nCam(d) || '—'}</td><td style="${_tdN2}">${c.receita ? fmtVal(c.receita) : '—'}</td><td style="${_tdN2}">${fmtVal(c.ia)}</td><td style="${_tdN2}">${fmtVal(c.servidor + c.servidorImg)}</td><td style="${_tdN2};color:var(--danger)">${fmtVal(c.total)}</td><td style="${_tdN2};font-weight:700;color:${corV(c.lucro)}">${R(c.lucro)}</td><td style="text-align:center">${badge(cl)}</td></tr>`; };
-  const rentaveis = T.filter(d => classifTorre(custosTorre(d)) === 'RENTÁVEL').length;
-  const deficit = T.filter(d => classifTorre(custosTorre(d)) === 'DEFICITÁRIA').length;
+  const linhaCli = d => { const c = custosTorre(d); const cl = classifTorre(c, d); return `<tr><td style="padding:8px 10px">${d.cliente || '—'}${d.filial ? `<div style="font-size:11px;color:var(--text-muted)">${d.filial}</div>` : ''}</td><td style="${_tdN2}">${nCam(d) || '—'}</td><td style="${_tdN2}">${c.receita ? fmtVal(c.receita) : '—'}</td><td style="${_tdN2}">${fmtVal(c.ia)}</td><td style="${_tdN2}">${fmtVal(c.servidor + c.servidorImg)}</td><td style="${_tdN2};color:var(--danger)">${fmtVal(c.total)}</td><td style="${_tdN2};font-weight:700;color:${corV(c.lucro)}">${R(c.lucro)}</td><td style="text-align:center">${badge(cl)}</td></tr>`; };
+  const rentaveis = T.filter(d => classifTorre(custosTorre(d), d) === 'RENTÁVEL').length;
+  const deficit = T.filter(d => classifTorre(custosTorre(d), d) === 'DEFICITÁRIA').length;
   const cliHtml = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 10px"><span class="badge badge-success">${rentaveis} rentáveis</span><span class="badge badge-danger">${deficit} deficitárias</span></div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px"><th style="padding:8px 10px;text-align:left">Cliente</th><th style="${_thN2}">Câm.</th><th style="${_thN2}">Faturamento</th><th style="${_thN2}">Custo IA</th><th style="${_thN2}">Servidores</th><th style="${_thN2}">Custo total</th><th style="${_thN2}">Resultado</th><th style="${_thN2.replace('right','center')}">Situação</th></tr></thead><tbody>${ordenadas.map(linhaCli).join('')}</tbody></table></div>`;
 
@@ -142,7 +140,7 @@ function exportTorresCSV() {
       d.gratificada === false ? 'Cobrada' : 'Gratificada',
       d.linha_contrato === true ? 'Sim' : d.linha_contrato === false ? 'Nao' : '',
       d.data_instalacao || '', d.forn_imagem || '', d.forn_ia || '', d.usa_servidor_imagem ? 'Sim' : 'Nao',
-      c.imagem.toFixed(2), c.ia.toFixed(2), (c.servidor + c.servidorImg).toFixed(2), c.total.toFixed(2), c.receita.toFixed(2), c.lucro.toFixed(2), classifTorre(c)
+      c.imagem.toFixed(2), c.ia.toFixed(2), (c.servidor + c.servidorImg).toFixed(2), c.total.toFixed(2), c.receita.toFixed(2), c.lucro.toFixed(2), classifTorre(c, d)
     ].map(esc).join(';') + '\n';
   });
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -175,7 +173,7 @@ function renderTorresTable() {
     if (gr === 'chkpend' && !(d.status === 'INSTALADA' && torreChecklist(d) < 4)) return false;
     if (gr === 'semlinha' && d.linha_contrato === true) return false;
     if (gr === 'seminstal' && d.data_instalacao) return false;
-    if (gr === 'deficit' && classifTorre(custosTorre(d)) !== 'DEFICITÁRIA') return false;
+    if (gr === 'deficit' && classifTorre(custosTorre(d), d) !== 'DEFICITÁRIA') return false;
     if (tp && (d.tipo_operacao || '') !== tp) return false;
     if (iaF === 'sem' && d.forn_ia) return false;
     if (iaF && iaF !== 'sem' && d.forn_ia !== iaF) return false;
