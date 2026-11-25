@@ -288,6 +288,7 @@ function openTorreModal(editId) {
     document.getElementById('tm-fantasia').value = d.nome_fantasia || '';
     document.getElementById('tm-codigo').value = d.codigo_cliente || '';
     document.getElementById('tm-chave-sigma').value = d.chave_sigma || '';
+    document.getElementById('tm-filial').value = d.filial || 'Servis Ceará';
     document.getElementById('tm-cidade').value = d.cidade || 'FORTALEZA';
     document.getElementById('tm-status').value = d.status || 'EM AUTORIZAÇÃO';
     document.getElementById('tm-modelo').value = d.modelo || 'CORTESIA 6 MESES';
@@ -321,6 +322,7 @@ function openTorreModal(editId) {
     document.getElementById('tm-fantasia').value = '';
     document.getElementById('tm-codigo').value = '';
     document.getElementById('tm-chave-sigma').value = '';
+    document.getElementById('tm-filial').value = 'Servis Ceará';
     document.getElementById('tm-cidade').value = 'FORTALEZA';
     document.getElementById('tm-status').value = 'EM AUTORIZAÇÃO';
     document.getElementById('tm-modelo').value = 'CORTESIA 6 MESES';
@@ -547,9 +549,7 @@ async function saveTorre() {
     valor_servidor_imagem: document.getElementById('tm-usa-srv-img').value === 'sim' ? (parseInt(document.getElementById('tm-cameras').value) || 0) * CUSTO_SERVIDOR_IMAGEM : null,
     tipo_operacao: document.getElementById('tm-tipo-operacao').value || null,
   };
-  const filial = filialDaCidade(obj.cidade);
-  if (!filial) { showToast('Cidade "' + obj.cidade + '" não cadastrada. Use "+ Cidade" no dashboard.', true); return; }
-  obj.filial = filial;
+  obj.filial = document.getElementById('tm-filial').value || null;
   obj.updated_at = new Date().toISOString();
   const editId = document.getElementById('torre-edit-id').value;
   let error;
