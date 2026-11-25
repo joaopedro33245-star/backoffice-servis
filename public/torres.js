@@ -32,6 +32,27 @@ function renderTorres() {
 // ===== Visão geral + câmeras + resultado por cliente (fases 1) =====
 function torreSemLinha(d) { return d.linha_contrato !== true; }
 function classifTorre(c, d) { if (d && d.gratificada !== false) return 'CORTESIA'; if (!c.receita) return c.total ? 'DEFICITÁRIA' : 'EQUILÍBRIO'; return c.lucro > 0.005 ? 'RENTÁVEL' : c.lucro < -0.005 ? 'DEFICITÁRIA' : 'EQUILÍBRIO'; }
+function renderTorresPorCliente() {
+  let box = document.getElementById('torres-por-cliente');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'torres-por-cliente'; box.style.marginTop = '22px';
+    const tw = document.getElementById('torres-table-wrap');
+    const card = tw ? tw.closest('.card') : null;
+    (card || document.getElementById('torres-filters') || document.body).after(box);
+  }
+  const T = window.TOR_FIN_FILIAL ? (DATA.torres || []).filter(d => (d.filial || 'Sem filial') === window.TOR_FIN_FILIAL) : (DATA.torres || []);
+  const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
+  const corV = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
+  const nCam = d => Number(d.cameras || 0);
+  const ordenadas = T.slice().sort((a, b) => custosTorre(a).lucro - custosTorre(b).lucro);
+  const badge = cl => { const cor = cl === 'RENTÁVEL' ? 'badge-success' : cl === 'DEFICITÁRIA' ? 'badge-danger' : 'badge-warning'; return `<span class="badge ${cor}">${cl}</span>`; };
+  const linhaCli = d => { const c = custosTorre(d); const cl = classifTorre(c, d); return `<tr><td style="padding:8px 10px">${d.cliente || '—'}${d.filial ? `<div style="font-size:11px;color:var(--text-muted)">${d.filial}</div>` : ''}</td><td style="${_tdN2}">${nCam(d) || '—'}</td><td style="${_tdN2}">${c.receita ? fmtVal(c.receita) : '—'}</td><td style="${_tdN2}">${fmtVal(c.ia)}</td><td style="${_tdN2}">${fmtVal(c.servidor + c.servidorImg)}</td><td style="${_tdN2};color:var(--danger)">${fmtVal(c.total)}</td><td style="${_tdN2};font-weight:700;color:${corV(c.lucro)}">${R(c.lucro)}</td><td style="text-align:center">${badge(cl)}</td></tr>`; };
+  const rentaveis = T.filter(d => classifTorre(custosTorre(d), d) === 'RENTÁVEL').length;
+  const deficit = T.filter(d => classifTorre(custosTorre(d), d) === 'DEFICITÁRIA').length;
+  const cliHtml = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 10px"><span class="badge badge-success">${rentaveis} rentáveis</span><span class="badge badge-danger">${deficit} deficitárias</span></div>
+    <div class="table-wrap"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px"><th style="padding:8px 10px;text-align:left">Cliente</th><th style="${_thN2}">Câm.</th><th style="${_thN2}">Faturamento</th><th style="${_thN2}">Custo IA</th><th style="${_thN2}">Servidores</th><th style="${_thN2}">Custo total</th><th style="${_thN2}">Resultado</th><th style="${_thN2.replace('right','center')}">Situação</th></tr></thead><tbody>${ordenadas.map(linhaCli).join('')}</tbody></table></div>`;
+  box.innerHTML = `<div class="card"><div class="card-body"><div style="font-weight:700;font-size:16px;margin-bottom:4px">Resultado por cliente${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''} <span style="font-weight:400;font-size:13px;color:var(--text-muted)">(do pior para o melhor)</span></div>${cliHtml}</div></div>`;
+}
 function renderTorresDetalhe() {
   let box = document.getElementById('torres-detalhe');
   if (!box) { box = document.createElement('div'); box.id = 'torres-detalhe'; const fin = document.getElementById('torres-fin'); (fin || document.getElementById('torres-charts')).after(box); }
@@ -77,14 +98,6 @@ function renderTorresDetalhe() {
   const camHtml = `<div class="table-wrap" style="margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px"><th style="padding:8px 10px;text-align:left">Categoria</th><th style="${_thN2}">Torres</th><th style="${_thN2}">Gratif.</th><th style="${_thN2}">Cobradas</th><th style="${_thN2}">Receita</th><th style="${_thN2}">Custo IA</th><th style="${_thN2}">Servidores</th><th style="${_thN2}">Lucro</th><th style="${_thN2}">Margem</th></tr></thead><tbody>
     ${linhaCam('2 câmeras', cam2)}${linhaCam('3+ câmeras', cam3)}${(() => { const outras = T.filter(d => nCam(d) < 2); return outras.length ? linhaCam('Outras', outras) : ''; })()}</tbody></table></div>`;
 
-  // ---- Resultado por cliente (seção 9) ----
-  const ordenadas = T.slice().sort((a, b) => custosTorre(a).lucro - custosTorre(b).lucro);
-  const badge = cl => { const cor = cl === 'RENTÁVEL' ? 'badge-success' : cl === 'DEFICITÁRIA' ? 'badge-danger' : 'badge-warning'; return `<span class="badge ${cor}">${cl}</span>`; };
-  const linhaCli = d => { const c = custosTorre(d); const cl = classifTorre(c, d); return `<tr><td style="padding:8px 10px">${d.cliente || '—'}${d.filial ? `<div style="font-size:11px;color:var(--text-muted)">${d.filial}</div>` : ''}</td><td style="${_tdN2}">${nCam(d) || '—'}</td><td style="${_tdN2}">${c.receita ? fmtVal(c.receita) : '—'}</td><td style="${_tdN2}">${fmtVal(c.ia)}</td><td style="${_tdN2}">${fmtVal(c.servidor + c.servidorImg)}</td><td style="${_tdN2};color:var(--danger)">${fmtVal(c.total)}</td><td style="${_tdN2};font-weight:700;color:${corV(c.lucro)}">${R(c.lucro)}</td><td style="text-align:center">${badge(cl)}</td></tr>`; };
-  const rentaveis = T.filter(d => classifTorre(custosTorre(d), d) === 'RENTÁVEL').length;
-  const deficit = T.filter(d => classifTorre(custosTorre(d), d) === 'DEFICITÁRIA').length;
-  const cliHtml = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 10px"><span class="badge badge-success">${rentaveis} rentáveis</span><span class="badge badge-danger">${deficit} deficitárias</span></div>
-    <div class="table-wrap"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px"><th style="padding:8px 10px;text-align:left">Cliente</th><th style="${_thN2}">Câm.</th><th style="${_thN2}">Faturamento</th><th style="${_thN2}">Custo IA</th><th style="${_thN2}">Servidores</th><th style="${_thN2}">Custo total</th><th style="${_thN2}">Resultado</th><th style="${_thN2.replace('right','center')}">Situação</th></tr></thead><tbody>${ordenadas.map(linhaCli).join('')}</tbody></table></div>`;
 
   // ---- Alertas gerenciais (seção 9.6) ----
   const alertas = [];
@@ -120,8 +133,8 @@ function renderTorresDetalhe() {
     ${_fin.filial}
     ${secTitle('Instalações por mês')}${instalHtml}
     ${secTitle('Alertas gerenciais')}${alertasHtml}
-    ${secTitle('Resultado por cliente (do pior para o melhor)')}${cliHtml}
   </div></div>`;
+  renderTorresPorCliente();
 }
 const _tdN2 = 'padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums';
 const _thN2 = 'padding:8px 10px;text-align:right';
