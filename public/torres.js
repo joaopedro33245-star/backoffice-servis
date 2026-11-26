@@ -468,7 +468,8 @@ function torresFinExtras() {
       add('Imagem · ' + (d.forn_imagem || 'outros'), c.imagem);
       add('Inteligência · ' + (d.forn_ia || 'outros'), c.licenca);
       add('Servidor Adentro (IA Segware)', c.servidor);
-      add('Ajustes manuais', c.total - c.imagem - c.ia);
+      add('Servidor de imagem (gravação)', c.servidorImg);
+      add('Ajustes manuais', c.total - c.imagem - c.ia - c.servidorImg);
     });
     return r;
   };
