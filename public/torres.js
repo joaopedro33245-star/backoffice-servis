@@ -132,7 +132,7 @@ function renderTorresDetalhe() {
 
   const secTitle = t => `<div style="font-weight:700;font-size:15px;margin:18px 0 6px">${t}</div>`;
   box.innerHTML = `<div class="card" style="margin-bottom:22px"><div class="card-body">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div style="font-weight:700;font-size:16px">Resultado da operação de Torres${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''}</div><button class="btn btn-outline btn-sm" onclick="exportTorresCSV()" title="Exportar todas as torres com custos e resultado">⬇ Exportar CSV</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div style="font-weight:700;font-size:16px">Resultado da operação de Torres${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''}</div><span style="display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="exportTorresCSV()" title="Exportar todas as torres com custos e resultado (CSV)">⬇ CSV</button><button class="btn btn-accent btn-sm" onclick="exportTorresXLSX()" title="Exportar todas as torres em Excel (.xlsx)">⬇ Excel</button></span></div>
     ${filChips}
     <div style="margin-top:12px">${cardsHtml}</div>
     ${secTitle('Pagas × gratificadas · custo por fornecedor')}<div style="margin-bottom:8px">${_fin.geral}</div>${_fin.blocos}
@@ -173,6 +173,26 @@ function exportTorresCSV() {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = 'torres_rentabilidade.csv'; a.click();
+}
+function exportTorresXLSX() {
+  const T = DATA.torres || [];
+  if (!T.length) { showToast('Sem torres para exportar', true); return; }
+  if (typeof XLSX === 'undefined') { showToast('Biblioteca Excel ainda carregando — tente de novo em 1s', true); return; }
+  const r2 = v => Math.round((Number(v) || 0) * 100) / 100;
+  const cab = ['Cliente', 'Nome fantasia', 'Codigo', 'Filial', 'Cidade', 'Status', 'Modelo', 'Cameras', 'Qtd torres', 'Modalidade', 'Linha no contrato', 'Data instalacao', 'Forn. imagem', 'Forn. IA', 'Usa servidor imagem', 'Custo imagem', 'Custo IA', 'Custo servidores', 'Custo total', 'Cobrado', 'Resultado', 'Situacao'];
+  const rows = T.map(d => { const c = custosTorre(d); return [
+    d.cliente || '', d.nome_fantasia || '', d.codigo_cliente || '', d.filial || '', d.cidade || '', d.status || '', d.modelo || '',
+    Number(d.cameras || 0), qtdTorres(d),
+    d.gratificada === false ? 'Cobrada' : 'Gratificada',
+    d.linha_contrato === true ? 'Sim' : d.linha_contrato === false ? 'Nao' : '',
+    d.data_instalacao || '', d.forn_imagem || '', d.forn_ia || '', d.usa_servidor_imagem ? 'Sim' : 'Nao',
+    r2(c.imagem), r2(c.ia), r2(c.servidor + c.servidorImg), r2(c.total), r2(c.receita), r2(c.lucro), classifTorre(c, d)
+  ]; });
+  const ws = XLSX.utils.aoa_to_sheet([cab, ...rows]);
+  ws['!cols'] = cab.map(h => ({ wch: Math.max(10, h.length + 2) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Torres');
+  XLSX.writeFile(wb, 'torres_rentabilidade.xlsx');
 }
 
 function renderTorresTable() {
