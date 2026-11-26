@@ -159,11 +159,11 @@ function exportTorresCSV() {
   if (!T.length) { showToast('Sem torres para exportar', true); return; }
   const BOM = '﻿';
   const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const cab = ['Cliente', 'Nome fantasia', 'Codigo', 'Filial', 'Cidade', 'Status', 'Modelo', 'Cameras', 'Qtd torres', 'Modalidade', 'Linha no contrato', 'Data instalacao', 'Forn. imagem', 'Forn. IA', 'Usa servidor imagem', 'Custo imagem', 'Custo IA', 'Custo servidores', 'Custo total', 'Cobrado', 'Resultado', 'Situacao'];
+  const cab = ['Cliente', 'Nome fantasia', 'Codigo', 'Chave Sigma', 'Filial', 'Cidade', 'Status', 'Modelo', 'Cameras', 'Qtd torres', 'Modalidade', 'Linha no contrato', 'Data instalacao', 'Forn. imagem', 'Forn. IA', 'Usa servidor imagem', 'Custo imagem', 'Custo IA', 'Custo servidores', 'Custo total', 'Cobrado', 'Resultado', 'Situacao'];
   let csv = BOM + cab.join(';') + '\n';
   T.forEach(d => {
     const c = custosTorre(d);
-    csv += [d.cliente, d.nome_fantasia, d.codigo_cliente, d.filial, d.cidade, d.status, d.modelo, d.cameras, qtdTorres(d),
+    csv += [d.cliente, d.nome_fantasia, d.codigo_cliente, d.chave_sigma, d.filial, d.cidade, d.status, d.modelo, d.cameras, qtdTorres(d),
       d.gratificada === false ? 'Cobrada' : 'Gratificada',
       d.linha_contrato === true ? 'Sim' : d.linha_contrato === false ? 'Nao' : '',
       d.data_instalacao || '', d.forn_imagem || '', d.forn_ia || '', d.usa_servidor_imagem ? 'Sim' : 'Nao',
@@ -179,9 +179,9 @@ function exportTorresXLSX() {
   if (!T.length) { showToast('Sem torres para exportar', true); return; }
   if (typeof XLSX === 'undefined') { showToast('Biblioteca Excel ainda carregando — tente de novo em 1s', true); return; }
   const r2 = v => Math.round((Number(v) || 0) * 100) / 100;
-  const cab = ['Cliente', 'Nome fantasia', 'Codigo', 'Filial', 'Cidade', 'Status', 'Modelo', 'Cameras', 'Qtd torres', 'Modalidade', 'Linha no contrato', 'Data instalacao', 'Forn. imagem', 'Forn. IA', 'Usa servidor imagem', 'Custo imagem', 'Custo IA', 'Custo servidores', 'Custo total', 'Cobrado', 'Resultado', 'Situacao'];
+  const cab = ['Cliente', 'Nome fantasia', 'Codigo', 'Chave Sigma', 'Filial', 'Cidade', 'Status', 'Modelo', 'Cameras', 'Qtd torres', 'Modalidade', 'Linha no contrato', 'Data instalacao', 'Forn. imagem', 'Forn. IA', 'Usa servidor imagem', 'Custo imagem', 'Custo IA', 'Custo servidores', 'Custo total', 'Cobrado', 'Resultado', 'Situacao'];
   const rows = T.map(d => { const c = custosTorre(d); return [
-    d.cliente || '', d.nome_fantasia || '', d.codigo_cliente || '', d.filial || '', d.cidade || '', d.status || '', d.modelo || '',
+    d.cliente || '', d.nome_fantasia || '', d.codigo_cliente || '', d.chave_sigma || '', d.filial || '', d.cidade || '', d.status || '', d.modelo || '',
     Number(d.cameras || 0), qtdTorres(d),
     d.gratificada === false ? 'Cobrada' : 'Gratificada',
     d.linha_contrato === true ? 'Sim' : d.linha_contrato === false ? 'Nao' : '',
