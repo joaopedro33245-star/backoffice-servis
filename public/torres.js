@@ -32,6 +32,31 @@ function renderTorres() {
 // ===== Visão geral + câmeras + resultado por cliente (fases 1) =====
 function torreSemLinha(d) { return d.linha_contrato !== true; }
 function classifTorre(c, d) { if (d && d.gratificada !== false) return 'CORTESIA'; if (!c.receita) return c.total ? 'DEFICITÁRIA' : 'EQUILÍBRIO'; return c.lucro > 0.005 ? 'RENTÁVEL' : c.lucro < -0.005 ? 'DEFICITÁRIA' : 'EQUILÍBRIO'; }
+function torresFiltroAtivo() {
+  const g = id => { const el = document.querySelector('#torres-filters [data-filter="' + id + '"]'); return el ? el.value : ''; };
+  return { filial: window.TOR_FIN_FILIAL || '', st: g('status'), iaF: g('ia'), tp: g('tipo'), gr: g('grat'), search: (g('search') || '').toLowerCase() };
+}
+function torreCasaFiltro(d, f) {
+  if (f.filial && (d.filial || 'Sem filial') !== f.filial) return false;
+  if (f.st && d.status !== f.st) return false;
+  const dias = diasAte(d.data_fim_gratificacao);
+  if (f.gr === 'vencendo' && !(dias !== null && dias >= 0 && dias <= 30)) return false;
+  if (f.gr === 'vencidas' && !(dias !== null && dias < 0)) return false;
+  if (f.gr === 'semdata' && d.data_fim_gratificacao) return false;
+  if (f.gr === 'gratificadas' && d.gratificada === false) return false;
+  if (f.gr === 'pagas' && d.gratificada !== false) return false;
+  if (f.gr === 'chkpend' && !(d.status === 'INSTALADA' && torreChecklist(d) < 4)) return false;
+  if (f.gr === 'semlinha' && d.linha_contrato === true) return false;
+  if (f.gr === 'seminstal' && d.data_instalacao) return false;
+  if (f.gr === 'deficit' && classifTorre(custosTorre(d), d) !== 'DEFICITÁRIA') return false;
+  if (f.tp && (d.tipo_operacao || '') !== f.tp) return false;
+  if (f.iaF === 'sem' && d.forn_ia) return false;
+  if (f.iaF && f.iaF !== 'sem' && d.forn_ia !== f.iaF) return false;
+  if (f.search && !nzBusca([d.cliente, d.nome_fantasia, d.codigo_cliente, d.chave_sigma].filter(Boolean).join(' ')).includes(nzBusca(f.search))) return false;
+  return true;
+}
+function torresFiltradas() { const f = torresFiltroAtivo(); return (DATA.torres || []).filter(d => torreCasaFiltro(d, f)); }
+function torresRender() { renderTorresDetalhe(); renderTorresTable(); }
 function renderTorresPorCliente() {
   let box = document.getElementById('torres-por-cliente');
   if (!box) {
@@ -40,7 +65,7 @@ function renderTorresPorCliente() {
     const card = tw ? tw.closest('.card') : null;
     (card || document.getElementById('torres-filters') || document.body).after(box);
   }
-  const T = window.TOR_FIN_FILIAL ? (DATA.torres || []).filter(d => (d.filial || 'Sem filial') === window.TOR_FIN_FILIAL) : (DATA.torres || []);
+  const T = torresFiltradas();
   const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
   const corV = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
   const nCam = d => Number(d.cameras || 0);
@@ -58,8 +83,10 @@ function renderTorresDetalhe() {
   if (!box) { box = document.createElement('div'); box.id = 'torres-detalhe'; const fin = document.getElementById('torres-fin'); (fin || document.getElementById('torres-charts')).after(box); }
   const _fin = torresFinExtras();
   const _filiaisL = window.TOR_FIN_FILIAL_L || [];
-  const T = window.TOR_FIN_FILIAL ? (DATA.torres || []).filter(d => (d.filial || 'Sem filial') === window.TOR_FIN_FILIAL) : (DATA.torres || []);
-  const filChips = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 2px">${['', ..._filiaisL].map((f, i) => `<button class="btn btn-sm ${(window.TOR_FIN_FILIAL || '') === f ? 'btn-accent' : 'btn-outline'}" onclick="window.TOR_FIN_FILIAL=${i ? `window.TOR_FIN_FILIAL_L[${i - 1}]` : "''"};renderTorresDetalhe()">${f || 'Todas as filiais'}</button>`).join('')}</div>`;
+  const fA = torresFiltroAtivo();
+  const T = torresFiltradas();
+  const Tbase = (DATA.torres || []).filter(d => !fA.filial || (d.filial || 'Sem filial') === fA.filial);
+  const filChips = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 2px">${['', ..._filiaisL].map((f, i) => `<button class="btn btn-sm ${(window.TOR_FIN_FILIAL || '') === f ? 'btn-accent' : 'btn-outline'}" onclick="window.TOR_FIN_FILIAL=${i ? `window.TOR_FIN_FILIAL_L[${i - 1}]` : "''"};torresRender()">${f || 'Todas as filiais'}</button>`).join('')}</div>`;
   const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
   const corV = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
   const nCam = d => Number(d.cameras || 0);
@@ -74,7 +101,9 @@ function renderTorresDetalhe() {
   const lucro = faturamento - custoTotal;
 
   // ---- Resumo executivo (diretoria): 3 números grandes + contexto enxuto ----
-  const portariaN = T.filter(d => d.tipo_operacao === 'portaria').length, monitN = T.filter(d => d.tipo_operacao === 'monitoramento').length;
+  const bCobr = Tbase.filter(d => d.gratificada === false).length, bGrat = Tbase.filter(d => d.gratificada !== false).length, bSemL = Tbase.filter(torreSemLinha).length;
+  const bPort = Tbase.filter(d => d.tipo_operacao === 'portaria').length, bMon = Tbase.filter(d => d.tipo_operacao === 'monitoramento').length;
+  const qfOn = (dim, val) => (dim === 'grat' ? fA.gr : fA.tp) === val ? ';outline:2px solid var(--primary);outline-offset:1px' : '';
   const big = (l, v, s, c) => `<div style="border:1px solid var(--border);border-radius:14px;padding:18px 20px;background:var(--bg-card)"><div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px">${l}</div><div style="font-size:30px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums;color:${c || 'var(--text-primary)'}">${v}</div>${s ? `<div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
   const hero = (l, v, s, c) => `<div style="border:2px solid ${c};border-radius:14px;padding:18px 20px;background:var(--bg-card)"><div style="font-size:12px;font-weight:700;color:${c};text-transform:uppercase;letter-spacing:.4px">${l}</div><div style="font-size:34px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums;color:${c}">${v}</div>${s ? `<div style="font-size:13px;color:var(--text-muted);margin-top:2px">${s}</div>` : ''}</div>`;
   const cardsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
@@ -82,14 +111,14 @@ function renderTorresDetalhe() {
       ${big('Custo / mês', fmtVal(custoTotal), 'fornecedores + servidores', 'var(--danger)')}
       ${hero('Lucro líquido / mês', R(lucro), faturamento ? 'margem de ' + Math.round(lucro / faturamento * 100) + '%' : 'sem receita', corV(lucro))}
     </div>
-    <div style="font-size:11.5px;color:var(--text-muted);margin-top:14px">Clique para filtrar a tabela abaixo:</div>
+    <div style="font-size:11.5px;color:var(--text-muted);margin-top:14px">Clique para filtrar toda a tela (clique de novo para limpar):</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
-      <span class="badge badge-neutral" style="cursor:pointer" onclick="torresQuickFilter('grat','')" title="Ver todas">${soma(T, qtdTorres)} torres · ${T.length} clientes</span>
-      <span class="badge badge-blue" style="cursor:pointer" onclick="torresQuickFilter('grat','pagas')">${cobradas.length} cobradas</span>
-      <span class="badge badge-warning" style="cursor:pointer" onclick="torresQuickFilter('grat','gratificadas')">${gratis.length} gratificadas</span>
-      <span class="badge ${semLinha.length ? 'badge-danger' : 'badge-neutral'}" style="cursor:pointer" onclick="torresQuickFilter('grat','semlinha')">${semLinha.length} sem linha no contrato</span>
-      <span class="badge badge-neutral" style="cursor:pointer;border-left:3px solid var(--blue)" onclick="torresQuickFilter('tipo','portaria')">🏢 ${portariaN} portaria</span>
-      <span class="badge badge-neutral" style="cursor:pointer;border-left:3px solid var(--accent)" onclick="torresQuickFilter('tipo','monitoramento')">📹 ${monitN} monitoramento</span>
+      <span class="badge ${!fA.gr && !fA.tp ? 'badge-blue' : 'badge-neutral'}" style="cursor:pointer" onclick="torresQuickFilter('grat','')" title="Ver todas">${soma(Tbase, qtdTorres)} torres · ${Tbase.length} clientes</span>
+      <span class="badge badge-blue" style="cursor:pointer${qfOn('grat','pagas')}" onclick="torresQuickFilter('grat','pagas')">${bCobr} cobradas</span>
+      <span class="badge badge-warning" style="cursor:pointer${qfOn('grat','gratificadas')}" onclick="torresQuickFilter('grat','gratificadas')">${bGrat} gratificadas</span>
+      <span class="badge ${bSemL ? 'badge-danger' : 'badge-neutral'}" style="cursor:pointer${qfOn('grat','semlinha')}" onclick="torresQuickFilter('grat','semlinha')">${bSemL} sem linha no contrato</span>
+      <span class="badge badge-neutral" style="cursor:pointer;border-left:3px solid var(--blue)${qfOn('tipo','portaria')}" onclick="torresQuickFilter('tipo','portaria')">🏢 ${bPort} portaria</span>
+      <span class="badge badge-neutral" style="cursor:pointer;border-left:3px solid var(--accent)${qfOn('tipo','monitoramento')}" onclick="torresQuickFilter('tipo','monitoramento')">📹 ${bMon} monitoramento</span>
     </div>`;
 
   // ---- Por quantidade de câmeras (seção 4) ----
@@ -141,7 +170,8 @@ const _thN2 = 'padding:8px 10px;text-align:right';
 function pctTxt(a, b) { return b ? Math.round(a / b * 100) + '% do total' : '—'; }
 function torresQuickFilter(dim, valor) {
   const el = document.querySelector('#torres-filters [data-filter="' + dim + '"]');
-  if (el) { el.value = valor; renderTorresTable(); }
+  if (el) el.value = (el.value === valor ? '' : valor);
+  torresRender();
   const tbl = document.getElementById('torres-table-wrap');
   if (tbl) tbl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -180,27 +210,11 @@ function renderTorresTable() {
   const search = srEl ? srEl.value.toLowerCase() : '';
   const gr = grEl ? grEl.value : '';
 
-  let filtered = T.filter(d => {
-    if (st && d.status !== st) return false;
-    const dias = diasAte(d.data_fim_gratificacao);
-    if (gr === 'vencendo' && !(dias !== null && dias >= 0 && dias <= 30)) return false;
-    if (gr === 'vencidas' && !(dias !== null && dias < 0)) return false;
-    if (gr === 'semdata' && d.data_fim_gratificacao) return false;
-    if (gr === 'gratificadas' && d.gratificada === false) return false;
-    if (gr === 'pagas' && d.gratificada !== false) return false;
-    if (gr === 'chkpend' && !(d.status === 'INSTALADA' && torreChecklist(d) < 4)) return false;
-    if (gr === 'semlinha' && d.linha_contrato === true) return false;
-    if (gr === 'seminstal' && d.data_instalacao) return false;
-    if (gr === 'deficit' && classifTorre(custosTorre(d), d) !== 'DEFICITÁRIA') return false;
-    if (tp && (d.tipo_operacao || '') !== tp) return false;
-    if (iaF === 'sem' && d.forn_ia) return false;
-    if (iaF && iaF !== 'sem' && d.forn_ia !== iaF) return false;
-    if (search && !nzBusca([d.cliente, d.nome_fantasia, d.codigo_cliente, d.chave_sigma].filter(Boolean).join(' ')).includes(nzBusca(search))) return false;
-    return true;
-  });
+  const _f = { filial: window.TOR_FIN_FILIAL || '', st, iaF, tp, gr, search };
+  let filtered = T.filter(d => torreCasaFiltro(d, _f));
 
   document.getElementById('torres-filters').innerHTML = `
-    <select class="filter-select" data-filter="status" onchange="renderTorresTable()">
+    <select class="filter-select" data-filter="status" onchange="torresRender()">
       <option value="">Todos os Status</option>
       <option value="INSTALADA" ${st==='INSTALADA'?'selected':''}>Instalada</option>
       <option value="AUTORIZADA" ${st==='AUTORIZADA'?'selected':''}>Autorizada</option>
@@ -209,17 +223,17 @@ function renderTorresTable() {
       <option value="SEGUNDO PLANO" ${st==='SEGUNDO PLANO'?'selected':''}>Segundo Plano</option>
       <option value="AVALIAR/AGUARDAR" ${st==='AVALIAR/AGUARDAR'?'selected':''}>Avaliar/Aguardar</option>
     </select>
-    <select class="filter-select" data-filter="ia" onchange="renderTorresTable()">
+    <select class="filter-select" data-filter="ia" onchange="torresRender()">
       <option value="">Todas as IAs</option>
       ${['Segware','Monuv','Octos'].map(x => `<option value="${x}" ${iaF===x?'selected':''}>${x}</option>`).join('')}
       <option value="sem" ${iaF==='sem'?'selected':''}>Sem IA</option>
     </select>
-    <select class="filter-select" data-filter="tipo" onchange="renderTorresTable()">
+    <select class="filter-select" data-filter="tipo" onchange="torresRender()">
       <option value="">Portaria + Monitoramento</option>
       <option value="portaria" ${tp==='portaria'?'selected':''}>Só Portaria</option>
       <option value="monitoramento" ${tp==='monitoramento'?'selected':''}>Só Monitoramento</option>
     </select>
-    <select class="filter-select" data-filter="grat" onchange="renderTorresTable()">
+    <select class="filter-select" data-filter="grat" onchange="torresRender()">
       <option value="">Gratificação / Checklist</option>
       <option value="vencendo" ${gr==='vencendo'?'selected':''}>Vencendo em 30 dias</option>
       <option value="vencidas" ${gr==='vencidas'?'selected':''}>Gratificação vencida</option>
@@ -231,7 +245,7 @@ function renderTorresTable() {
       <option value="gratificadas" ${gr==='gratificadas'?'selected':''}>Só gratificadas</option>
       <option value="pagas" ${gr==='pagas'?'selected':''}>Só pagas pelo cliente</option>
     </select>
-    <input class="filter-input" data-filter="search" placeholder="Buscar cliente, código ou chave..." oninput="renderTorresTable()" style="width:200px" value="${escAttr(srEl ? srEl.value : '')}">`;
+    <input class="filter-input" data-filter="search" placeholder="Buscar cliente, código ou chave..." oninput="torresRender()" style="width:200px" value="${escAttr(srEl ? srEl.value : '')}">`;
   if (_foco) { const _el = document.querySelector('#torres-filters [data-filter="' + _foco.f + '"]'); if (_el) { _el.focus(); try { if (_foco.s != null) _el.setSelectionRange(_foco.s, _foco.s); } catch (e) {} } }
 
   document.getElementById('torres-table-wrap').innerHTML = `
@@ -442,7 +456,7 @@ function torresFinExtras() {
   const _filiais = [...new Set(_TODOS.map(d => d.filial || 'Sem filial'))].sort();
   window.TOR_FIN_FILIAL_L = _filiais;
   if (window.TOR_FIN_FILIAL && !_filiais.includes(window.TOR_FIN_FILIAL)) window.TOR_FIN_FILIAL = '';
-  const T = window.TOR_FIN_FILIAL ? _TODOS.filter(d => (d.filial || 'Sem filial') === window.TOR_FIN_FILIAL) : _TODOS;
+  const T = torresFiltradas();
   const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
   const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
   const cor = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
@@ -482,7 +496,7 @@ function torresFinExtras() {
   const _ehPago = d => d.gratificada === false;
   const _tdN = 'padding:9px 10px;text-align:right;font-variant-numeric:tabular-nums';
   const _linhaF = (nome, lista, idx) => { const p = resumo(lista.filter(_ehPago)), q = resumo(lista.filter(d => !_ehPago(d))), res = p.lucro + q.lucro; const sel = idx !== null && window.TOR_FIN_FILIAL === nome;
-    return `<tr style="${idx === null ? 'font-weight:800;border-top:2px solid var(--border)' : 'cursor:pointer'}${sel ? ';background:var(--row-hover)' : ''}" ${idx === null ? '' : `onclick="window.TOR_FIN_FILIAL=window.TOR_FIN_FILIAL===window.TOR_FIN_FILIAL_L[${idx}]?'':window.TOR_FIN_FILIAL_L[${idx}];renderTorresDetalhe()" title="Clique para ver só esta filial"`}><td style="padding:9px 10px">${nome}</td><td style="${_tdN}">${p.n}</td><td style="${_tdN}">${fmtVal(p.receita)}</td><td style="${_tdN}">${fmtVal(p.total)}</td><td style="${_tdN};font-weight:700;color:${cor(p.lucro)}">${R(p.lucro)}</td><td style="${_tdN};color:var(--text-muted)">${p.receita ? pct(p.lucro, p.receita) : '—'}</td><td style="${_tdN};border-left:1px solid var(--border)">${q.n}</td><td style="${_tdN};color:var(--danger)">${fmtVal(q.total)}</td><td style="${_tdN};border-left:1px solid var(--border);font-weight:800;color:${cor(res)}">${R(res)}</td></tr>`; };
+    return `<tr style="${idx === null ? 'font-weight:800;border-top:2px solid var(--border)' : 'cursor:pointer'}${sel ? ';background:var(--row-hover)' : ''}" ${idx === null ? '' : `onclick="window.TOR_FIN_FILIAL=window.TOR_FIN_FILIAL===window.TOR_FIN_FILIAL_L[${idx}]?'':window.TOR_FIN_FILIAL_L[${idx}];torresRender()" title="Clique para ver só esta filial"`}><td style="padding:9px 10px">${nome}</td><td style="${_tdN}">${p.n}</td><td style="${_tdN}">${fmtVal(p.receita)}</td><td style="${_tdN}">${fmtVal(p.total)}</td><td style="${_tdN};font-weight:700;color:${cor(p.lucro)}">${R(p.lucro)}</td><td style="${_tdN};color:var(--text-muted)">${p.receita ? pct(p.lucro, p.receita) : '—'}</td><td style="${_tdN};border-left:1px solid var(--border)">${q.n}</td><td style="${_tdN};color:var(--danger)">${fmtVal(q.total)}</td><td style="${_tdN};border-left:1px solid var(--border);font-weight:800;color:${cor(res)}">${R(res)}</td></tr>`; };
   const _comparativo = `<div style="font-weight:700;font-size:14px;margin:20px 0 4px">Comparativo por filial</div><div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Clique numa filial para ver os blocos acima só dela.</div>
     <div class="table-wrap"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--text-muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.3px"><th style="padding:8px 10px;text-align:left">Filial</th><th style="padding:8px 10px;text-align:right">Pagas</th><th style="padding:8px 10px;text-align:right">Receita</th><th style="padding:8px 10px;text-align:right">Custo</th><th style="padding:8px 10px;text-align:right">Lucro</th><th style="padding:8px 10px;text-align:right">Margem</th><th style="padding:8px 10px;text-align:right;border-left:1px solid var(--border)">Gratif.</th><th style="padding:8px 10px;text-align:right">Custo cortesia</th><th style="padding:8px 10px;text-align:right;border-left:1px solid var(--border)">Resultado</th></tr></thead><tbody>
     ${_filiais.map((f, i) => _linhaF(f, _TODOS.filter(d => (d.filial || 'Sem filial') === f), i)).join('')}${_linhaF('Total', _TODOS, null)}</tbody></table></div>`;
