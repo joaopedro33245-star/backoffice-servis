@@ -59,12 +59,11 @@ function torresFiltradas() { const f = torresFiltroAtivo(); return (DATA.torres 
 function torresRender() { renderTorresDetalhe(); renderTorresTable(); }
 function renderTorresPorCliente() {
   let box = document.getElementById('torres-por-cliente');
-  if (!box) {
-    box = document.createElement('div'); box.id = 'torres-por-cliente'; box.style.marginTop = '22px';
-    const tw = document.getElementById('torres-table-wrap');
-    const card = tw ? tw.closest('.card') : null;
-    (card || document.getElementById('torres-filters') || document.body).after(box);
-  }
+  if (!box) { box = document.createElement('div'); box.id = 'torres-por-cliente'; box.style.margin = '6px 0 18px'; }
+  const tw = document.getElementById('torres-table-wrap');
+  const card = tw ? tw.closest('.card') : null;
+  if (card && box.nextElementSibling !== card) card.before(box);
+  else if (!card && !box.parentNode) (document.getElementById('torres-filters') || document.body).after(box);
   const T = torresFiltradas();
   const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
   const corV = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
