@@ -57,26 +57,6 @@ function torreCasaFiltro(d, f) {
 }
 function torresFiltradas() { const f = torresFiltroAtivo(); return (DATA.torres || []).filter(d => torreCasaFiltro(d, f)); }
 function torresRender() { renderTorresDetalhe(); renderTorresTable(); }
-function renderTorresPorCliente() {
-  let box = document.getElementById('torres-por-cliente');
-  if (!box) { box = document.createElement('div'); box.id = 'torres-por-cliente'; box.style.margin = '6px 0 18px'; }
-  const tw = document.getElementById('torres-table-wrap');
-  const card = tw ? tw.closest('.card') : null;
-  if (card && box.nextElementSibling !== card) card.before(box);
-  else if (!card && !box.parentNode) (document.getElementById('torres-filters') || document.body).after(box);
-  const T = torresFiltradas();
-  const R = v => (v < 0 ? '−' : '') + fmtVal(Math.abs(v));
-  const corV = v => v >= 0 ? 'var(--accent)' : 'var(--danger)';
-  const nCam = d => Number(d.cameras || 0);
-  const ordenadas = T.slice().sort((a, b) => custosTorre(a).lucro - custosTorre(b).lucro);
-  const badge = cl => { const cor = cl === 'RENTÁVEL' ? 'badge-success' : cl === 'DEFICITÁRIA' ? 'badge-danger' : 'badge-warning'; return `<span class="badge ${cor}">${cl}</span>`; };
-  const linhaCli = d => { const c = custosTorre(d); const cl = classifTorre(c, d); return `<tr><td style="padding:8px 10px">${d.cliente || '—'}${d.filial ? `<div style="font-size:11px;color:var(--text-muted)">${d.filial}</div>` : ''}</td><td style="${_tdN2}">${nCam(d) || '—'}</td><td style="${_tdN2}">${c.receita ? fmtVal(c.receita) : '—'}</td><td style="${_tdN2}">${fmtVal(c.ia)}</td><td style="${_tdN2}">${fmtVal(c.servidor + c.servidorImg)}</td><td style="${_tdN2};color:var(--danger)">${fmtVal(c.total)}</td><td style="${_tdN2};font-weight:700;color:${corV(c.lucro)}">${R(c.lucro)}</td><td style="text-align:center">${badge(cl)}</td></tr>`; };
-  const rentaveis = T.filter(d => classifTorre(custosTorre(d), d) === 'RENTÁVEL').length;
-  const deficit = T.filter(d => classifTorre(custosTorre(d), d) === 'DEFICITÁRIA').length;
-  const cliHtml = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 10px"><span class="badge badge-success">${rentaveis} rentáveis</span><span class="badge badge-danger">${deficit} deficitárias</span></div>
-    <div class="table-wrap"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px"><th style="padding:8px 10px;text-align:left">Cliente</th><th style="${_thN2}">Câm.</th><th style="${_thN2}">Faturamento</th><th style="${_thN2}">Custo IA</th><th style="${_thN2}">Servidores</th><th style="${_thN2}">Custo total</th><th style="${_thN2}">Resultado</th><th style="${_thN2.replace('right','center')}">Situação</th></tr></thead><tbody>${ordenadas.map(linhaCli).join('')}</tbody></table></div>`;
-  box.innerHTML = `<div class="card"><div class="card-body"><div style="font-weight:700;font-size:16px;margin-bottom:4px">Resultado por cliente${window.TOR_FIN_FILIAL ? ' · ' + window.TOR_FIN_FILIAL : ''} <span style="font-weight:400;font-size:13px;color:var(--text-muted)">(do pior para o melhor)</span></div>${cliHtml}</div></div>`;
-}
 function renderTorresDetalhe() {
   let box = document.getElementById('torres-detalhe');
   if (!box) { box = document.createElement('div'); box.id = 'torres-detalhe'; const fin = document.getElementById('torres-fin'); (fin || document.getElementById('torres-charts')).after(box); }
@@ -162,7 +142,7 @@ function renderTorresDetalhe() {
     ${secTitle('Instalações por mês')}${instalHtml}
     ${secTitle('Alertas gerenciais')}${alertasHtml}
   </div></div>`;
-  renderTorresPorCliente();
+  const _pc = document.getElementById('torres-por-cliente'); if (_pc) _pc.remove();
 }
 const _tdN2 = 'padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums';
 const _thN2 = 'padding:8px 10px;text-align:right';
@@ -248,7 +228,7 @@ function renderTorresTable() {
   if (_foco) { const _el = document.querySelector('#torres-filters [data-filter="' + _foco.f + '"]'); if (_el) { _el.focus(); try { if (_foco.s != null) _el.setSelectionRange(_foco.s, _foco.s); } catch (e) {} } }
 
   document.getElementById('torres-table-wrap').innerHTML = `
-    <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th>Fornecedores</th><th style="text-align:right">Câmeras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Margem</th><th>Fim Gratif.</th><th style="text-align:center">Checklist</th><th>Responsável</th><th>Ações</th></tr></thead>
+    <table><thead><tr><th>Cliente</th><th>Cidade</th><th>Status</th><th>Modelo</th><th>Fornecedores</th><th style="text-align:right">Câmeras</th><th style="text-align:right">Pago Forn.</th><th style="text-align:right">Custo total</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Margem</th><th style="text-align:center">Situação</th><th>Fim Gratif.</th><th style="text-align:center">Checklist</th><th>Responsável</th><th>Ações</th></tr></thead>
     <tbody>${filtered.map(d => {
       const stBadge = d.status==='INSTALADA'?'badge-success':d.status==='AUTORIZADA'?'badge-blue':d.status==='EM AUTORIZAÇÃO'?'badge-warning':d.status==='NÃO AUTORIZADA'?'badge-danger':'badge-neutral';
       const dias = diasAte(d.data_fim_gratificacao);
@@ -259,7 +239,10 @@ function renderTorresTable() {
       const ckCell = `<span class="badge ${ck === 4 ? 'badge-success' : ck === 0 ? 'badge-neutral' : 'badge-warning'}" title="${ckTip}" style="cursor:help">${ck}/4</span>`;
       const obsIco = d.observacao ? `<span class="tm-obs-ico" title="${escAttr(d.observacao)}">📝</span>` : '';
       const qtdBadge = qtdTorres(d) > 1 ? ` <span class="badge badge-blue" title="Este cliente tem ${qtdTorres(d)} torres">${qtdTorres(d)} torres</span>` : '';
-      return `<tr><td>${d.cliente}${qtdBadge}${obsIco}${torreIdent(d)}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null||d.valor_servidor!=null ? 'Visualização ' + (d.forn_imagem||'') + ': ' + fmtVal(d.valor_imagem||0) + ' | Inteligência ' + (d.forn_ia||'') + ': ' + fmtVal(Number(d.valor_ia||0) + Number(d.valor_licenca_ia||0)) + (d.valor_servidor ? ' | Servidor Adentro: ' + fmtVal(d.valor_servidor) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
+      const _cst = custosTorre(d), _cl = classifTorre(_cst, d);
+      const _clCor = _cl === 'RENTÁVEL' ? 'badge-success' : _cl === 'DEFICITÁRIA' ? 'badge-danger' : 'badge-warning';
+      const sitCell = `<span class="badge ${_clCor}">${_cl}</span>`;
+      return `<tr><td>${d.cliente}${qtdBadge}${obsIco}${torreIdent(d)}</td><td>${d.cidade}</td><td><span class="badge ${stBadge}">${d.status}</span></td><td>${d.modelo}</td><td>${fornTorreCell(d)}</td><td style="text-align:right">${d.cameras||'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums" title="${d.valor_imagem!=null||d.valor_ia!=null||d.valor_servidor!=null ? 'Visualização ' + (d.forn_imagem||'') + ': ' + fmtVal(d.valor_imagem||0) + ' | Inteligência ' + (d.forn_ia||'') + ': ' + fmtVal(Number(d.valor_ia||0) + Number(d.valor_licenca_ia||0)) + (d.valor_servidor ? ' | Servidor Adentro: ' + fmtVal(d.valor_servidor) : '') : 'Valor total (sem divisão)'}">${d.pago_forn?fmtVal(d.pago_forn):'—'}</td><td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--danger)">${fmtVal(_cst.total)}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${d.cobrado?fmtVal(d.cobrado):'—'}</td><td style="text-align:right">${margemCell(d)}</td><td style="text-align:center">${sitCell}</td><td>${gratCell}</td><td style="text-align:center">${ckCell}</td><td>${d.responsavel}</td><td style="white-space:nowrap"><button class="btn btn-outline btn-sm" onclick="openTorreModal(${d.id})" style="margin-right:4px">Editar</button><button class="btn btn-outline btn-sm" onclick="deleteTorre(${d.id})" style="color:var(--danger)">Excluir</button></td></tr>`;
     }).join('')}</tbody></table>`;
 }
 
